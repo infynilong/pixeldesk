@@ -48,7 +48,7 @@ export class Start extends Phaser.Scene {
     // ===== 玩家相关方法 =====
     createPlayer(map) {
         // 从对象层获取玩家位置
-        const userLayer = map.getObjectLayer('user_objs');
+        const userLayer = map.getObjectLayer('player_objs');
         if (!userLayer) {
             console.warn('User objects layer not found');
             return;
