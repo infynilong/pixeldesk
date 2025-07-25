@@ -1,0 +1,51 @@
+{
+    "Map/SizeTest": {
+        "height": 4300,
+        "width": 2
+    },
+    "activeFile": "",
+    "expandedProjectPaths": [
+    ],
+    "file.lastUsedOpenFilter": "全部文件 (*)",
+    "fileStates": {
+        "": {
+            "scaleInDock": 0.33,
+            "scaleInEditor": 1
+        },
+        "#tileset": {
+            "dynamicWrapping": false
+        },
+        "officemap.tmx#ice_creem": {
+            "dynamicWrapping": false
+        },
+        "officemap.tmx#library_tileset": {
+            "dynamicWrapping": true
+        },
+        "officemap.tmx#office_tileset_blue": {
+            "scaleInEditor": 1
+        },
+        "officemap.tmx#player": {
+            "dynamicWrapping": false,
+            "scaleInEditor": 1
+        },
+        "officemap.tmx#room_floor_tileset": {
+            "scaleInEditor": 1
+        }
+    },
+    "last.exportedFilePath": "/Users/jiangyilong/project/PixelDesk/PixelDesk/assets",
+    "last.imagePath": "/Users/jiangyilong/project/PixelDesk/PixelDesk/assets/moderninteriors-win/2_Characters/Old/Single_Characters_Legacy/48x48",
+    "map.fixedSize": false,
+    "map.lastUsedExportFilter": "JSON map files (*.tmj *.json)",
+    "map.lastUsedFormat": "tmx",
+    "openFiles": [
+    ],
+    "project": "pixelDeskMap.tiled-project",
+    "recentFiles": [
+    ],
+    "tileset.embedInMap": true,
+    "tileset.tileSize": {
+        "height": 48,
+        "width": 48
+    },
+    "tileset.type": 0
+}
