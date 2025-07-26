@@ -1,4 +1,5 @@
 import { WorkstationManager } from '../logic/WorkstationManager.js';
+import { Player } from '../entities/Player.js';
 
 export class Start extends Phaser.Scene {
     constructor() {
@@ -63,58 +64,11 @@ export class Start extends Phaser.Scene {
             return;
         }
 
-        // 创建玩家容器
-        this.player = this.add.container(userBody.x, userBody.y - userBody.height);
-        
-        // 添加身体和头部精灵
-        const bodySprite = this.add.image(0, 48, 'characters_list_image');
-        const headSprite = this.add.image(0, 0, 'characters_list_image');
-        
-        // 设置纹理区域（从tileset中提取正确的帧）
-        bodySprite.setFrame(56); // user_body对应的帧
-        headSprite.setFrame(0);  // user_head对应的帧
-        
-        this.player.add([headSprite, bodySprite]);
-        
-        // 设置玩家物理属性
-        this.physics.world.enable(this.player);
-        this.player.body.setSize(32, 80); // 设置碰撞盒大小
-        this.player.body.setOffset(-16, -32); // 调整碰撞盒位置
-        
-        // 保存引用以便后续更新帧
-        this.player.bodySprite = bodySprite;
-        this.player.headSprite = headSprite;
-        this.player.currentDirection = 'down'; // 默认朝下
+        // 创建玩家实例
+        this.player = new Player(this, userBody.x, userBody.y - userBody.height);
+        this.add.existing(this.player);
         
         console.log('Player created at:', this.player.x, this.player.y);
-    }
-
-    setPlayerDirection(direction) {
-        if (!this.player || this.player.currentDirection === direction) return;
-        
-        this.player.currentDirection = direction;
-        
-        // 根据方向设置不同的帧（假设帧布局为：上=0, 左=1, 下=2, 右=3）
-        // 注意：这里需要根据实际的雪碧图帧布局来调整帧索引
-        switch (direction) {
-            case 'up':
-                this.player.headSprite.setFrame(1);
-                this.player.bodySprite.setFrame(57);
-                break;
-            case 'left':
-                this.player.headSprite.setFrame(2);
-                this.player.bodySprite.setFrame(58);
-                break;
-            case 'down': 
-                this.player.headSprite.setFrame(3);
-                this.player.bodySprite.setFrame(59);
-                
-                break;
-            case 'right':
-                this.player.headSprite.setFrame(0);
-                this.player.bodySprite.setFrame(56);
-                break;
-        }
     }
 
     handlePlayerMovement() {
@@ -143,13 +97,8 @@ export class Start extends Phaser.Scene {
             direction = 'down';
         }
 
-        // 设置速度
-        this.player.body.setVelocity(velocityX, velocityY);
-        
-        // 更新玩家方向帧（仅在移动时更新）
-        if (velocityX !== 0 || velocityY !== 0) {
-            this.setPlayerDirection(direction);
-        }
+        // 设置速度和方向
+        this.player.move(velocityX, velocityY, direction);
     }
 
     // ===== 工位事件处理 =====
