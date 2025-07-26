@@ -81,15 +81,40 @@ export class Start extends Phaser.Scene {
         this.player.body.setSize(32, 80); // 设置碰撞盒大小
         this.player.body.setOffset(-16, -8); // 调整碰撞盒位置
         
+        // 保存引用以便后续更新帧
+        this.player.bodySprite = bodySprite;
+        this.player.headSprite = headSprite;
+        this.player.currentDirection = 'down'; // 默认朝下
+        
         console.log('Player created at:', this.player.x, this.player.y);
     }
 
-    setupInput() {
-        // 创建方向键
-        this.cursors = this.input.keyboard.createCursorKeys();
+    setPlayerDirection(direction) {
+        if (!this.player || this.player.currentDirection === direction) return;
         
-        // 创建WASD键
-        this.wasdKeys = this.input.keyboard.addKeys('W,S,A,D');
+        this.player.currentDirection = direction;
+        
+        // 根据方向设置不同的帧（假设帧布局为：上=0, 左=1, 下=2, 右=3）
+        // 注意：这里需要根据实际的雪碧图帧布局来调整帧索引
+        switch (direction) {
+            case 'up':
+                this.player.headSprite.setFrame(1);
+                this.player.bodySprite.setFrame(5);
+                break;
+            case 'left':
+                this.player.headSprite.setFrame(2);
+                this.player.bodySprite.setFrame(6);
+                break;
+            case 'down': 
+                this.player.headSprite.setFrame(3);
+                this.player.bodySprite.setFrame(7);
+                
+                break;
+            case 'right':
+                this.player.headSprite.setFrame(0);
+                this.player.bodySprite.setFrame(4);
+                break;
+        }
     }
 
     handlePlayerMovement() {
@@ -98,23 +123,33 @@ export class Start extends Phaser.Scene {
         const speed = 200;
         let velocityX = 0;
         let velocityY = 0;
+        let direction = this.player.currentDirection; // 保持当前方向
 
         // 检查水平移动
         if (this.cursors.left.isDown || this.wasdKeys.A.isDown) {
             velocityX = -speed;
+            direction = 'left';
         } else if (this.cursors.right.isDown || this.wasdKeys.D.isDown) {
             velocityX = speed;
+            direction = 'right';
         }
 
         // 检查垂直移动
         if (this.cursors.up.isDown || this.wasdKeys.W.isDown) {
             velocityY = -speed;
+            direction = 'up';
         } else if (this.cursors.down.isDown || this.wasdKeys.S.isDown) {
             velocityY = speed;
+            direction = 'down';
         }
 
         // 设置速度
         this.player.body.setVelocity(velocityX, velocityY);
+        
+        // 更新玩家方向帧（仅在移动时更新）
+        if (velocityX !== 0 || velocityY !== 0) {
+            this.setPlayerDirection(direction);
+        }
     }
 
     // ===== 工位事件处理 =====
@@ -326,6 +361,20 @@ export class Start extends Phaser.Scene {
             this.cameras.main.startFollow(this.player);
             this.cameras.main.setLerp(0.1, 0.1); // 平滑跟随
         }
+    }
+
+    // ===== 输入设置方法 =====
+    setupInput() {
+        // 键盘输入
+        this.cursors = this.input.keyboard.createCursorKeys();
+        
+        // WASD 键盘输入
+        this.wasdKeys = this.input.keyboard.addKeys({
+            'W': Phaser.Input.Keyboard.KeyCodes.W,
+            'A': Phaser.Input.Keyboard.KeyCodes.A,
+            'S': Phaser.Input.Keyboard.KeyCodes.S,
+            'D': Phaser.Input.Keyboard.KeyCodes.D
+        });
     }
 
     // ===== 工位管理便捷方法 =====
