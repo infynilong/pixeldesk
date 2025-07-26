@@ -145,11 +145,18 @@ export class Start extends Phaser.Scene {
         const tilesetAssets = {
             'room_builder_walls_image': 'assets/floor/Room_Builder_Walls_48x48.png',
             'ice_creem_floor_image': 'assets/floor/Ice_Cream_Shop_Design_layer_1_48x48.png',
-            'characters_list_image': 'assets/player/me.png'
         };
 
         Object.entries(tilesetAssets).forEach(([key, path]) => {
             this.load.image(key, path);
+        });
+
+        const spriteAssets = {
+            'characters_list_image': 'assets/player/me.png'
+        }
+
+        Object.entries(spriteAssets).forEach(([key, path]) => {
+            this.load.spritesheet(key, path, { frameWidth: 48, frameHeight: 48 });
         });
     }
 
@@ -183,7 +190,6 @@ export class Start extends Phaser.Scene {
             ['room_floor_tileset', 'room_builder_walls_image'],
             ['ice_creem_floor', 'ice_creem_floor_image'],
             ['characters_list', 'characters_list_image'],
-            ['library_tileset', 'library_tileset_image'],
         ];
 
         return tilesetConfigs.map(([tilesetName, imageKey]) => 
