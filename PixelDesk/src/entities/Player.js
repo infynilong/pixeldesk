@@ -1,9 +1,16 @@
 export class Player extends Phaser.GameObjects.Container {
     constructor(scene, x, y, spriteKey = 'characters_list_image') {
+        // 尝试从存储中恢复位置
+        const savedState = Player.getSavedState();
+        if (savedState) {
+            x = savedState.x;
+            y = savedState.y;
+        }
+        
         super(scene, x, y);
         
         this.spriteKey = spriteKey;
-        this.currentDirection = 'down';
+        this.currentDirection = savedState?.direction || 'down';
         this.speed = 200;
         
         // 创建身体和头部精灵
@@ -19,11 +26,11 @@ export class Player extends Phaser.GameObjects.Container {
         // 启用物理特性
         scene.physics.world.enable(this);
         // 修改碰撞体大小和偏移量，使其与玩家精灵重叠
-        this.body.setSize(40, 80);
+        this.body.setSize(40, 60);
         this.body.setOffset(0, 0);
         
         // 设置默认帧
-        // this.setDirectionFrame('down');
+        this.setDirectionFrame(this.currentDirection);
     }
     
     setDirectionFrame(direction) {
@@ -50,6 +57,9 @@ export class Player extends Phaser.GameObjects.Container {
                 this.bodySprite.setFrame(56);
                 break;
         }
+        
+        // 保存方向变化
+        this.saveState();
     }
     
     move(velocityX, velocityY, direction) {
@@ -89,6 +99,37 @@ export class Player extends Phaser.GameObjects.Container {
 
         // 设置速度和方向
         this.move(velocityX, velocityY, direction);
+        
+        // 保存位置（在移动过程中持续保存）
+        if (velocityX !== 0 || velocityY !== 0) {
+            this.saveState();
+        }
+    }
+    
+    // 保存玩家状态到localStorage
+    saveState() {
+        const state = {
+            x: this.x,
+            y: this.y,
+            direction: this.currentDirection
+        };
+        localStorage.setItem('playerState', JSON.stringify(state));
+    }
+    
+    // 从localStorage获取保存的玩家状态
+    static getSavedState() {
+        try {
+            const state = localStorage.getItem('playerState');
+            return state ? JSON.parse(state) : null;
+        } catch (e) {
+            console.warn('Failed to parse player state from localStorage', e);
+            return null;
+        }
+    }
+    
+    // 清除保存的玩家状态
+    static clearSavedState() {
+        localStorage.removeItem('playerState');
     }
     
     destroy() {

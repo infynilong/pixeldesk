@@ -52,6 +52,9 @@
                 "y": 766
             }
         },
+        "officemap.tmx#bathroom": {
+            "dynamicWrapping": true
+        },
         "officemap.tmx#characters_list": {
             "dynamicWrapping": false,
             "scaleInDock": 1,
@@ -95,7 +98,7 @@
         }
     },
     "last.exportedFilePath": "/Users/jiangyilong/project/PixelDesk/PixelDesk/assets",
-    "last.imagePath": "/Users/jiangyilong/project/PixelDesk/PixelDesk/assets/desk",
+    "last.imagePath": "/Users/jiangyilong/project/PixelDesk/PixelDesk/assets/bathroom",
     "map.fixedSize": false,
     "map.lastUsedExportFilter": "JSON map files (*.tmj *.json)",
     "map.lastUsedFormat": "tmx",
@@ -111,5 +114,5 @@
         "height": 48,
         "width": 48
     },
-    "tileset.type": 0
+    "tileset.type": 1
 }

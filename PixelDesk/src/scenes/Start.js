@@ -59,12 +59,7 @@ export class Start extends Phaser.Scene {
         const userBody = userLayer.objects.find(obj => obj.name === 'user_body');
         const userHead = userLayer.objects.find(obj => obj.name === 'user_head');
 
-        if (!userBody || !userHead) {
-            console.warn('Player objects not found');
-            return;
-        }
-
-        // 创建玩家实例
+        // 创建玩家实例（位置会从保存状态中恢复）
         this.player = new Player(this, userBody.x, userBody.y - userBody.height);
         this.add.existing(this.player);
         
@@ -292,7 +287,10 @@ export class Start extends Phaser.Scene {
 
     // ===== 辅助方法 =====
     isDeskObject(obj) {
-        return obj.name === 'desk' || obj.type === 'desk';
+        // 修改为同时识别desk和bookcase对象
+        return obj.name === 'desk' || obj.type === 'desk' || 
+               obj.name === 'library_bookcase_normal' || obj.name === 'library_bookcase_tall' ||
+               obj.type === 'bookcase';
     }
 
     addDebugBounds(obj, adjustedY) {
@@ -372,7 +370,7 @@ export class Start extends Phaser.Scene {
         console.log('=== Setting up test bindings ===');
         
         // 获取前几个工位进行测试绑定
-        const availableWorkstations = this.workstationManager.getAvailableWorkstations().slice(0, 3);
+        const availableWorkstations = this.workstationManager.getAvailableWorkstations().slice(0, 10);
         
         availableWorkstations.forEach((workstation, index) => {
             const userId = `user_${index + 1}`;
