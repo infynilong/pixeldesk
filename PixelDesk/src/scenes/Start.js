@@ -1,10 +1,13 @@
 import { WorkstationManager } from '../logic/WorkstationManager.js';
 import { Player } from '../entities/Player.js';
+import { WashroomManager } from '../logic/WashroomManager.js';
+import { ZoomControl } from '../components/ZoomControl.js';
 
 export class Start extends Phaser.Scene {
     constructor() {
         super('Start');
         this.workstationManager = null;
+        this.washroomManager = null; // 添加洗手间管理器
         this.player = null;
         this.cursors = null;
         this.wasdKeys = null;
@@ -21,12 +24,18 @@ export class Start extends Phaser.Scene {
     create() {
         // 初始化工位管理器
         this.workstationManager = new WorkstationManager(this);
+        // 初始化洗手间管理器
+        this.washroomManager = new WashroomManager(this);
         this.setupWorkstationEvents();
 
         const map = this.createTilemap();
         this.mapLayers = this.createTilesetLayers(map);
         this.renderObjectLayer(map, 'desk_objs');
         
+        // 创建洗手间
+        this.washroomManager.createWashroom(map);
+        this.renderObjectLayer(map, 'washroom/washroom_objs');
+
         // 创建玩家
         this.createPlayer(map);
         
@@ -149,11 +158,16 @@ export class Start extends Phaser.Scene {
         this.load.image("desk_image", "assets/desk/desk_long_right.png");
         this.load.image("desk_long_right", "assets/desk/desk_long_right.png");
         this.load.image("desk_long_left", "assets/desk/desk_long_left.png");
-        this.load.image("desk_short_right", "assets/desk/desk_short_right.png");
-        this.load.image("desk_short_left", "assets/desk/desk_short_left.png");
+        this.load.image("desk_short_right", "assets/desk/single_desk.png");
+        this.load.image("desk_short_left", "assets/desk/single_desk_short_left.png");
         this.load.image("single_desk", "assets/desk/single_desk.png");
         this.load.image("library_bookcase_normal", "assets/desk/library_bookcase_normal.png");
         this.load.image("library_bookcase_tall", "assets/desk/library_bookcase_tall.png");
+
+        this.load.image("Shadowless_washhand", "assets/bathroom/Shadowless_washhand.png");
+        this.load.image("Bathroom_matong", "assets/bathroom/Bathroom_matong.png");
+        this.load.image("Shadowless_glass_2", "assets/bathroom/Shadowless_glass_2.png");
+        this.load.image("Shadowless_glass", "assets/bathroom/Shadowless_glass.png");
     }
 
     // ===== 地图创建方法 =====
@@ -166,7 +180,7 @@ export class Start extends Phaser.Scene {
         const tilesets = this.addTilesets(map);
         
         // 创建图层
-        const layerNames = ['bg', 'office_1', 'office_1_desk'];
+        const layerNames = ['bg', 'office_1'];
         const layers = {};
         
         layerNames.forEach(layerName => {
@@ -283,6 +297,25 @@ export class Start extends Phaser.Scene {
         if (obj.width && obj.height) {
             sprite.setDisplaySize(obj.width, obj.height);
         }
+
+        // 应用对象的旋转角度（如果存在）
+        if (obj.rotation !== undefined) {
+            // Tiled使用角度，Phaser使用弧度，需要转换
+            const rotationRad = obj.rotation * Math.PI / 180;
+            sprite.setRotation(rotationRad);
+            
+            // 调整旋转后的坐标偏移
+            // Tiled以对象中心为旋转中心，Phaser以左上角为旋转中心
+            const centerX = obj.x + obj.width / 2;
+            const centerY = obj.y - obj.height / 2;
+            
+            // 计算旋转后的新位置
+            const rotatedX = centerX - (obj.width / 2) * Math.cos(rotationRad) - (obj.height / 2) * Math.sin(rotationRad);
+            const rotatedY = centerY + (obj.width / 2) * Math.sin(rotationRad) - (obj.height / 2) * Math.cos(rotationRad);
+            
+            sprite.setX(rotatedX);
+            sprite.setY(rotatedY);
+        }
     }
 
     // ===== 辅助方法 =====
@@ -323,14 +356,47 @@ export class Start extends Phaser.Scene {
             console.log(`Map size (fallback): ${map.widthInPixels}x${map.heightInPixels}`);
         }
         
-        // 设置相机缩放，让地图看起来更小
-        this.cameras.main.setZoom(0.5); // 50% 缩放，你可以根据需要调整这个值
+        // 从本地存储获取缩放值，如果没有则使用默认值0.5
+        const savedZoom = localStorage.getItem('cameraZoom');
+        const zoomValue = savedZoom ? parseFloat(savedZoom) : 0.5;
+        
+        // 设置相机缩放
+        this.cameras.main.setZoom(zoomValue);
         
         // 让摄像机跟随玩家
         if (this.player) {
             this.cameras.main.startFollow(this.player);
             this.cameras.main.setLerp(0.1, 0.1); // 平滑跟随
         }
+        
+        // 创建缩放控制按钮
+        this.createZoomControls();
+    }
+
+    createZoomControls() {
+        // 使用新创建的ZoomControl组件
+        this.zoomControl = new ZoomControl(this);
+    }
+    
+    adjustZoom(delta) {
+        // 获取当前缩放值
+        let currentZoom = this.cameras.main.zoom;
+        // 计算新缩放值
+        let newZoom = currentZoom + delta;
+        
+        // 限制缩放范围在0.2到2之间
+        newZoom = Phaser.Math.Clamp(newZoom, 0.2, 2);
+        
+        // 使用动画效果调整缩放
+        this.tweens.add({
+            targets: this.cameras.main,
+            zoom: newZoom,
+            duration: 300,
+            ease: 'Sine.easeInOut'
+        });
+        
+        // 保存到本地存储
+        localStorage.setItem('cameraZoom', newZoom.toString());
     }
 
     // ===== 输入设置方法 =====
