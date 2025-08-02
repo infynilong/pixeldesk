@@ -30,12 +30,10 @@ export class Start extends Phaser.Scene {
             level: 1,
             hp: 80,
             maxHp: 100,
-            gold: 150
+            gold: 150,
+            deskCount: 1000,
         };
         
-        // 发送初始数据到UI
-        this.events.emit('updateUserData', this.userData);
-
         // 初始化工位管理器
         this.workstationManager = new WorkstationManager(this);
         // 初始化洗手间管理器
@@ -239,9 +237,9 @@ export class Start extends Phaser.Scene {
             console.warn(`Object layer "${layerName}" not found`);
             return;
         }
-
-        console.log(`Found ${layerName} with ${objectLayer.objects.length} objects`, objectLayer);
         
+        // 发送初始数据到UI
+        this.userData.deskCount = objectLayer.objects.length;
         // 创建桌子碰撞组
         this.deskColliders = this.physics.add.staticGroup();
         

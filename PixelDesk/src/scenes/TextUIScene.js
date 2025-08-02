@@ -1,11 +1,11 @@
 export class TextUIScene extends Phaser.Scene {
     constructor() {
         super({ key: 'TextUIScene' });
+        this.deskCount = 0; // 添加桌子数量属性
     }
     
     create() {
       
-
         // 2. 用户信息栏 (userInfo)
         const infoBarHeight = 40;
         const fontSize = '18px';
@@ -33,7 +33,6 @@ export class TextUIScene extends Phaser.Scene {
         
         // 监听游戏数据更新事件
         const gameScene = this.scene.get('Start');
-        gameScene.events.on('updateUserData', this.updateUserDisplay, this);
 
         // 立即使用初始数据更新一次
         if (gameScene.userData) {
@@ -42,10 +41,27 @@ export class TextUIScene extends Phaser.Scene {
     }
     
     updateUserDisplay(data) {
+        console.log('data',data)
         if (data) {
             this.userInfoText.setText(
-                `${data.username} | Level ${data.level} | HP: ${data.hp}/${data.maxHp} | Gold: ${data.gold}`
+                `${data.username} | Desks: ${data.deskCount}`
             );
+        }
+    }
+    
+    updateDeskCount(count) {
+        console.log('updateDeskCount', count)
+        this.deskCount = count;
+
+        // 重新更新显示以包含桌子数量
+        const gameScene = this.scene.get('Start');
+        if (gameScene.userData) {
+            // 创建新的数据对象，包含更新的deskCount
+            const updatedData = {
+                ...gameScene.userData,
+                deskCount: count
+            };
+            this.updateUserDisplay(updatedData);
         }
     }
 }
