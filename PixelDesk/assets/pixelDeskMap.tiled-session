@@ -40,20 +40,29 @@
         "/Users/jiangyilong/project/Game/PixelTest/PixelTest/assets/foxyLayer.tmx#tileset": {
             "scaleInDock": 1
         },
+        "industial-map/town.tmx": {
+            "scale": 0.3368,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 724.4655581947743,
+                "y": 714.0736342042755
+            }
+        },
         "officemap.tmx": {
             "expandedObjectLayers": [
                 4,
-                6
+                7
             ],
             "scale": 0.25,
-            "selectedLayer": 4,
+            "selectedLayer": 6,
             "viewCenter": {
-                "x": 128,
-                "y": 766
+                "x": 1594,
+                "y": 1054
             }
         },
         "officemap.tmx#bathroom": {
-            "dynamicWrapping": true
+            "dynamicWrapping": true,
+            "scaleInDock": 1
         },
         "officemap.tmx#characters_list": {
             "dynamicWrapping": false,
@@ -99,9 +108,11 @@
     },
     "last.exportedFilePath": "/Users/jiangyilong/project/PixelDesk/PixelDesk/assets",
     "last.imagePath": "/Users/jiangyilong/project/PixelDesk/PixelDesk/assets/bathroom",
-    "map.fixedSize": false,
+    "map.fixedSize": true,
     "map.lastUsedExportFilter": "JSON map files (*.tmj *.json)",
     "map.lastUsedFormat": "tmx",
+    "map.tileHeight": 48,
+    "map.tileWidth": 48,
     "openFiles": [
     ],
     "project": "pixelDeskMap.tiled-project",
