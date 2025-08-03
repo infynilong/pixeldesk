@@ -41,7 +41,6 @@ export class TextUIScene extends Phaser.Scene {
     }
     
     updateUserDisplay(data) {
-        console.log('data',data)
         if (data) {
             this.userInfoText.setText(
                 `${data.username} | Desks: ${data.deskCount}`

@@ -9,7 +9,7 @@
     "file.lastUsedOpenFilter": "全部文件 (*)",
     "fileStates": {
         "": {
-            "scaleInDock": 1,
+            "scaleInDock": 0.5,
             "scaleInEditor": 1
         },
         "#tileset": {
@@ -44,20 +44,19 @@
             "scale": 0.3368,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 724.4655581947743,
+                "x": 878.8598574821852,
                 "y": 714.0736342042755
             }
         },
         "officemap.tmx": {
             "expandedObjectLayers": [
-                4,
-                7
+                4
             ],
-            "scale": 0.25,
-            "selectedLayer": 6,
+            "scale": 0.33,
+            "selectedLayer": 1,
             "viewCenter": {
-                "x": 1594,
-                "y": 1054
+                "x": 5439.39393939394,
+                "y": 843.9393939393939
             }
         },
         "officemap.tmx#bathroom": {
@@ -67,6 +66,11 @@
         "officemap.tmx#characters_list": {
             "dynamicWrapping": false,
             "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "officemap.tmx#condominium": {
+            "dynamicWrapping": false,
+            "scaleInDock": 0.5,
             "scaleInEditor": 1
         },
         "officemap.tmx#hospital": {
@@ -107,7 +111,7 @@
         }
     },
     "last.exportedFilePath": "/Users/jiangyilong/project/PixelDesk/PixelDesk/assets",
-    "last.imagePath": "/Users/jiangyilong/project/PixelDesk/PixelDesk/assets/bathroom",
+    "last.imagePath": "/Users/jiangyilong/project/Game/工位素材/已付费/moderninteriors-win/1_Interiors/48x48/Theme_Sorter_Black_Shadow_Singles_48x48/26_Condominium_Black_Shadow_Singles_48x48",
     "map.fixedSize": true,
     "map.lastUsedExportFilter": "JSON map files (*.tmj *.json)",
     "map.lastUsedFormat": "tmx",
@@ -118,6 +122,7 @@
     "project": "pixelDeskMap.tiled-project",
     "property.type": "bool",
     "recentFiles": [
+        "industial-map/town.tmx",
         "/Users/jiangyilong/project/Game/PixelTest/PixelTest/assets/foxyLayer.tmx"
     ],
     "tileset.embedInMap": true,
@@ -125,5 +130,5 @@
         "height": 48,
         "width": 48
     },
-    "tileset.type": 1
+    "tileset.type": 0
 }

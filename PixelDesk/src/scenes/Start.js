@@ -48,6 +48,9 @@ export class Start extends Phaser.Scene {
         this.washroomManager.createWashroom(map);
         this.renderObjectLayer(map, 'washroom/washroom_objs');
 
+        // 创建floor图层
+         this.renderObjectLayer(map, 'floor');
+
         // 创建玩家
         this.createPlayer(map);
         
@@ -182,6 +185,24 @@ export class Start extends Phaser.Scene {
         this.load.image("Bathroom_matong", "assets/bathroom/Bathroom_matong.png");
         this.load.image("Shadowless_glass_2", "assets/bathroom/Shadowless_glass_2.webp");
         this.load.image("Shadowless_glass", "assets/bathroom/Shadowless_glass.png");
+
+        this.load.image("sofa-left-1", "assets/sofa/sofa-left-1.png");
+        this.load.image("sofa-left-2", "assets/sofa/sofa-left-2.png");
+        this.load.image("sofa-left-3", "assets/sofa/sofa-left-3.png");
+        this.load.image("sofa-right-1", "assets/sofa/sofa-right-1.png");
+        this.load.image("sofa-right-2", "assets/sofa/sofa-right-2.png");
+        this.load.image("sofa-right-3", "assets/sofa/sofa-right-3.png");
+        
+        this.load.image("desk-big-manager-left-1", "assets/desk/desk-big-manager-left-1.png");
+        this.load.image("desk-big-manager-center-1", "assets/desk/desk-big-manager-center-1.png");
+        this.load.image("desk-big-manager-right-1", "assets/desk/desk-big-manager-right-1.png");
+        this.load.image("desk-big-manager-center-2", "assets/desk/desk-big-manager-center-2.png");
+
+        this.load.image("flower", "assets/tileset/flower.png");
+        this.load.image("rug", "assets/tileset/rug.png");
+        this.load.image("cabinet", "assets/tileset/cabinet.png");
+        this.load.image("stair-red", "assets/tileset/stair-red.png");
+
     }
 
     // ===== 地图创建方法 =====
@@ -238,8 +259,10 @@ export class Start extends Phaser.Scene {
             return;
         }
         
-        // 发送初始数据到UI
-        this.userData.deskCount = objectLayer.objects.length;
+        // 发送初始数据到UI - 只对desk_objs图层执行
+        if (layerName === 'desk_objs') {
+            this.userData.deskCount = objectLayer.objects.length;
+        }
         // 创建桌子碰撞组
         this.deskColliders = this.physics.add.staticGroup();
         
@@ -292,6 +315,7 @@ export class Start extends Phaser.Scene {
 
     renderTilesetObject(obj, adjustedY) {
         const imageKey = obj.name || 'desk_image';
+        console.log(`Rendering washroom tileset object: `, obj.name);
         if (!imageKey) return null;
  
         const sprite = this.add.image(obj.x, adjustedY, imageKey);
@@ -336,7 +360,7 @@ export class Start extends Phaser.Scene {
         // 修改为同时识别desk和bookcase对象
         return obj.name === 'desk' || obj.type === 'desk' || 
                obj.name === 'library_bookcase_normal' || obj.name === 'library_bookcase_tall' ||
-               obj.type === 'bookcase';
+               obj.type === 'bookcase' || obj.type === 'bookcase_tall' || obj.type === 'sofa' || obj.type === 'flower';
     }
 
     addDebugBounds(obj, adjustedY) {
@@ -361,12 +385,10 @@ export class Start extends Phaser.Scene {
 
             this.cameras.main.setBounds(mapX, mapY, mapWidth, mapHeight);
             this.physics.world.setBounds(mapX, mapY, mapWidth, mapHeight);
-            console.log(`Map bounds set to: x:${mapX}, y:${mapY}, w:${mapWidth}, h:${mapHeight}`);
         } else {
             // Fallback for non-infinite maps or if layer name changes
             this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
             this.physics.world.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
-            console.log(`Map size (fallback): ${map.widthInPixels}x${map.heightInPixels}`);
         }
         
         // 启用相机渲染优化 - 限制渲染范围
@@ -392,8 +414,6 @@ export class Start extends Phaser.Scene {
             const adjustedWidth = ( deadzoneWidth - 200 ) / zoom ;
             const adjustedHeight = ( deadzoneHeight - 200 ) / zoom;
             this.cameras.main.setDeadzone(adjustedWidth, adjustedHeight);
-          
-            console.log('deadzoneWidth', adjustedWidth,adjustedHeight)
             // 添加死区调试可视化
             // this.createDeadzoneDebug(deadzoneWidth, deadzoneHeight);
         } else {
