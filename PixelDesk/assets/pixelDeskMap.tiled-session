@@ -9,7 +9,7 @@
     "file.lastUsedOpenFilter": "全部文件 (*)",
     "fileStates": {
         "": {
-            "scaleInDock": 0.5,
+            "scaleInDock": 1,
             "scaleInEditor": 1
         },
         "#tileset": {
@@ -111,7 +111,7 @@
         }
     },
     "last.exportedFilePath": "/Users/jiangyilong/project/PixelDesk/PixelDesk/assets",
-    "last.imagePath": "/Users/jiangyilong/project/Game/工位素材/已付费/moderninteriors-win/1_Interiors/48x48/Theme_Sorter_Black_Shadow_Singles_48x48/26_Condominium_Black_Shadow_Singles_48x48",
+    "last.imagePath": "/Users/jiangyilong/project/PixelDesk/PixelDesk/assets/characters",
     "map.fixedSize": true,
     "map.lastUsedExportFilter": "JSON map files (*.tmj *.json)",
     "map.lastUsedFormat": "tmx",

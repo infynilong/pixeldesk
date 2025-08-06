@@ -52,19 +52,19 @@ export class Start extends Phaser.Scene {
          this.renderObjectLayer(map, 'floor');
 
         // 创建玩家
-        this.createPlayer(map);
+        // this.createPlayer(map);
         
         // 设置输入
         this.setupInput();
         
         // 设置相机
-       
         this.setupCamera(map);
         
         // 创建完成后的初始化
         this.time.delayedCall(100, () => {
             this.workstationManager.printStatistics();
             this.setupTestBindings(); // 示例绑定
+ 
         });
     }
 
@@ -85,8 +85,8 @@ export class Start extends Phaser.Scene {
         const userBody = userLayer.objects.find(obj => obj.name === 'user_body');
         const userHead = userLayer.objects.find(obj => obj.name === 'user_head');
 
-        // 创建玩家实例（位置会从保存状态中恢复）
-        this.player = new Player(this, userBody.x, userBody.y - userBody.height);
+        // 创建玩家实例（位置会从保存状态中恢复），启用移动和状态保存
+        this.player = new Player(this, userBody.x, userBody.y - userBody.height, 'characters_list_image', true, true);
         this.add.existing(this.player);
         
         // 确保在玩家创建后设置与地图图层的碰撞
@@ -168,6 +168,35 @@ export class Start extends Phaser.Scene {
         Object.entries(spriteAssets).forEach(([key, path]) => {
             this.load.spritesheet(key, path, { frameWidth: 48, frameHeight: 48 });
         });
+
+         // 加载角色图片（每个都包含4个方向的帧）
+        const characterAssets = [
+            'Premade_Character_48x48_01.png',
+            'Premade_Character_48x48_02.png',
+            'Premade_Character_48x48_03.png',
+            'Premade_Character_48x48_04.png',
+            'Premade_Character_48x48_05.png',
+            'Premade_Character_48x48_06.png',
+            'Premade_Character_48x48_07.png',
+            'Premade_Character_48x48_08.png',
+            'Premade_Character_48x48_09.png',
+            'Premade_Character_48x48_10.png',
+            'Premade_Character_48x48_11.png',
+            'Premade_Character_48x48_12.png',
+            'Premade_Character_48x48_13.png',
+            'Premade_Character_48x48_14.png',
+            'Premade_Character_48x48_15.png',
+            'Premade_Character_48x48_16.png',
+            'Premade_Character_48x48_17.png',
+            'Premade_Character_48x48_18.png',
+            'Premade_Character_48x48_19.png',
+            'Premade_Character_48x48_20.png',
+        ];
+
+        characterAssets.forEach(filename => {
+            const key = filename.replace('.png', '');
+            this.load.spritesheet(key, `assets/characters/${filename}`, { frameWidth: 48, frameHeight: 48 });
+        });
     }
 
     loadLibraryImages() {
@@ -202,7 +231,6 @@ export class Start extends Phaser.Scene {
         this.load.image("rug", "assets/tileset/rug.png");
         this.load.image("cabinet", "assets/tileset/cabinet.png");
         this.load.image("stair-red", "assets/tileset/stair-red.png");
-
     }
 
     // ===== 地图创建方法 =====
@@ -260,9 +288,8 @@ export class Start extends Phaser.Scene {
         }
         
         // 发送初始数据到UI - 只对desk_objs图层执行
-        if (layerName === 'desk_objs') {
-            this.userData.deskCount = objectLayer.objects.length;
-        }
+        this.userData.deskCount = this.workstationManager.getWorkstationsByType('desk').length; 
+       
         // 创建桌子碰撞组
         this.deskColliders = this.physics.add.staticGroup();
         
@@ -289,7 +316,7 @@ export class Start extends Phaser.Scene {
         }
         
         // 添加调试边界
-        // this.addDebugBounds(obj, adjustedY);
+        this.addDebugBounds(obj, adjustedY);
     }
 
     addDeskCollision(sprite, obj) {
@@ -315,7 +342,6 @@ export class Start extends Phaser.Scene {
 
     renderTilesetObject(obj, adjustedY) {
         const imageKey = obj.name || 'desk_image';
-        console.log(`Rendering washroom tileset object: `, obj.name);
         if (!imageKey) return null;
  
         const sprite = this.add.image(obj.x, adjustedY, imageKey);
@@ -565,6 +591,117 @@ export class Start extends Phaser.Scene {
         
         console.log('=== Test bindings complete ===');
         this.workstationManager.printStatistics();
+        
+        // 在绑定完成后放置角色
+        this.placeCharactersAtOccupiedWorkstations();
+    }
+
+    // 在已绑定工位旁边放置随机角色
+    placeCharactersAtOccupiedWorkstations() {
+        console.log('=== Setting up characters at occupied workstations ===');
+        
+        // 获取所有角色图片的key
+        const characterKeys = [
+            'Premade_Character_48x48_01',
+            'Premade_Character_48x48_02',
+            'Premade_Character_48x48_03',
+            'Premade_Character_48x48_04',
+            'Premade_Character_48x48_05',
+            'Premade_Character_48x48_06',
+            'Premade_Character_48x48_07',
+            'Premade_Character_48x48_08',
+            'Premade_Character_48x48_09',
+            'Premade_Character_48x48_10',
+            'Premade_Character_48x48_11',
+            'Premade_Character_48x48_12',
+            'Premade_Character_48x48_13',
+            'Premade_Character_48x48_14',
+            'Premade_Character_48x48_15',
+            'Premade_Character_48x48_16',
+            'Premade_Character_48x48_17',
+            'Premade_Character_48x48_18',
+            'Premade_Character_48x48_19',
+            'Premade_Character_48x48_20',
+        ];
+        
+        // 获取所有已绑定的工位
+        const occupiedWorkstations = this.workstationManager.getOccupiedWorkstations();
+        
+        occupiedWorkstations.forEach((workstation, index) => {
+            console.log('workstation',workstation)
+            // 随机选择一个角色
+            const randomCharacterKey = characterKeys[Math.floor(Math.random() * characterKeys.length)];
+            
+            // 根据工位方向计算角色位置
+            const { x: characterX, y: characterY, direction: characterDirection } = this.calculateCharacterPosition(workstation);
+            
+            // 直接创建Player对象，传入随机角色的spriteKey，禁用移动和状态保存
+            const character = new Player(this, characterX, characterY, randomCharacterKey, false, false);
+            this.add.existing(character);
+            
+            // 根据工位方向设置角色朝向
+            character.setDirectionFrame(characterDirection);
+            
+            // 存储角色信息到工位对象中
+            workstation.character = {
+                player: character,
+                characterKey: randomCharacterKey,
+                direction: characterDirection
+            };
+            
+            console.log(`Placed character ${randomCharacterKey} at workstation ${workstation.id} (${characterX}, ${characterY}) facing ${characterDirection} (workstation direction: ${workstation.direction})`);
+        });
+        
+        console.log('=== Characters placement complete ===');
+    }
+
+    // 根据工位方向计算角色位置和朝向
+    calculateCharacterPosition(workstation) {
+        const { position, size, direction } = workstation;
+        const offsetX = -10; // 角色与工位的距离
+        const offsetY = workstation.size.height; // 角色与工位的垂直距离
+        
+        let characterX = position.x;
+        let characterY = position.y;
+        let characterDirection = 'down';
+        
+        switch (direction) {
+            case 'right':
+                // 右侧工位，角色放在工位右侧，面向左
+                characterX = position.x + size.width + offsetX;
+                characterY = position.y - offsetY;
+                characterDirection = 'left';
+                break;
+                
+            case 'left':
+                // 左侧工位，角色放在工位左侧，面向右
+                characterX = position.x - offsetX;
+                characterY = position.y  - offsetY;
+                characterDirection = 'right';
+                break;
+                
+            case 'single':
+                // 单人桌，角色放在工位上方，面向下
+                characterX = position.x + (size.width / 2); // 居中
+                characterY = position.y - offsetY - 30 ;
+                characterDirection = 'down';
+                break;
+                
+            case 'center':
+                // 中间工位，角色放在工位上方，面向下
+                characterX = position.x + (size.width / 2) - 24; // 居中
+                characterY = position.y - offsetY;
+                characterDirection = 'down';
+                break;
+                
+            default:
+                // 默认处理
+                characterX = position.x + size.width + offsetX;
+                characterY = position.y;
+                characterDirection = 'left';
+        }
+        
+        return { x: characterX, y: characterY, direction: characterDirection };
     }
 
     // ===== 清理方法 =====

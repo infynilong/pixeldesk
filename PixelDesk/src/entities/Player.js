@@ -1,10 +1,13 @@
 export class Player extends Phaser.GameObjects.Container {
-    constructor(scene, x, y, spriteKey = 'characters_list_image') {
-        // 尝试从存储中恢复位置
-        const savedState = Player.getSavedState();
-        if (savedState) {
-            x = savedState.x;
-            y = savedState.y;
+    constructor(scene, x, y, spriteKey = 'characters_list_image', enableMovement = true, enableStateSave = true) {
+        // 尝试从存储中恢复位置（仅当启用状态保存时）
+        let savedState = null;
+        if (enableStateSave) {
+            savedState = Player.getSavedState();
+            if (savedState) {
+                x = savedState.x;
+                y = savedState.y;
+            }
         }
         
         super(scene, x, y);
@@ -12,6 +15,8 @@ export class Player extends Phaser.GameObjects.Container {
         this.spriteKey = spriteKey;
         this.currentDirection = savedState?.direction || 'down';
         this.speed = 200;
+        this.enableMovement = enableMovement;
+        this.enableStateSave = enableStateSave;
         
         // 创建身体和头部精灵
         this.bodySprite = scene.add.image(0, 48, this.spriteKey);
@@ -34,8 +39,6 @@ export class Player extends Phaser.GameObjects.Container {
     }
     
     setDirectionFrame(direction) {
-        if (this.currentDirection === direction) return;
-        
         this.currentDirection = direction;
         
         // 根据方向设置不同的帧（假设帧布局）
@@ -75,6 +78,11 @@ export class Player extends Phaser.GameObjects.Container {
     
     // 新增：处理玩家移动逻辑
     handleMovement(cursors, wasdKeys) {
+        // 如果移动功能被禁用，直接返回
+        if (!this.enableMovement) {
+            return;
+        }
+
         let velocityX = 0;
         let velocityY = 0;
         let direction = this.currentDirection; // 保持当前方向
@@ -108,6 +116,11 @@ export class Player extends Phaser.GameObjects.Container {
     
     // 保存玩家状态到localStorage
     saveState() {
+        // 如果状态保存功能被禁用，直接返回
+        if (!this.enableStateSave) {
+            return;
+        }
+
         const state = {
             x: this.x,
             y: this.y,

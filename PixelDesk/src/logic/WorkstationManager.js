@@ -13,6 +13,9 @@ export class WorkstationManager {
 
     // ===== 工位创建和管理 =====
     createWorkstation(tiledObject, sprite) {
+        // 检测工位方向
+        const direction = this.detectWorkstationDirection(tiledObject.name || tiledObject.type || '');
+        
         const workstation = {
             id: tiledObject.id,
             sprite: sprite,
@@ -20,6 +23,7 @@ export class WorkstationManager {
             size: { width: tiledObject.width || 48, height: tiledObject.height || 48 },
             type: tiledObject.type || 'desk',
             name: tiledObject.name || '',
+            direction: direction,
             isOccupied: false,
             userId: null,
             createdAt: Date.now(),
@@ -42,6 +46,26 @@ export class WorkstationManager {
             });
         }
         return metadata;
+    }
+
+    detectWorkstationDirection(name) {
+        // 根据名称检测工位方向
+        if (!name) return 'single'; // 默认为单人桌
+        
+        const lowerName = name.toLowerCase();
+        
+        if (lowerName.includes('_right')) {
+            return 'right';
+        } else if (lowerName.includes('_left')) {
+            return 'left';
+        } else if (lowerName.includes('single_desk') || lowerName === 'single_desk') {
+            return 'single';
+        } else if (lowerName.includes('center')) {
+            return 'center';
+        }
+        
+        // 默认根据宽度判断
+        return 'single';
     }
 
     setupInteraction(workstation) {
@@ -312,7 +336,7 @@ export class WorkstationManager {
         
         console.log('Workstation data imported successfully');
     }
-
+ 
     // ===== 调试和日志 =====
     printStatistics() {
         const stats = this.getStatistics();
