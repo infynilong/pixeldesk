@@ -36,6 +36,15 @@ export class Start extends Phaser.Scene {
             this.scene.start('RegisterScene');
             return;
         }
+        
+        // 确保积分字段一致性 - 如果有gold字段但没有points字段，进行同步
+        if (this.currentUser.gold !== undefined && this.currentUser.points === undefined) {
+            this.currentUser.points = this.currentUser.gold;
+            console.log('同步积分字段：gold -> points, 积分值:', this.currentUser.points);
+        } else if (this.currentUser.points !== undefined && this.currentUser.gold === undefined) {
+            this.currentUser.gold = this.currentUser.points;
+            console.log('同步积分字段：points -> gold, 积分值:', this.currentUser.gold);
+        }
 
         // 游戏逻辑
         this.userData = {
@@ -97,6 +106,9 @@ export class Start extends Phaser.Scene {
             // 重新启用自动绑定，显示随机其他玩家
             this.setupTestBindings(); // 示例绑定
             this.checkExpiredWorkstations(); // 检查过期工位
+            
+            // 更新UI显示用户数据（积分和工位绑定状态）
+            this.sendUserDataToUI();
             
             // 确保玩家移动是启用的
             console.log('Start.js: 游戏初始化 - 检查玩家移动状态，player对象:', !!this.player);
@@ -846,9 +858,12 @@ export class Start extends Phaser.Scene {
         // 监听积分更新事件
         this.events.on('user-points-updated', (data) => {
             if (this.currentUser && this.currentUser.id === data.userId) {
+                // 同时更新内存中的用户数据和localStorage
                 this.currentUser.points = data.points;
+                this.currentUser.gold = data.points; // 同时更新gold字段以确保一致性
                 this.saveCurrentUser();
                 this.sendUserDataToUI();
+                console.log('积分更新事件处理完成，新积分:', data.points);
             }
         });
 
@@ -889,9 +904,26 @@ export class Start extends Phaser.Scene {
             const userWorkstation = this.workstationManager.getWorkstationByUser(this.currentUser.id);
             const workstationId = userWorkstation ? userWorkstation.id : '';
             
+            // 修复积分显示 - 优先使用points字段，如果没有则使用gold字段
+            const userPoints = this.currentUser.points || this.currentUser.gold || 0;
+            
+            // 调试信息
+            console.log('=== 工位绑定调试信息 ===');
+            console.log('当前用户ID:', this.currentUser.id);
+            console.log('当前用户名:', this.currentUser.username);
+            console.log('用户积分:', userPoints);
+            console.log('找到的工位:', userWorkstation);
+            console.log('工位ID:', workstationId);
+            console.log('所有用户绑定:', Array.from(this.workstationManager.userBindings.entries()));
+            console.log('所有工位状态:', this.workstationManager.getAllWorkstations().map(ws => ({
+                id: ws.id,
+                isOccupied: ws.isOccupied,
+                userId: ws.userId
+            })));
+            
             this.events.emit('update-user-data', {
                 username: this.currentUser.username,
-                points: this.currentUser.points,
+                points: userPoints,
                 character: this.currentUser.character,
                 workstationId: workstationId
             });
