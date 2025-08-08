@@ -228,6 +228,13 @@ export class WorkstationManager {
         workstation.unboundAt = Date.now();
         this.userBindings.delete(workstationId);
 
+        // 清除本地存储的绑定信息
+        const savedBindings = JSON.parse(localStorage.getItem('pixelDeskWorkstationBindings') || '{}');
+        if (savedBindings[workstationId]) {
+            delete savedBindings[workstationId];
+            localStorage.setItem('pixelDeskWorkstationBindings', JSON.stringify(savedBindings));
+        }
+
         // 恢复视觉效果
         if (workstation.sprite) {
             workstation.sprite.clearTint();
@@ -401,11 +408,57 @@ export class WorkstationManager {
     }
 
     // ===== 后端接口预留 =====
+    
+    loadSavedBindings() {
+        const savedBindings = JSON.parse(localStorage.getItem('pixelDeskWorkstationBindings') || '{}');
+        const now = new Date();
+        
+        Object.entries(savedBindings).forEach(([workstationId, bindingData]) => {
+            const workstation = this.workstations.get(parseInt(workstationId));
+            if (workstation) {
+                // 检查是否过期
+                const expiresAt = new Date(bindingData.expiresAt);
+                if (now > expiresAt) {
+                    // 已过期，删除保存的绑定信息
+                    delete savedBindings[workstationId];
+                    localStorage.setItem('pixelDeskWorkstationBindings', JSON.stringify(savedBindings));
+                    return;
+                }
+                
+                // 恢复工位绑定状态
+                workstation.isOccupied = true;
+                workstation.userId = bindingData.userId;
+                workstation.userInfo = bindingData.userInfo;
+                workstation.boundAt = bindingData.boundAt;
+                workstation.expiresAt = bindingData.expiresAt;
+                workstation.remainingDays = Math.ceil((expiresAt - now) / (24 * 60 * 60 * 1000));
+                
+                this.userBindings.set(parseInt(workstationId), bindingData.userId);
+                
+                // 更新视觉效果
+                if (workstation.sprite) {
+                    workstation.sprite.setTint(this.config.occupiedTint);
+                }
+                
+                // 移除交互图标，添加占用图标
+                this.removeInteractionIcon(workstation);
+                this.addOccupiedIcon(workstation);
+                
+                console.log(`恢复工位 ${workstationId} 的绑定状态`);
+            }
+        });
+    }
+    
     async saveWorkstationBinding(workstationId, bindingData) {
         // 预留后端接口 - 保存工位绑定信息
         return new Promise((resolve) => {
             setTimeout(() => {
-                console.log('保存工位绑定信息到后端:', bindingData);
+                // 保存到 localStorage
+                const savedBindings = JSON.parse(localStorage.getItem('pixelDeskWorkstationBindings') || '{}');
+                savedBindings[workstationId] = bindingData;
+                localStorage.setItem('pixelDeskWorkstationBindings', JSON.stringify(savedBindings));
+                
+                console.log('保存工位绑定信息:', bindingData);
                 resolve({ success: true });
             }, 500);
         });
@@ -415,8 +468,17 @@ export class WorkstationManager {
         // 预留后端接口 - 更新用户积分
         return new Promise((resolve) => {
             setTimeout(() => {
-                console.log(`更新用户 ${userId} 积分: ${pointsChange > 0 ? '+' : ''}${pointsChange}`);
-                resolve({ success: true, newPoints: pointsChange });
+                // 获取当前用户数据
+                const userData = JSON.parse(localStorage.getItem('pixelDeskUser') || '{}');
+                const currentPoints = userData.points || 0;
+                const newPoints = Math.max(0, currentPoints + pointsChange);
+                
+                // 更新用户数据
+                userData.points = newPoints;
+                localStorage.setItem('pixelDeskUser', JSON.stringify(userData));
+                
+                console.log(`更新用户 ${userId} 积分: ${pointsChange > 0 ? '+' : ''}${pointsChange}, 新积分: ${newPoints}`);
+                resolve({ success: true, newPoints });
             }, 500);
         });
     }
@@ -485,7 +547,7 @@ export class WorkstationManager {
         return { 
             success: true, 
             workstation: bindResult.workstation,
-            remainingPoints: userPoints - 5
+            remainingPoints: pointsResult.newPoints
         };
     }
 

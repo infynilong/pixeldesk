@@ -106,7 +106,7 @@ export class WorkstationBindingUI {
         costText.setDepth(1001); // 文本在按钮上方
 
         // 用户积分
-        const userPointsText = this.scene.add.text(
+        this.userPointsText = this.scene.add.text(
             centerX,
             centerY + 50,
             `您的积分: ${this.currentuser.points}`,
@@ -116,9 +116,9 @@ export class WorkstationBindingUI {
                 fontFamily: 'Arial'
             }
         );
-        userPointsText.setOrigin(0.5);
-        userPointsText.setScrollFactor(0);
-        userPointsText.setDepth(1001); // 文本在按钮上方
+        this.userPointsText.setOrigin(0.5);
+        this.userPointsText.setScrollFactor(0);
+        this.userPointsText.setDepth(1001); // 文本在按钮上方
 
         // 创建按钮
         const buttons = this.createButtons(centerX, centerY + 90);
@@ -215,13 +215,18 @@ export class WorkstationBindingUI {
                 // 更新用户积分
                 this.currentuser.points = result.remainingPoints;
                 
+                // 更新UI显示
+                if (this.userPointsText) {
+                    this.userPointsText.setText(`您的积分: ${result.remainingPoints}`);
+                }
+                
                 // 保存用户数据
                 localStorage.setItem('pixelDeskUser', JSON.stringify(this.currentuser));
                 
                 // 显示成功消息
                 this.showMessage('绑定成功！', 0x4a9eff);
                 
-                // 更新UI显示
+                // 更新场景中的积分显示
                 this.scene.events.emit('user-points-updated', {
                     userId: this.currentuser.id,
                     points: result.remainingPoints

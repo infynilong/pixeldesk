@@ -82,6 +82,10 @@ export class Start extends Phaser.Scene {
             // 清理所有现有绑定和星星标记
             this.workstationManager.clearAllBindings();
             this.workstationManager.printStatistics();
+            
+            // 加载保存的工位绑定信息
+            this.workstationManager.loadSavedBindings();
+            
             // 重新启用自动绑定，显示随机其他玩家
             this.setupTestBindings(); // 示例绑定
             this.checkExpiredWorkstations(); // 检查过期工位
