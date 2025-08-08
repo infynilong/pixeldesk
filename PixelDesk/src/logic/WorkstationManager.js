@@ -182,6 +182,9 @@ export class WorkstationManager {
         // 移除交互图标
         this.removeInteractionIcon(workstation);
 
+        // 添加占用图标
+        this.addOccupiedIcon(workstation);
+
         // 预留后端接口 - 保存绑定信息
         await this.saveWorkstationBinding(workstationId, {
             userId,
@@ -230,6 +233,9 @@ export class WorkstationManager {
             workstation.sprite.clearTint();
         }
         
+        // 移除占用图标
+        this.removeOccupiedIcon(workstation);
+
         // 重新添加交互图标
         this.addInteractionIcon(workstation);
 
@@ -479,7 +485,7 @@ export class WorkstationManager {
         return { 
             success: true, 
             workstation: bindResult.workstation,
-            remainingPoints: pointsResult.newPoints - 5
+            remainingPoints: userPoints - 5
         };
     }
 
@@ -522,11 +528,45 @@ export class WorkstationManager {
         
         workstation.interactionIcon = icon;
     }
+
+    addOccupiedIcon(workstation) {
+        if (workstation.occupiedIcon) {
+            return; // 已有占用图标
+        }
+        
+        const iconX = workstation.position.x + workstation.size.width / 2;
+        const iconY = workstation.position.y + workstation.size.height / 2 - 30; // 在交互图标上方
+        
+        // 创建占用图标
+        const icon = this.scene.add.text(
+            iconX,
+            iconY,
+            '👤',
+            {
+                fontSize: '24px',
+                fill: '#ffffff',
+                backgroundColor: '#28a745',
+                padding: { x: 6, y: 3 }
+            }
+        );
+        icon.setOrigin(0.5, 0.5);
+        icon.setScrollFactor(0);
+        icon.setDepth(1002); // 确保在交互图标上方
+        
+        workstation.occupiedIcon = icon;
+    }
     
     removeInteractionIcon(workstation) {
         if (workstation.interactionIcon) {
             workstation.interactionIcon.destroy();
             workstation.interactionIcon = null;
+        }
+    }
+
+    removeOccupiedIcon(workstation) {
+        if (workstation.occupiedIcon) {
+            workstation.occupiedIcon.destroy();
+            workstation.occupiedIcon = null;
         }
     }
     
@@ -537,9 +577,10 @@ export class WorkstationManager {
         const results = this.unbindAllUsers();
         console.log(`已清理 ${results.length} 个工位绑定`);
         
-        // 移除所有交互图标
+        // 移除所有交互图标和占用图标
         this.workstations.forEach(workstation => {
             this.removeInteractionIcon(workstation);
+            this.removeOccupiedIcon(workstation);
         });
         
         console.log('所有工位绑定和交互图标已清理');
@@ -552,6 +593,7 @@ export class WorkstationManager {
                 workstation.sprite.removeAllListeners();
             }
             this.removeInteractionIcon(workstation);
+            this.removeOccupiedIcon(workstation);
         });
         
         this.workstations.clear();
