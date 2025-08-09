@@ -47,71 +47,84 @@ export default function SocialFeed({ player }) {
 
   const getStatusBadge = (type) => {
     const badges = {
-      working: 'bg-blue-100 text-blue-800',
-      break: 'bg-green-100 text-green-800',
-      reading: 'bg-purple-100 text-purple-800',
-      restroom: 'bg-yellow-100 text-yellow-800'
+      working: 'from-blue-500 to-cyan-500',
+      break: 'from-green-500 to-emerald-500',
+      reading: 'from-purple-500 to-violet-500',
+      restroom: 'from-yellow-500 to-orange-500',
+      meeting: 'from-red-500 to-pink-500',
+      lunch: 'from-orange-500 to-amber-500'
     }
-    return badges[type] || 'bg-gray-100 text-gray-800'
+    return badges[type] || 'from-gray-500 to-slate-500'
   }
 
   return (
-    <div className="p-4">
+    <div className="p-4 space-y-6">
       {/* 玩家信息 */}
-      <div className="flex items-center mb-4">
-        <div className="w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center mr-3">
-          <span className="text-lg font-bold">
-            {player?.name?.charAt(0) || 'P'}
-          </span>
-        </div>
-        <div>
-          <h3 className="font-semibold text-lg">{player?.name || '未知玩家'}</h3>
-          <span className={`text-xs px-2 py-1 rounded-full ${getStatusBadge(player?.currentStatus?.type || 'working')}`}>
-            {player?.currentStatus?.status || '在线'}
-          </span>
+      <div className="group relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-pink-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+        <div className="relative bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4">
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
+              <span className="text-xl font-bold text-white">
+                {player?.name?.charAt(0) || 'P'}
+              </span>
+            </div>
+            <div className="flex-1">
+              <h3 className="text-white font-semibold text-lg">{player?.name || '未知玩家'}</h3>
+              <div className="flex items-center gap-2 mt-1">
+                <div className={`px-3 py-1 rounded-full bg-gradient-to-r ${getStatusBadge(player?.currentStatus?.type || 'working')} text-white text-xs font-medium`}>
+                  {player?.currentStatus?.status || '在线'}
+                </div>
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* 动态列表 */}
       <div className="space-y-4">
         {playerStatuses.map((status) => (
-          <div key={status.id} className="social-card">
-            <div className="flex items-center justify-between mb-2">
-              <span className={`status-badge ${getStatusBadge(status.type)}`}>
-                {status.status}
-              </span>
-              <span className="text-sm text-gray-500">{status.timestamp}</span>
-            </div>
-            <p className="text-gray-700 mb-3">{status.content}</p>
-            
-            {/* 留言区域 */}
-            <div className="border-t pt-3">
-              <div className="space-y-2 mb-3">
-                {comments
-                  .filter(comment => comment.statusId === status.id)
-                  .map((comment) => (
-                    <div key={comment.id} className="bg-gray-50 p-2 rounded">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-medium text-sm">{comment.author}</span>
-                        <span className="text-xs text-gray-500">{comment.timestamp}</span>
-                      </div>
-                      <p className="text-sm text-gray-700">{comment.text}</p>
-                    </div>
-                  ))}
+          <div key={status.id} className="group relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 to-pink-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+            <div className="relative bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className={`px-3 py-1 rounded-full bg-gradient-to-r ${getStatusBadge(status.type)} text-white text-xs font-medium`}>
+                  {status.status}
+                </div>
+                <span className="text-gray-400 text-sm">{status.timestamp}</span>
               </div>
+              <p className="text-gray-300 mb-4 leading-relaxed">{status.content}</p>
               
-              <form onSubmit={handleSubmitComment} className="flex gap-2">
-                <input
-                  type="text"
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  placeholder="说点什么..."
-                  className="comment-input"
-                />
-                <button type="submit" className="btn-primary text-sm">
-                  发送
-                </button>
-              </form>
+              {/* 留言区域 */}
+              <div className="border-t border-white/10 pt-4">
+                <div className="space-y-3 mb-4">
+                  {comments
+                    .filter(comment => comment.statusId === status.id)
+                    .map((comment) => (
+                      <div key={comment.id} className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-white font-medium text-sm">{comment.author}</span>
+                          <span className="text-gray-400 text-xs">{comment.timestamp}</span>
+                        </div>
+                        <p className="text-gray-300 text-sm leading-relaxed">{comment.text}</p>
+                      </div>
+                    ))}
+                </div>
+                
+                <form onSubmit={handleSubmitComment} className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    placeholder="说点什么..."
+                    className="flex-1 px-4 py-2 bg-white/5 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400 backdrop-blur-sm transition-all duration-300"
+                  />
+                  <button type="submit" className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-medium py-2 px-4 rounded-lg transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl">
+                    发送
+                  </button>
+                </form>
+              </div>
             </div>
           </div>
         ))}

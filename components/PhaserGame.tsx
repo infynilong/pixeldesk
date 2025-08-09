@@ -20,8 +20,8 @@ export default function PhaserGame({ onPlayerCollision }) {
         title: 'PixelDesk Social',
         description: '社交办公游戏',
         parent: gameContainerRef.current,
-        width: gameContainerRef.current?.clientWidth || 800,
-        height: gameContainerRef.current?.clientHeight || 600,
+        width: 800,
+        height: 600,
         backgroundColor: '#000000',
         pixelArt: true,
         scene: [
@@ -30,8 +30,10 @@ export default function PhaserGame({ onPlayerCollision }) {
           TextUIScene
         ],
         scale: {
-          mode: Phaser.Scale.FIT,
-          autoCenter: Phaser.Scale.CENTER_BOTH
+          mode: Phaser.Scale.RESIZE,
+          autoCenter: Phaser.Scale.CENTER_BOTH,
+          width: gameContainerRef.current?.clientWidth || 800,
+          height: gameContainerRef.current?.clientHeight || 600
         },
         physics: {
           default: "arcade",
@@ -80,7 +82,6 @@ export default function PhaserGame({ onPlayerCollision }) {
     <div 
       ref={gameContainerRef}
       className="w-full h-full"
-      style={{ position: 'relative' }}
     />
   )
 }
