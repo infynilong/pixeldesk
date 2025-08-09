@@ -1,8 +1,8 @@
 export class Player extends Phaser.GameObjects.Container {
-    constructor(scene, x, y, spriteKey = 'characters_list_image', enableMovement = true, enableStateSave = true) {
+    constructor(scene, x, y, spriteKey = 'characters_list_image', enableMovement = true, enableStateSave = true, isOtherPlayer = false, playerData = null) {
         // 尝试从存储中恢复位置（仅当启用状态保存时）
         let savedState = null;
-        if (enableStateSave) {
+        if (enableStateSave && !isOtherPlayer) {
             savedState = Player.getSavedState();
             if (savedState) {
                 x = savedState.x;
@@ -17,6 +17,18 @@ export class Player extends Phaser.GameObjects.Container {
         this.speed = 200;
         this.enableMovement = enableMovement;
         this.enableStateSave = enableStateSave;
+        this.isOtherPlayer = isOtherPlayer;
+        this.playerData = playerData || {
+            id: Date.now(),
+            name: isOtherPlayer ? '其他玩家' : '我',
+            currentStatus: {
+                type: 'working',
+                status: '工作中',
+                emoji: '💼',
+                message: '正在工作中...',
+                timestamp: new Date().toISOString()
+            }
+        };
         
         // 创建身体和头部精灵
         this.bodySprite = scene.add.image(0, 48, this.spriteKey);
@@ -36,6 +48,11 @@ export class Player extends Phaser.GameObjects.Container {
         
         // 设置默认帧
         this.setDirectionFrame(this.currentDirection);
+        
+        // 为其他玩家创建状态标签
+        if (this.isOtherPlayer) {
+            this.createStatusLabel();
+        }
     }
     
     setDirectionFrame(direction) {
@@ -143,6 +160,39 @@ export class Player extends Phaser.GameObjects.Container {
     // 清除保存的玩家状态
     static clearSavedState() {
         localStorage.removeItem('playerState');
+    }
+    
+    // 创建状态标签
+    createStatusLabel() {
+        const status = this.playerData.currentStatus;
+        this.statusLabel = this.scene.add.text(
+            0, 
+            -40, 
+            `${status.emoji} ${status.status}`, 
+            {
+                fontSize: '12px',
+                fill: '#ffffff',
+                backgroundColor: '#000000',
+                padding: { x: 4, y: 2 }
+            }
+        ).setOrigin(0.5);
+        
+        this.add(this.statusLabel);
+    }
+    
+    // 更新状态
+    updateStatus(newStatus) {
+        this.playerData.currentStatus = newStatus;
+        if (this.statusLabel) {
+            this.statusLabel.setText(`${newStatus.emoji} ${newStatus.status}`);
+        }
+    }
+    
+    // 处理与主玩家的碰撞
+    handleCollisionWithMainPlayer(mainPlayer) {
+        if (this.isOtherPlayer && window.onPlayerCollision) {
+            window.onPlayerCollision(this.playerData);
+        }
     }
     
     // 禁用玩家移动

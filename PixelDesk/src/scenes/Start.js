@@ -15,6 +15,8 @@ export class Start extends Phaser.Scene {
         this.deskColliders = null;
         this.currentUser = null;
         this.bindingUI = null;
+        this.otherPlayers = new Map(); // 存储其他玩家
+        this.myStatus = null; // 我的状态
     }
 
     preload() {
@@ -85,6 +87,9 @@ export class Start extends Phaser.Scene {
         
         // 设置相机
         this.setupCamera(map);
+        
+        // 设置社交功能
+        this.setupSocialFeatures();
         
         // 创建完成后的初始化
         this.time.delayedCall(100, () => {
@@ -243,13 +248,13 @@ export class Start extends Phaser.Scene {
 
     // ===== 资源加载方法 =====
     loadTilemap() {
-        this.load.tilemapTiledJSON('officemap', 'assets/officemap.json');
+        this.load.tilemapTiledJSON('officemap', '/assets/officemap.json');
     }
 
     loadTilesetImages() {
         const tilesetAssets = {
-            'room_builder_walls_image': 'assets/floor/Room_Builder_Walls_48x48.png',
-            'ice_creem_floor_image': 'assets/floor/Ice_Cream_Shop_Design_layer_1_48x48.png',
+            'room_builder_walls_image': '/assets/floor/Room_Builder_Walls_48x48.png',
+            'ice_creem_floor_image': '/assets/floor/Ice_Cream_Shop_Design_layer_1_48x48.png',
         };
 
         Object.entries(tilesetAssets).forEach(([key, path]) => {
@@ -257,7 +262,7 @@ export class Start extends Phaser.Scene {
         });
 
         const spriteAssets = {
-            'characters_list_image': 'assets/player/me.png'
+            'characters_list_image': '/assets/player/me.png'
         }
 
         Object.entries(spriteAssets).forEach(([key, path]) => {
@@ -290,42 +295,42 @@ export class Start extends Phaser.Scene {
 
         characterAssets.forEach(filename => {
             const key = filename.replace('.png', '');
-            this.load.spritesheet(key, `assets/characters/${filename}`, { frameWidth: 48, frameHeight: 48 });
+            this.load.spritesheet(key, `/assets/characters/${filename}`, { frameWidth: 48, frameHeight: 48 });
         });
     }
 
     loadLibraryImages() {
         // 默认桌子图像
-        this.load.image("desk_image", "assets/desk/desk_long_right.png");
-        this.load.image("desk_long_right", "assets/desk/desk_long_right.png");
-        this.load.image("desk_long_left", "assets/desk/desk_long_left.png");
-        this.load.image("desk_short_right", "assets/desk/single_desk.png");
-        this.load.image("desk_short_left", "assets/desk/single_desk_short_left.png");
-        this.load.image("single_desk", "assets/desk/single_desk.png");
-        this.load.image("library_bookcase_normal", "assets/desk/library_bookcase_normal.png");
-        this.load.image("library_bookcase_tall", "assets/desk/library_bookcase_tall.png");
+        this.load.image("desk_image", "/assets/desk/desk_long_right.png");
+        this.load.image("desk_long_right", "/assets/desk/desk_long_right.png");
+        this.load.image("desk_long_left", "/assets/desk/desk_long_left.png");
+        this.load.image("desk_short_right", "/assets/desk/single_desk.png");
+        this.load.image("desk_short_left", "/assets/desk/single_desk_short_left.png");
+        this.load.image("single_desk", "/assets/desk/single_desk.png");
+        this.load.image("library_bookcase_normal", "/assets/desk/library_bookcase_normal.png");
+        this.load.image("library_bookcase_tall", "/assets/desk/library_bookcase_tall.png");
 
-        this.load.image("Shadowless_washhand", "assets/bathroom/Shadowless_washhand.png");
-        this.load.image("Bathroom_matong", "assets/bathroom/Bathroom_matong.png");
-        this.load.image("Shadowless_glass_2", "assets/bathroom/Shadowless_glass_2.webp");
-        this.load.image("Shadowless_glass", "assets/bathroom/Shadowless_glass.png");
+        this.load.image("Shadowless_washhand", "/assets/bathroom/Shadowless_washhand.png");
+        this.load.image("Bathroom_matong", "/assets/bathroom/Bathroom_matong.png");
+        this.load.image("Shadowless_glass_2", "/assets/bathroom/Shadowless_glass_2.webp");
+        this.load.image("Shadowless_glass", "/assets/bathroom/Shadowless_glass.png");
 
-        this.load.image("sofa-left-1", "assets/sofa/sofa-left-1.png");
-        this.load.image("sofa-left-2", "assets/sofa/sofa-left-2.png");
-        this.load.image("sofa-left-3", "assets/sofa/sofa-left-3.png");
-        this.load.image("sofa-right-1", "assets/sofa/sofa-right-1.png");
-        this.load.image("sofa-right-2", "assets/sofa/sofa-right-2.png");
-        this.load.image("sofa-right-3", "assets/sofa/sofa-right-3.png");
+        this.load.image("sofa-left-1", "/assets/sofa/sofa-left-1.png");
+        this.load.image("sofa-left-2", "/assets/sofa/sofa-left-2.png");
+        this.load.image("sofa-left-3", "/assets/sofa/sofa-left-3.png");
+        this.load.image("sofa-right-1", "/assets/sofa/sofa-right-1.png");
+        this.load.image("sofa-right-2", "/assets/sofa/sofa-right-2.png");
+        this.load.image("sofa-right-3", "/assets/sofa/sofa-right-3.png");
         
-        this.load.image("desk-big-manager-left-1", "assets/desk/desk-big-manager-left-1.png");
-        this.load.image("desk-big-manager-center-1", "assets/desk/desk-big-manager-center-1.png");
-        this.load.image("desk-big-manager-right-1", "assets/desk/desk-big-manager-right-1.png");
-        this.load.image("desk-big-manager-center-2", "assets/desk/desk-big-manager-center-2.png");
+        this.load.image("desk-big-manager-left-1", "/assets/desk/desk-big-manager-left-1.png");
+        this.load.image("desk-big-manager-center-1", "/assets/desk/desk-big-manager-center-1.png");
+        this.load.image("desk-big-manager-right-1", "/assets/desk/desk-big-manager-right-1.png");
+        this.load.image("desk-big-manager-center-2", "/assets/desk/desk-big-manager-center-2.png");
 
-        this.load.image("flower", "assets/tileset/flower.png");
-        this.load.image("rug", "assets/tileset/rug.png");
-        this.load.image("cabinet", "assets/tileset/cabinet.png");
-        this.load.image("stair-red", "assets/tileset/stair-red.png");
+        this.load.image("flower", "/assets/tileset/flower.png");
+        this.load.image("rug", "/assets/tileset/rug.png");
+        this.load.image("cabinet", "/assets/tileset/cabinet.png");
+        this.load.image("stair-red", "/assets/tileset/stair-red.png");
     }
 
     // ===== 地图创建方法 =====
@@ -950,6 +955,110 @@ export class Start extends Phaser.Scene {
     }
 
   
+    // ===== 社交功能方法 =====
+    setupSocialFeatures() {
+        // 监听状态更新事件
+        if (typeof window !== 'undefined') {
+            window.updateMyStatus = (statusData) => {
+                this.myStatus = statusData;
+                console.log('我的状态已更新:', statusData);
+            };
+        }
+        
+        // 创建一些示例其他玩家
+        this.createSampleOtherPlayers();
+        
+        // 设置玩家碰撞检测
+        this.setupPlayerCollisions();
+    }
+    
+    createSampleOtherPlayers() {
+        const samplePlayers = [
+            {
+                id: 'player_1',
+                name: '小明',
+                x: 400,
+                y: 300,
+                character: 'Premade_Character_48x48_01',
+                currentStatus: {
+                    type: 'working',
+                    status: '工作中',
+                    emoji: '💼',
+                    message: '正在写代码...',
+                    timestamp: new Date().toISOString()
+                }
+            },
+            {
+                id: 'player_2',
+                name: '小红',
+                x: 600,
+                y: 400,
+                character: 'Premade_Character_48x48_02',
+                currentStatus: {
+                    type: 'break',
+                    status: '休息中',
+                    emoji: '☕',
+                    message: '喝杯咖啡放松一下',
+                    timestamp: new Date().toISOString()
+                }
+            },
+            {
+                id: 'player_3',
+                name: '小李',
+                x: 800,
+                y: 200,
+                character: 'Premade_Character_48x48_03',
+                currentStatus: {
+                    type: 'reading',
+                    status: '阅读中',
+                    emoji: '📚',
+                    message: '在读《JavaScript高级程序设计》',
+                    timestamp: new Date().toISOString()
+                }
+            }
+        ];
+        
+        samplePlayers.forEach(playerData => {
+            const otherPlayer = new Player(
+                this, 
+                playerData.x, 
+                playerData.y, 
+                playerData.character, 
+                false, // 禁用移动
+                false, // 禁用状态保存
+                true,   // 是其他玩家
+                playerData
+            );
+            this.add.existing(otherPlayer);
+            this.otherPlayers.set(playerData.id, otherPlayer);
+        });
+    }
+    
+    setupPlayerCollisions() {
+        // 设置主玩家与其他玩家的碰撞检测
+        this.otherPlayers.forEach(otherPlayer => {
+            this.physics.add.overlap(
+                this.player,
+                otherPlayer,
+                (player1, player2) => {
+                    // 确保是其他玩家触发了碰撞
+                    if (player2.isOtherPlayer) {
+                        player2.handleCollisionWithMainPlayer(this.player);
+                    }
+                },
+                null,
+                this
+            );
+        });
+    }
+    
+    updateOtherPlayerStatus(playerId, newStatus) {
+        const otherPlayer = this.otherPlayers.get(playerId);
+        if (otherPlayer) {
+            otherPlayer.updateStatus(newStatus);
+        }
+    }
+    
     // ===== 清理方法 =====
     shutdown() {
         if (this.workstationManager) {
@@ -958,6 +1067,11 @@ export class Start extends Phaser.Scene {
         if (this.bindingUI) {
             this.bindingUI.hide();
         }
+        
+        // 清理其他玩家
+        this.otherPlayers.forEach(player => player.destroy());
+        this.otherPlayers.clear();
+        
         super.shutdown();
     }
 

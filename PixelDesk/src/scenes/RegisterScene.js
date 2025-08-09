@@ -33,11 +33,11 @@ export class RegisterScene extends Phaser.Scene {
 
         characterAssets.forEach(filename => {
             const key = filename.replace('.png', '');
-            this.load.spritesheet(key, `assets/characters/${filename}`, { frameWidth: 48, frameHeight: 48 });
+            this.load.spritesheet(key, `/assets/characters/${filename}`, { frameWidth: 48, frameHeight: 48 });
         });
 
         // 加载UI背景
-        this.load.image('ui_bg', 'assets/ui/background.png');
+        this.load.image('ui_bg', '/assets/ui/background.svg');
     }
 
     create() {
