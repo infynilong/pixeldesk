@@ -583,21 +583,21 @@ export class Start extends Phaser.Scene {
         // 设置相机缩放
         this.cameras.main.setZoom(zoomValue);
         
-        // 让摄像机跟随玩家，但设置死区，使玩家可以在一定范围内自由移动
+        // 设置相机跟随和死区
+        this.setupCameraFollow();
+        
+        // 创建缩放控制按钮
+        this.createZoomControls();
+    }
+
+    // 设置相机跟随和死区
+    setupCameraFollow() {
         if (this.player) {
             this.cameras.main.startFollow(this.player);
             // 设置较小的lerp值，使相机跟随更平滑
             this.cameras.main.setLerp(0.05, 0.05);
             // 设置死区，允许玩家在屏幕内移动
-            
-            const zoom = this.cameras.main.zoom;
-            const deadzoneWidth = this.game.config.width  ;
-            const deadzoneHeight = this.game.config.height ;
-            const adjustedWidth = ( deadzoneWidth - 200 ) / zoom ;
-            const adjustedHeight = ( deadzoneHeight - 200 ) / zoom;
-            this.cameras.main.setDeadzone(adjustedWidth, adjustedHeight);
-            // 添加死区调试可视化
-            // this.createDeadzoneDebug(deadzoneWidth, deadzoneHeight);
+            this.updateDeadzone();
         } else {
             // 如果玩家尚未创建，延迟设置相机跟随
             this.time.delayedCall(100, () => {
@@ -605,20 +605,11 @@ export class Start extends Phaser.Scene {
                     this.cameras.main.startFollow(this.player);
                     // 设置较小的lerp值，使相机跟随更平滑
                     this.cameras.main.setLerp(0.05, 0.05);
-                     // 设置死区，允许玩家在屏幕内移动
-                    // 死区大小设置为屏幕宽度的1/3和高度的1/3
-                    const deadzoneWidth = this.game.config.width  ;
-                    const deadzoneHeight = this.game.config.height  ;
-                    this.cameras.main.setDeadzone(deadzoneWidth, deadzoneHeight);
-                    
-                    // 添加死区调试可视化
-                    this.createDeadzoneDebug(deadzoneWidth, deadzoneHeight);
+                    // 设置死区
+                    this.updateDeadzone();
                 }
             });
         }
-        
-        // 创建缩放控制按钮
-        this.createZoomControls();
     }
 
     createDeadzoneDebug(deadzoneWidth, deadzoneHeight) {
@@ -678,11 +669,37 @@ export class Start extends Phaser.Scene {
             targets: this.cameras.main,
             zoom: newZoom,
             duration: 300,
-            ease: 'Sine.easeInOut'
+            ease: 'Sine.easeInOut',
+            onComplete: () => {
+                // 缩放完成后重新计算死区
+                this.updateDeadzone();
+            }
         });
         
         // 保存到本地存储
         localStorage.setItem('cameraZoom', newZoom.toString());
+    }
+
+    // 更新死区大小以适应新的缩放级别
+    updateDeadzone() {
+        if (this.player && this.cameras.main) {
+            const zoom = this.cameras.main.zoom;
+            const screenWidth = this.game.config.width;
+            const screenHeight = this.game.config.height;
+            
+            // 动态计算死区大小，基于缩放级别
+            const baseReduction = Math.min(200, Math.min(screenWidth, screenHeight) * 0.2);
+            const adjustedWidth = (screenWidth - baseReduction) / zoom;
+            const adjustedHeight = (screenHeight - baseReduction) / zoom;
+            
+            this.cameras.main.setDeadzone(adjustedWidth, adjustedHeight);
+            
+            // 如果存在死区调试可视化，也更新它
+            if (this.deadzoneDebug) {
+                this.deadzoneDebug.destroy();
+                this.createDeadzoneDebug(adjustedWidth * zoom, adjustedHeight * zoom);
+            }
+        }
     }
 
     // ===== 输入设置方法 =====
