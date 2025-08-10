@@ -795,8 +795,26 @@ export class Start extends Phaser.Scene {
             // 根据工位方向计算角色位置
             const { x: characterX, y: characterY, direction: characterDirection } = this.calculateCharacterPosition(workstation);
             
-            // 直接创建Player对象，传入随机角色的spriteKey，禁用移动和状态保存
-            const character = new Player(this, characterX, characterY, randomCharacterKey, false, false);
+            // 为其他玩家生成随机状态数据
+            const statusOptions = [
+                { type: 'working', status: '工作中', emoji: '💼', message: '正在写代码...' },
+                { type: 'break', status: '休息中', emoji: '☕', message: '喝杯咖啡放松一下' },
+                { type: 'reading', status: '阅读中', emoji: '📚', message: '在读技术书籍' },
+                { type: 'meeting', status: '会议中', emoji: '👥', message: '团队讨论中' }
+            ];
+            
+            const randomStatus = statusOptions[Math.floor(Math.random() * statusOptions.length)];
+            const playerData = {
+                id: `player_${workstation.userId}_${index}`,
+                name: `玩家${index + 1}`,
+                currentStatus: {
+                    ...randomStatus,
+                    timestamp: new Date().toISOString()
+                }
+            };
+            
+            // 创建Player对象，传入随机角色和状态数据
+            const character = new Player(this, characterX, characterY, randomCharacterKey, false, false, true, playerData);
             this.add.existing(character);
             
             // 根据工位方向设置角色朝向

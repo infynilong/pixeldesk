@@ -178,6 +178,89 @@ export class Player extends Phaser.GameObjects.Container {
         ).setOrigin(0.5);
         
         this.add(this.statusLabel);
+        
+        // 初始化浮动动画
+        this.initFloatingAnimation();
+        
+        // 初始化可视范围检测
+        this.initVisibilityCheck();
+    }
+    
+    // 初始化浮动动画
+    initFloatingAnimation() {
+        if (!this.statusLabel) return;
+        
+        // 浮动动画参数
+        this.floatingAmplitude = 3; // 浮动幅度
+        this.floatingSpeed = 0.002; // 浮动速度
+        this.floatingOffset = 0; // 当前浮动偏移
+        
+        // 初始Y位置
+        this.baseY = this.statusLabel.y;
+        
+        // 启动浮动动画
+        this.scene.events.on('update', this.updateFloatingAnimation, this);
+    }
+    
+    // 更新浮动动画
+    updateFloatingAnimation() {
+        if (!this.statusLabel || !this.isVisible) return;
+        
+        // 计算浮动偏移
+        this.floatingOffset += this.floatingSpeed;
+        const floatY = Math.sin(this.floatingOffset) * this.floatingAmplitude;
+        
+        // 应用浮动效果
+        this.statusLabel.y = this.baseY + floatY;
+    }
+    
+    // 初始化可视范围检测
+    initVisibilityCheck() {
+        this.isVisible = true;
+        this.lastCheckTime = 0;
+        this.checkInterval = 200; // 每200ms检查一次可视性
+        
+        // 监听相机移动事件
+        this.scene.events.on('update', this.checkVisibility, this);
+    }
+    
+    // 检查可视范围
+    checkVisibility() {
+        if (!this.isOtherPlayer || !this.statusLabel) return;
+        
+        const currentTime = Date.now();
+        if (currentTime - this.lastCheckTime < this.checkInterval) return;
+        
+        this.lastCheckTime = currentTime;
+        
+        // 获取相机边界
+        const camera = this.scene.cameras.main;
+        const cameraLeft = camera.worldView.left;
+        const cameraRight = camera.worldView.right;
+        const cameraTop = camera.worldView.top;
+        const cameraBottom = camera.worldView.bottom;
+        
+        // 扩展检测范围（在屏幕外一定距离内也显示）
+        const padding = 100;
+        
+        // 检查玩家是否在可视范围内
+        const wasVisible = this.isVisible;
+        this.isVisible = (
+            this.x >= cameraLeft - padding &&
+            this.x <= cameraRight + padding &&
+            this.y >= cameraTop - padding &&
+            this.y <= cameraBottom + padding
+        );
+        
+        // 优化：只有在可视性发生变化时才更新
+        if (wasVisible !== this.isVisible) {
+            this.statusLabel.setVisible(this.isVisible);
+            
+            // 如果重新进入可视范围，重置浮动动画
+            if (this.isVisible && !wasVisible) {
+                this.floatingOffset = 0;
+            }
+        }
     }
     
     // 更新状态
@@ -214,8 +297,17 @@ export class Player extends Phaser.GameObjects.Container {
     }
     
     destroy() {
+        // 清理事件监听器
+        if (this.scene) {
+            this.scene.events.off('update', this.updateFloatingAnimation, this);
+            this.scene.events.off('update', this.checkVisibility, this);
+        }
+        
+        // 清理精灵
         if (this.bodySprite) this.bodySprite.destroy();
         if (this.headSprite) this.headSprite.destroy();
+        if (this.statusLabel) this.statusLabel.destroy();
+        
         super.destroy();
     }
 }
