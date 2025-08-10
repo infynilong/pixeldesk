@@ -36,6 +36,7 @@ export default function Home() {
   const [isMobile, setIsMobile] = useState(false)
   const [selectedPlayer, setSelectedPlayer] = useState(null)
   const [myStatus, setMyStatus] = useState<any>('')
+  const [currentUser, setCurrentUser] = useState<any>(null)
   
   // 工位绑定弹窗状态
   const [bindingModal, setBindingModal] = useState({
@@ -50,13 +51,27 @@ export default function Home() {
     player: null
   })
   
-  // 检测移动设备
+  // 检测移动设备和加载用户数据
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768)
     }
     
+    // 加载当前用户数据
+    const loadCurrentUser = () => {
+      try {
+        const userData = localStorage.getItem('pixelDeskUser')
+        if (userData) {
+          const user = JSON.parse(userData)
+          setCurrentUser(user)
+        }
+      } catch (error) {
+        console.warn('Failed to load user data:', error)
+      }
+    }
+    
     checkMobile()
+    loadCurrentUser()
     window.addEventListener('resize', checkMobile)
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
@@ -162,8 +177,12 @@ export default function Home() {
 
   // 优化：使用 memo 避免 myStatus 变化导致 PostStatus 不必要重新渲染
   const memoizedPostStatus = useMemo(() => (
-    <PostStatus onStatusUpdate={handleStatusUpdate} currentStatus={myStatus} />
-  ), [handleStatusUpdate, myStatus])
+    <PostStatus 
+      onStatusUpdate={handleStatusUpdate} 
+      currentStatus={myStatus} 
+      userId={currentUser?.id} 
+    />
+  ), [handleStatusUpdate, myStatus, currentUser?.id])
 
   // 优化：使用 memo 避免 selectedPlayer 变化导致 SocialFeed 不必要重新渲染
   const memoizedSocialFeed = useMemo(() => (

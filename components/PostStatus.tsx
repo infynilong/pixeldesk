@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, memo, useCallback, ChangeEvent } from 'react'
+import { useState, memo, useCallback, ChangeEvent, useEffect } from 'react'
+import { statusHistoryManager, formatTimestamp, getStatusBadge } from '../lib/statusHistory'
 
 const statusOptions = [
   { id: 'working', label: '工作中', emoji: '💼', color: 'from-blue-500 to-cyan-500' },
@@ -14,12 +15,33 @@ const statusOptions = [
 interface PostStatusProps {
   onStatusUpdate: (status: any) => void
   currentStatus: any
+  userId?: string
 }
 
-const PostStatus = memo(({ onStatusUpdate, currentStatus }: PostStatusProps) => {
+const PostStatus = memo(({ onStatusUpdate, currentStatus, userId }: PostStatusProps) => {
   const [selectedStatus, setSelectedStatus] = useState('working')
   const [customMessage, setCustomMessage] = useState('')
   const [isExpanded, setIsExpanded] = useState(false)
+  const [showHistory, setShowHistory] = useState(false)
+  const [statusHistory, setStatusHistory] = useState<any[]>([])
+
+  // 初始化时生成模拟数据并加载状态历史
+  useEffect(() => {
+    if (userId) {
+      // 生成模拟数据（仅用于演示）
+      statusHistoryManager.generateMockHistory(userId)
+      // 加载状态历史
+      loadStatusHistory()
+    }
+  }, [userId])
+
+  // 加载状态历史
+  const loadStatusHistory = useCallback(() => {
+    if (userId) {
+      const history = statusHistoryManager.getStatusHistory(userId)
+      setStatusHistory(history)
+    }
+  }, [userId])
 
   // 优化：避免不必要的重新渲染
   const memoizedHandleSubmit = useCallback(() => {
@@ -32,6 +54,13 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus }: PostStatusProps) => 
       emoji: status.emoji,
       message: customMessage || `正在${status.label}`,
       timestamp: new Date().toISOString()
+    }
+    
+    // 保存状态历史记录
+    if (userId) {
+      statusHistoryManager.addStatusHistory(fullStatus, userId)
+      // 重新加载状态历史
+      loadStatusHistory()
     }
     
     // 通知 Phaser 游戏更新状态（优先执行，避免延迟）
@@ -47,7 +76,7 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus }: PostStatusProps) => 
     // 平滑收起面板
     setIsExpanded(false)
     setCustomMessage('')
-  }, [selectedStatus, customMessage, onStatusUpdate])
+  }, [selectedStatus, customMessage, onStatusUpdate, userId, loadStatusHistory])
 
   // 优化：缓存状态选择处理函数
   const memoizedHandleStatusSelect = useCallback((statusId: string) => {
@@ -68,6 +97,11 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus }: PostStatusProps) => 
   const memoizedHandleMessageChange = useCallback((e: ChangeEvent<HTMLTextAreaElement>) => {
     setCustomMessage(e.target.value)
   }, [])
+
+  // 优化：缓存历史记录切换处理函数
+  const memoizedHandleToggleHistory = useCallback(() => {
+    setShowHistory(!showHistory)
+  }, [showHistory])
   
   return (
     <div className="space-y-4">
@@ -101,6 +135,22 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus }: PostStatusProps) => 
           <span>{isExpanded ? '取消' : '更新状态'}</span>
         </div>
       </button>
+
+      {/* 状态历史按钮 */}
+      {userId && (
+        <button
+          onClick={memoizedHandleToggleHistory}
+          className="w-full group relative overflow-hidden bg-white/10 hover:bg-white/20 text-white font-medium py-2 px-4 rounded-xl transition-all duration-300 border border-white/10 hover:border-white/20"
+        >
+          <div className="relative flex items-center justify-center gap-2">
+            <span className="text-lg">📊</span>
+            <span>{showHistory ? '隐藏历史' : '查看状态历史'}</span>
+            <span className="text-xs bg-purple-500/30 text-white px-2 py-1 rounded-full">
+              {statusHistory.length}
+            </span>
+          </div>
+        </button>
+      )}
 
       {/* 详细状态设置 */}
       {isExpanded && (
@@ -157,6 +207,72 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus }: PostStatusProps) => 
               取消
             </button>
           </div>
+        </div>
+      )}
+
+      {/* 状态历史显示 */}
+      {showHistory && userId && (
+        <div className="space-y-3 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-white font-medium">我的状态历史</h3>
+            <div className="text-xs text-gray-400">
+              共 {statusHistory.length} 条记录
+            </div>
+          </div>
+          
+          <div className="space-y-2 max-h-64 overflow-y-auto">
+            {statusHistory.length === 0 ? (
+              <div className="text-center py-8 text-gray-400">
+                <div className="text-4xl mb-2">📝</div>
+                <div className="text-sm">还没有状态记录</div>
+                <div className="text-xs mt-1">发布你的第一个状态吧！</div>
+              </div>
+            ) : (
+              statusHistory.map((history) => (
+                <div key={history.id} className="bg-white/5 rounded-lg p-3 border border-white/5">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className={`px-2 py-1 rounded-full bg-gradient-to-r ${getStatusBadge(history.type)} text-white text-xs font-medium`}>
+                      {history.emoji} {history.status}
+                    </div>
+                    <span className="text-gray-400 text-xs">
+                      {formatTimestamp(history.timestamp)}
+                    </span>
+                  </div>
+                  <p className="text-gray-300 text-sm">{history.message}</p>
+                </div>
+              ))
+            )}
+          </div>
+          
+          {/* 状态统计 */}
+          {statusHistory.length > 0 && (
+            <div className="mt-4 pt-3 border-t border-white/10">
+              <div className="grid grid-cols-3 gap-4 text-center">
+                <div>
+                  <div className="text-lg font-bold text-white">
+                    {statusHistoryManager.getStatusHistoryStats(userId).todayCount}
+                  </div>
+                  <div className="text-xs text-gray-400">今日状态</div>
+                </div>
+                <div>
+                  <div className="text-lg font-bold text-white">
+                    {statusHistory.length}
+                  </div>
+                  <div className="text-xs text-gray-400">总记录数</div>
+                </div>
+                <div>
+                  <div className="text-lg font-bold text-white">
+                    {statusHistoryManager.getStatusHistoryStats(userId).mostUsedStatus === 'working' ? '💼' : 
+                     statusHistoryManager.getStatusHistoryStats(userId).mostUsedStatus === 'break' ? '☕' :
+                     statusHistoryManager.getStatusHistoryStats(userId).mostUsedStatus === 'reading' ? '📚' :
+                     statusHistoryManager.getStatusHistoryStats(userId).mostUsedStatus === 'meeting' ? '👥' :
+                     statusHistoryManager.getStatusHistoryStats(userId).mostUsedStatus === 'lunch' ? '🍽️' : '🚻'}
+                  </div>
+                  <div className="text-xs text-gray-400">最常用</div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
