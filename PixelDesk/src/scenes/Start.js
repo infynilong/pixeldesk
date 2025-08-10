@@ -349,7 +349,6 @@ export class Start extends Phaser.Scene {
         
         // 创建图层
         const layerNames = ['office_1'];
-        // const layerNames = ['bg', 'office_1'];
         const layers = {};
         
         layerNames.forEach(layerName => {
@@ -367,7 +366,6 @@ export class Start extends Phaser.Scene {
             }
         }
         
-        
         return layers;
     }
 
@@ -378,9 +376,22 @@ export class Start extends Phaser.Scene {
             ['characters_list', 'characters_list_image'],
         ];
 
-        return tilesetConfigs.map(([tilesetName, imageKey]) => 
-            map.addTilesetImage(tilesetName, imageKey)
-        );
+        const addedTilesets = [];
+        tilesetConfigs.forEach(([tilesetName, imageKey]) => {
+            // 尝试不使用imageKey，让Phaser使用tilemap中的原始路径
+            const tileset = map.addTilesetImage(tilesetName);
+            if (tileset) {
+                addedTilesets.push(tileset);
+            } else {
+                // 如果失败，尝试使用imageKey
+                const tilesetWithKey = map.addTilesetImage(tilesetName, imageKey);
+                if (tilesetWithKey) {
+                    addedTilesets.push(tilesetWithKey);
+                }
+            }
+        });
+
+        return addedTilesets;
     }
 
     // ===== 对象渲染方法 =====
