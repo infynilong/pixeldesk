@@ -11,29 +11,29 @@ datasource db {
 }
 
 model User {
-  id            Int      @id @default(autoincrement())
-  username      String   @unique
-  characterType String
+  id            String   @id @default(cuid())
+  name          String
+  email         String?  @unique
+  avatar        String?
   points        Int      @default(50)
+  gold          Int      @default(50)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
-  lastLogin     DateTime?
   
   statusHistory StatusHistory[]
   workstations  UserWorkstation[]
-  sessions      UserSession[]
   
   @@map("users")
 }
 
 model StatusHistory {
   id          Int      @id @default(autoincrement())
-  userId      Int
-  statusType  String
-  statusText  String
-  emoji       String
+  userId      String
+  status      String
+  type        String
+  emoji       String?
   message     String?
-  createdAt   DateTime @default(now())
+  timestamp   DateTime @default(now())
   
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   
@@ -55,27 +55,14 @@ model Workstation {
 
 model UserWorkstation {
   id            Int       @id @default(autoincrement())
-  userId        Int
+  userId        String
   workstationId Int
+  cost          Int       @default(0)
   boundAt       DateTime  @default(now())
-  unboundAt     DateTime?
-  isActive      Boolean   @default(true)
   
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   workstation  Workstation  @relation(fields: [workstationId], references: [id], onDelete: Cascade)
   
   @@unique([userId, workstationId])
   @@map("user_workstations")
-}
-
-model UserSession {
-  id           Int       @id @default(autoincrement())
-  userId       Int
-  sessionToken String    @unique
-  expiresAt    DateTime
-  createdAt    DateTime  @default(now())
-  
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  @@map("user_sessions")
 }

@@ -189,6 +189,9 @@ export class StatusHistoryManagerImpl implements StatusHistoryManager {
 // 创建全局状态历史管理器实例
 export const statusHistoryManager = new StatusHistoryManagerImpl()
 
+// 导入数据库版本的管理器（仅在服务器端使用）
+// export { databaseStatusHistoryManager } from './databaseStatusHistory'
+
 // 格式化时间戳的工具函数
 export const formatTimestamp = (timestamp: string): string => {
   const date = new Date(timestamp)
