@@ -61,10 +61,19 @@ export default function PhaserGame({ onPlayerCollision, onWorkstationBinding, on
           }
         }
 
-        // 设置工位绑定回调函数
+        // 设置工位绑定回调函数 - 使用全局workstationBindingManager
         (window as any).onWorkstationBinding = (workstationData: any, userData: any) => {
-          if (onWorkstationBinding) {
-            onWorkstationBinding(workstationData, userData)
+          console.log('PhaserGame onWorkstationBinding 被调用:', { workstationData, userData })
+          
+          // 确保workstationBindingManager已加载
+          if (typeof window !== 'undefined' && (window as any).workstationBindingManager) {
+            (window as any).workstationBindingManager.showBindingDialog(workstationData, userData)
+          } else {
+            console.error('workstationBindingManager 未加载')
+            // 如果manager未加载，调用React handler作为备用
+            if (onWorkstationBinding) {
+              onWorkstationBinding(workstationData, userData)
+            }
           }
         }
 

@@ -4,7 +4,7 @@ export class WorkstationManager {
         this.workstations = new Map(); // 存储工位信息：id -> workstation对象
         this.userBindings = new Map();  // 存储用户绑定：workstationId -> userId
         this.config = {
-            occupiedTint: 0x00ff00,    // 已占用工位的颜色
+            occupiedTint: 0x888888,    // 已占用工位的颜色 (灰色，避免反色)
             highlightTint: 0xffff00,   // 高亮颜色
             highlightDuration: 500,    // 高亮持续时间
             debugBounds: false         // 是否显示调试边界
@@ -188,8 +188,8 @@ export class WorkstationManager {
         // 为当前用户的工位添加特殊高亮
         this.addUserWorkstationHighlight(workstation);
 
-        // 预留后端接口 - 保存绑定信息
-        await this.saveWorkstationBinding(workstationId, {
+        // 调用后端API保存绑定信息并扣除积分
+        const saveResult = await this.saveWorkstationBinding(workstationId, {
             userId,
             userInfo,
             boundAt: workstation.boundAt,
@@ -197,17 +197,50 @@ export class WorkstationManager {
             pointsCost: 5
         });
         
-        // console.log(`Successfully bound user ${userId} to workstation ${workstationId}`);
+        if (!saveResult.success) {
+            console.error('保存工位绑定失败:', saveResult.error);
+            // 回滚本地绑定状态
+            workstation.isOccupied = false;
+            workstation.userId = null;
+            workstation.userInfo = null;
+            this.userBindings.delete(workstationId);
+            
+            // 恢复视觉效果
+            if (workstation.sprite) {
+                workstation.sprite.clearTint();
+            }
+            this.removeOccupiedIcon(workstation);
+            this.addInteractionIcon(workstation);
+            
+            return { success: false, error: saveResult.error };
+        }
+        
+        console.log(`工位绑定成功，服务器返回剩余积分: ${saveResult.remainingPoints}`);
+        
+        // 更新本地用户数据中的积分
+        if (saveResult.remainingPoints !== undefined) {
+            const userData = JSON.parse(localStorage.getItem('pixelDeskUser') || '{}');
+            if (userData.id === userId) {
+                userData.points = saveResult.remainingPoints;
+                userData.gold = saveResult.remainingPoints;
+                localStorage.setItem('pixelDeskUser', JSON.stringify(userData));
+            }
+        }
         
         // 触发事件
         this.scene.events.emit('user-bound', {
             workstationId,
             userId,
             workstation,
-            userInfo
+            userInfo,
+            remainingPoints: saveResult.remainingPoints
         });
 
-        return { success: true, workstation };
+        return { 
+            success: true, 
+            workstation,
+            remainingPoints: saveResult.remainingPoints 
+        };
     }
 
     unbindUserFromWorkstation(workstationId) {
@@ -508,37 +541,90 @@ export class WorkstationManager {
     }
     
     async saveWorkstationBinding(workstationId, bindingData) {
-        // 预留后端接口 - 保存工位绑定信息
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                // 保存到 localStorage
+        // 调用后端API保存工位绑定信息
+        try {
+            const response = await fetch('/api/workstations/bindings', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    userId: bindingData.userId,
+                    workstationId: workstationId,
+                    cost: bindingData.pointsCost
+                })
+            });
+
+            const result = await response.json();
+            
+            if (result.success) {
+                // 同时保存到 localStorage 作为缓存
                 const savedBindings = JSON.parse(localStorage.getItem('pixelDeskWorkstationBindings') || '{}');
                 savedBindings[workstationId] = bindingData;
                 localStorage.setItem('pixelDeskWorkstationBindings', JSON.stringify(savedBindings));
                 
-                console.log('保存工位绑定信息:', bindingData);
-                resolve({ success: true });
-            }, 500);
-        });
+                console.log('工位绑定信息已保存到服务器:', result.data);
+                return { success: true, remainingPoints: result.data.remainingPoints };
+            } else {
+                console.error('工位绑定失败:', result.error);
+                return { success: false, error: result.error };
+            }
+        } catch (error) {
+            console.error('调用工位绑定API失败:', error);
+            // API失败时回退到本地存储
+            const savedBindings = JSON.parse(localStorage.getItem('pixelDeskWorkstationBindings') || '{}');
+            savedBindings[workstationId] = bindingData;
+            localStorage.setItem('pixelDeskWorkstationBindings', JSON.stringify(savedBindings));
+            
+            console.log('工位绑定信息已保存到本地:', bindingData);
+            return { success: true, fallback: true };
+        }
     }
 
     async updateUserPoints(userId, pointsChange) {
-        // 预留后端接口 - 更新用户积分
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                // 获取当前用户数据
+        // 调用后端API更新用户积分
+        try {
+            const response = await fetch('/api/users', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    userId: userId,
+                    points: pointsChange,
+                    gold: pointsChange
+                })
+            });
+
+            const result = await response.json();
+            
+            if (result.success) {
+                // 更新本地存储的用户数据
                 const userData = JSON.parse(localStorage.getItem('pixelDeskUser') || '{}');
-                const currentPoints = userData.points || 0;
-                const newPoints = Math.max(0, currentPoints + pointsChange);
-                
-                // 更新用户数据
-                userData.points = newPoints;
+                userData.points = result.data.points;
+                userData.gold = result.data.points;
                 localStorage.setItem('pixelDeskUser', JSON.stringify(userData));
                 
-                console.log(`更新用户 ${userId} 积分: ${pointsChange > 0 ? '+' : ''}${pointsChange}, 新积分: ${newPoints}`);
-                resolve({ success: true, newPoints });
-            }, 500);
-        });
+                console.log(`用户 ${userId} 积分已更新到服务器: ${pointsChange > 0 ? '+' : ''}${pointsChange}, 新积分: ${result.data.points}`);
+                return { success: true, newPoints: result.data.points };
+            } else {
+                console.error('更新用户积分失败:', result.error);
+                return { success: false, error: result.error };
+            }
+        } catch (error) {
+            console.error('调用更新用户积分API失败:', error);
+            // API失败时回退到本地存储
+            const userData = JSON.parse(localStorage.getItem('pixelDeskUser') || '{}');
+            const currentPoints = userData.points || userData.gold || 0;
+            const newPoints = Math.max(0, currentPoints + pointsChange);
+            
+            userData.points = newPoints;
+            userData.gold = newPoints;
+            localStorage.setItem('pixelDeskUser', JSON.stringify(userData));
+            
+            console.log(`用户 ${userId} 积分已更新到本地: ${pointsChange > 0 ? '+' : ''}${pointsChange}, 新积分: ${newPoints}`);
+            return { success: true, newPoints, fallback: true };
+        }
     }
 
     // ===== 日期管理功能 =====
@@ -582,30 +668,27 @@ export class WorkstationManager {
 
     // ===== 工位购买功能 =====
     async purchaseWorkstation(workstationId, userId, userInfo) {
+        console.log(`用户 ${userId} 尝试购买工位 ${workstationId}, 当前积分: ${userInfo.points || 0}`);
+
         // 检查用户积分是否足够
         const userPoints = userInfo.points || 0;
         if (userPoints < 5) {
             return { success: false, error: '积分不足，需要5积分' };
         }
 
-        // 扣除积分
-        const pointsResult = await this.updateUserPoints(userId, -5);
-        if (!pointsResult.success) {
-            return { success: false, error: '积分扣除失败' };
-        }
-
-        // 绑定工位
+        // 直接绑定工位 - 积分扣除在 saveWorkstationBinding 中通过API处理
         const bindResult = await this.bindUserToWorkstation(workstationId, userId, userInfo);
         if (!bindResult.success) {
-            // 绑定失败，退还积分
-            await this.updateUserPoints(userId, 5);
+            console.error('工位绑定失败:', bindResult.error);
             return bindResult;
         }
 
+        console.log(`工位购买成功，剩余积分: ${bindResult.remainingPoints || userPoints - 5}`);
+        
         return { 
             success: true, 
             workstation: bindResult.workstation,
-            remainingPoints: pointsResult.newPoints
+            remainingPoints: bindResult.remainingPoints || userPoints - 5
         };
     }
 

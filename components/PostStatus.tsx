@@ -25,11 +25,9 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId }: PostStatusPr
   const [showHistory, setShowHistory] = useState(false)
   const [statusHistory, setStatusHistory] = useState<any[]>([])
 
-  // 初始化时生成模拟数据并加载状态历史
+  // 初始化时加载状态历史
   useEffect(() => {
     if (userId) {
-      // 生成模拟数据（仅用于演示）
-      statusHistoryManager.generateMockHistory(userId)
       // 加载状态历史
       loadStatusHistory()
     }

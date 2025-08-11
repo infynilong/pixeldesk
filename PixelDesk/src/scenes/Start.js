@@ -44,6 +44,9 @@ export class Start extends Phaser.Scene {
             return;
         }
         
+        // 同步用户数据到数据库
+        this.syncUserToDatabase();
+        
         // 确保积分字段一致性 - 如果有gold字段但没有points字段，进行同步
         if (this.currentUser.gold !== undefined && this.currentUser.points === undefined) {
             this.currentUser.points = this.currentUser.gold;
@@ -111,10 +114,10 @@ export class Start extends Phaser.Scene {
             }
             
             // 为其他用户的工位放置角色（跳过当前用户的工位）
-            this.placeCharactersAtOccupiedWorkstations();
+            // this.placeCharactersAtOccupiedWorkstations();
             
             // 重新启用自动绑定，显示随机其他玩家
-            this.setupTestBindings(); // 示例绑定
+            // this.setupTestBindings(); // 示例绑定
             this.checkExpiredWorkstations(); // 检查过期工位
             
             // 更新UI显示用户数据（积分和工位绑定状态）
@@ -745,110 +748,110 @@ export class Start extends Phaser.Scene {
         return this.workstationManager.getAvailableWorkstations();
     }
 
-    // ===== 示例和测试方法 =====
-    setupTestBindings() {
-        console.log('=== Setting up test bindings ===');
+    // ===== 示例和测试方法（已移除，用于生产环境） =====
+    // setupTestBindings() {
+    //     console.log('=== Setting up test bindings ===');
         
-        // 获取前几个工位进行测试绑定
-        const availableWorkstations = this.workstationManager.getAvailableWorkstations().slice(0, 10);
+    //     // 获取前几个工位进行测试绑定
+    //     const availableWorkstations = this.workstationManager.getAvailableWorkstations().slice(0, 10);
         
-        availableWorkstations.forEach((workstation, index) => {
-            const userId = `user_${index + 1}`;
-            const userInfo = {
-                name: `User ${index + 1}`,
-                department: 'Engineering',
-                role: 'Developer'
-            };
-            this.workstationManager.bindUserToWorkstation(workstation.id, userId, userInfo);
-        });
+    //     availableWorkstations.forEach((workstation, index) => {
+    //         const userId = `user_${index + 1}`;
+    //         const userInfo = {
+    //             name: `User ${index + 1}`,
+    //             department: 'Engineering',
+    //             role: 'Developer'
+    //         };
+    //         this.workstationManager.bindUserToWorkstation(workstation.id, userId, userInfo);
+    //     });
         
-        console.log('=== Test bindings complete ===');
-        this.workstationManager.printStatistics();
-    }
+    //     console.log('=== Test bindings complete ===');
+    //     this.workstationManager.printStatistics();
+    // }
 
-    // 在已绑定工位旁边放置随机角色
-    placeCharactersAtOccupiedWorkstations() {
-        console.log('=== Setting up characters at occupied workstations ===');
+    // 在已绑定工位旁边放置随机角色（已移除，用于生产环境）
+    // placeCharactersAtOccupiedWorkstations() {
+    //     console.log('=== Setting up characters at occupied workstations ===');
         
-        // 获取所有角色图片的key
-        const characterKeys = [
-            'Premade_Character_48x48_01',
-            'Premade_Character_48x48_02',
-            'Premade_Character_48x48_03',
-            'Premade_Character_48x48_04',
-            'Premade_Character_48x48_05',
-            'Premade_Character_48x48_06',
-            'Premade_Character_48x48_07',
-            'Premade_Character_48x48_08',
-            'Premade_Character_48x48_09',
-            'Premade_Character_48x48_10',
-            'Premade_Character_48x48_11',
-            'Premade_Character_48x48_12',
-            'Premade_Character_48x48_13',
-            'Premade_Character_48x48_14',
-            'Premade_Character_48x48_15',
-            'Premade_Character_48x48_16',
-            'Premade_Character_48x48_17',
-            'Premade_Character_48x48_18',
-            'Premade_Character_48x48_19',
-            'Premade_Character_48x48_20',
-        ];
+    //     // 获取所有角色图片的key
+    //     const characterKeys = [
+    //         'Premade_Character_48x48_01',
+    //         'Premade_Character_48x48_02',
+    //         'Premade_Character_48x48_03',
+    //         'Premade_Character_48x48_04',
+    //         'Premade_Character_48x48_05',
+    //         'Premade_Character_48x48_06',
+    //         'Premade_Character_48x48_07',
+    //         'Premade_Character_48x48_08',
+    //         'Premade_Character_48x48_09',
+    //         'Premade_Character_48x48_10',
+    //         'Premade_Character_48x48_11',
+    //         'Premade_Character_48x48_12',
+    //         'Premade_Character_48x48_13',
+    //         'Premade_Character_48x48_14',
+    //         'Premade_Character_48x48_15',
+    //         'Premade_Character_48x48_16',
+    //         'Premade_Character_48x48_17',
+    //         'Premade_Character_48x48_18',
+    //         'Premade_Character_48x48_19',
+    //         'Premade_Character_48x48_20',
+    //     ];
         
-        // 获取所有已绑定的工位
-        const occupiedWorkstations = this.workstationManager.getOccupiedWorkstations();
+    //     // 获取所有已绑定的工位
+    //     const occupiedWorkstations = this.workstationManager.getOccupiedWorkstations();
         
-        occupiedWorkstations.forEach((workstation, index) => {
-            console.log('workstation',workstation)
+    //     occupiedWorkstations.forEach((workstation, index) => {
+    //         console.log('workstation',workstation)
             
-            // 跳过属于当前玩家的工位
-            if (this.currentUser && workstation.userId === this.currentUser.id) {
-                console.log(`Skipping workstation ${workstation.id} - belongs to current user ${this.currentUser.id}`);
-                return;
-            }
+    //         // 跳过属于当前玩家的工位
+    //         if (this.currentUser && workstation.userId === this.currentUser.id) {
+    //             console.log(`Skipping workstation ${workstation.id} - belongs to current user ${this.currentUser.id}`);
+    //             return;
+    //         }
             
-            // 随机选择一个角色
-            const randomCharacterKey = characterKeys[Math.floor(Math.random() * characterKeys.length)];
+    //         // 随机选择一个角色
+    //         const randomCharacterKey = characterKeys[Math.floor(Math.random() * characterKeys.length)];
             
-            // 根据工位方向计算角色位置
-            const { x: characterX, y: characterY, direction: characterDirection } = this.calculateCharacterPosition(workstation);
+    //         // 根据工位方向计算角色位置
+    //         const { x: characterX, y: characterY, direction: characterDirection } = this.calculateCharacterPosition(workstation);
             
-            // 为其他玩家生成随机状态数据
-            const statusOptions = [
-                { type: 'working', status: '工作中', emoji: '💼', message: '正在写代码...' },
-                { type: 'break', status: '休息中', emoji: '☕', message: '喝杯咖啡放松一下' },
-                { type: 'reading', status: '阅读中', emoji: '📚', message: '在读技术书籍' },
-                { type: 'meeting', status: '会议中', emoji: '👥', message: '团队讨论中' }
-            ];
+    //         // 为其他玩家生成随机状态数据
+    //         const statusOptions = [
+    //             { type: 'working', status: '工作中', emoji: '💼', message: '正在写代码...' },
+    //             { type: 'break', status: '休息中', emoji: '☕', message: '喝杯咖啡放松一下' },
+    //             { type: 'reading', status: '阅读中', emoji: '📚', message: '在读技术书籍' },
+    //             { type: 'meeting', status: '会议中', emoji: '👥', message: '团队讨论中' }
+    //         ];
             
-            const randomStatus = statusOptions[Math.floor(Math.random() * statusOptions.length)];
-            const playerData = {
-                id: `player_${workstation.userId}_${index}`,
-                name: `玩家${index + 1}`,
-                currentStatus: {
-                    ...randomStatus,
-                    timestamp: new Date().toISOString()
-                }
-            };
+    //         const randomStatus = statusOptions[Math.floor(Math.random() * statusOptions.length)];
+    //         const playerData = {
+    //             id: `player_${workstation.userId}_${index}`,
+    //             name: `玩家${index + 1}`,
+    //             currentStatus: {
+    //                 ...randomStatus,
+    //                 timestamp: new Date().toISOString()
+    //             }
+    //         };
             
-            // 创建Player对象，传入随机角色和状态数据
-            const character = new Player(this, characterX, characterY, randomCharacterKey, false, false, true, playerData);
-            this.add.existing(character);
+    //         // 创建Player对象，传入随机角色和状态数据
+    //         const character = new Player(this, characterX, characterY, randomCharacterKey, false, false, true, playerData);
+    //         this.add.existing(character);
             
-            // 根据工位方向设置角色朝向
-            character.setDirectionFrame(characterDirection);
+    //         // 根据工位方向设置角色朝向
+    //         character.setDirectionFrame(characterDirection);
             
-            // 存储角色信息到工位对象中
-            workstation.character = {
-                player: character,
-                characterKey: randomCharacterKey,
-                direction: characterDirection
-            };
+    //         // 存储角色信息到工位对象中
+    //         workstation.character = {
+    //             player: character,
+    //             characterKey: randomCharacterKey,
+    //             direction: characterDirection
+    //         };
             
-            console.log(`Placed character ${randomCharacterKey} at workstation ${workstation.id} (${characterX}, ${characterY}) facing ${characterDirection} (workstation direction: ${workstation.direction})`);
-        });
+    //         console.log(`Placed character ${randomCharacterKey} at workstation ${workstation.id} (${characterX}, ${characterY}) facing ${characterDirection} (workstation direction: ${workstation.direction})`);
+    //     });
         
-        console.log('=== Characters placement complete ===');
-    }
+    //     console.log('=== Characters placement complete ===');
+    // }
 
     // 根据工位方向计算角色位置和朝向
     calculateCharacterPosition(workstation) {
@@ -907,6 +910,43 @@ export class Start extends Phaser.Scene {
         } catch (e) {
             console.warn('Failed to parse user data from localStorage', e);
             return null;
+        }
+    }
+
+    async syncUserToDatabase() {
+        if (!this.currentUser) return;
+        
+        console.log('同步用户数据到数据库:', this.currentUser);
+        
+        try {
+            const response = await fetch('/api/users', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    id: this.currentUser.id,
+                    name: this.currentUser.username,
+                    avatar: this.currentUser.character,
+                    points: this.currentUser.points || 50,
+                    gold: this.currentUser.gold || 50
+                })
+            });
+
+            const result = await response.json();
+            
+            if (result.success) {
+                console.log('用户数据同步成功:', result.data);
+                // 更新当前用户数据为服务器返回的数据
+                this.currentUser.id = result.data.id;
+                this.currentUser.points = result.data.points;
+                this.currentUser.gold = result.data.gold;
+                this.saveCurrentUser();
+            } else {
+                console.warn('用户数据同步失败:', result.error);
+            }
+        } catch (error) {
+            console.warn('同步用户数据到数据库失败:', error);
         }
     }
 

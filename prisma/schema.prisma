@@ -48,8 +48,6 @@ model Workstation {
   isOccupied Boolean  @default(false)
   createdAt DateTime @default(now())
   
-  userWorkstations UserWorkstation[]
-  
   @@map("workstations")
 }
 
@@ -61,7 +59,6 @@ model UserWorkstation {
   boundAt       DateTime  @default(now())
   
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  workstation  Workstation  @relation(fields: [workstationId], references: [id], onDelete: Cascade)
   
   @@unique([userId, workstationId])
   @@map("user_workstations")

@@ -312,20 +312,63 @@ export class RegisterScene extends Phaser.Scene {
     }
 
     async registerUser(userData) {
-        // 预留后端接口
-        // 这里模拟注册过程，实际需要调用后端API
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                resolve({
+        console.log('开始注册用户:', userData);
+        
+        try {
+            // 调用后端API创建用户
+            const response = await fetch('/api/users', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    id: Date.now().toString(),
+                    name: userData.username,
+                    avatar: userData.character,
+                    points: userData.points,
+                    gold: userData.points
+                })
+            });
+
+            const result = await response.json();
+            
+            if (result.success) {
+                console.log('用户注册成功:', result.data);
+                return {
+                    id: result.data.id,
+                    username: result.data.name,
+                    character: result.data.avatar,
+                    points: result.data.points,
+                    gold: result.data.gold,
+                    registeredAt: result.data.createdAt,
+                    workstations: [] // 用户绑定的工位
+                };
+            } else {
+                console.error('用户注册失败:', result.error);
+                // 如果API失败，回退到本地创建
+                return {
                     id: Date.now().toString(),
                     username: userData.username,
                     character: userData.character,
                     points: userData.points,
+                    gold: userData.points,
                     registeredAt: new Date().toISOString(),
                     workstations: [] // 用户绑定的工位
-                });
-            }, 1000);
-        });
+                };
+            }
+        } catch (error) {
+            console.error('调用用户注册API失败:', error);
+            // API失败时回退到本地创建
+            return {
+                id: Date.now().toString(),
+                username: userData.username,
+                character: userData.character,
+                points: userData.points,
+                gold: userData.points,
+                registeredAt: new Date().toISOString(),
+                workstations: [] // 用户绑定的工位
+            };
+        }
     }
 
     saveUserData(userData) {

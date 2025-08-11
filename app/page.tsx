@@ -70,6 +70,13 @@ export default function Home() {
       }
     }
     
+    // 设置全局函数供Phaser调用
+    if (typeof window !== 'undefined') {
+      window.setWorkstationBindingModal = (modalState: any) => {
+        setBindingModal(modalState)
+      }
+    }
+    
     checkMobile()
     loadCurrentUser()
     window.addEventListener('resize', checkMobile)
@@ -107,13 +114,10 @@ export default function Home() {
     // 这里可以发送到服务器或广播给其他玩家
   }, [myStatus])
 
-  // 处理工位绑定请求
+  // 处理工位绑定请求 - 现在由workstationBindingManager直接处理
   const handleWorkstationBinding = useCallback((workstation: any, user: any) => {
-    setBindingModal({
-      isVisible: true,
-      workstation,
-      user
-    })
+    console.log('React handleWorkstationBinding 被调用（已弃用）:', { workstation, user })
+    // 这个函数现在仅作为备用，主要逻辑在workstationBindingManager中处理
   }, [])
 
   // 处理玩家点击请求
@@ -126,12 +130,25 @@ export default function Home() {
 
   // 处理工位绑定确认
   const handleBindingConfirm = useCallback(async () => {
+    console.log('=== React handleBindingConfirm 被调用 ===')
     try {
-      // 动态导入工位绑定管理器
-      const { workstationBindingManager } = await import('@/lib/workstationBindingManager')
-      
-      const result = await workstationBindingManager.handleBindingConfirm()
-      return result
+      // 直接使用全局实例
+      if (typeof window !== 'undefined' && window.workstationBindingManager) {
+        const workstationBindingManager = window.workstationBindingManager
+        console.log('使用全局 workstationBindingManager:', workstationBindingManager)
+        console.log('workstationBindingManager 状态:', {
+          currentWorkstation: workstationBindingManager.getCurrentWorkstation(),
+          currentUser: workstationBindingManager.getCurrentUser(),
+          isProcessing: workstationBindingManager.isBindingProcessing()
+        })
+        
+        const result = await workstationBindingManager.handleBindingConfirm()
+        console.log('绑定结果:', result)
+        return result
+      } else {
+        console.error('全局 workstationBindingManager 不存在')
+        return { success: false, error: '绑定管理器不可用' }
+      }
     } catch (error) {
       console.error('工位绑定失败:', error)
       return { success: false, error: '绑定失败，请重试' }
@@ -141,9 +158,12 @@ export default function Home() {
   // 处理工位绑定取消
   const handleBindingCancel = useCallback(() => {
     try {
-      // 动态导入工位绑定管理器
-      const { workstationBindingManager } = require('@/lib/workstationBindingManager')
-      workstationBindingManager.handleBindingCancel()
+      // 直接使用全局实例
+      if (typeof window !== 'undefined' && window.workstationBindingManager) {
+        window.workstationBindingManager.handleBindingCancel()
+      } else {
+        console.error('全局 workstationBindingManager 不存在')
+      }
     } catch (error) {
       console.error('取消工位绑定失败:', error)
     }

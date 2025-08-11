@@ -33,6 +33,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
+    // 确保 workstationId 是数字类型
+    const workstationIdNum = parseInt(workstationId, 10)
+    if (isNaN(workstationIdNum)) {
+      return NextResponse.json({ error: 'Invalid workstation ID' }, { status: 400 })
+    }
+
     // 检查用户积分
     const user = await prisma.user.findUnique({
       where: { id: userId }
@@ -44,7 +50,7 @@ export async function POST(request: NextRequest) {
 
     // 检查工位是否已被绑定
     const existingBinding = await prisma.userWorkstation.findFirst({
-      where: { workstationId }
+      where: { workstationId: workstationIdNum }
     })
 
     if (existingBinding) {
@@ -67,21 +73,22 @@ export async function POST(request: NextRequest) {
       const userWorkstation = await tx.userWorkstation.create({
         data: {
           userId,
-          workstationId,
+          workstationId: workstationIdNum,
           cost,
           boundAt: new Date()
         },
-        include: {
-          workstation: true
-        }
-      })
+        })
 
       return { user: updatedUser, binding: userWorkstation }
     })
 
-    // 更新Redis缓存
-    const redis = require('../../../../lib/redis').redis
-    await redis.setJSON(`user:${userId}`, result.user, 3600)
+    // 更新Redis缓存（如果Redis可用）
+    try {
+      const redis = require('../../../../lib/redis').redis
+      await redis.setJSON(`user:${userId}`, result.user, 3600)
+    } catch (redisError) {
+      console.warn('Redis缓存更新失败，但绑定操作已成功:', redisError)
+    }
 
     return NextResponse.json({ 
       success: true, 
@@ -106,12 +113,18 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'User ID and Workstation ID required' }, { status: 400 })
     }
 
+    // 确保 workstationId 是数字类型
+    const workstationIdNum = parseInt(workstationId, 10)
+    if (isNaN(workstationIdNum)) {
+      return NextResponse.json({ error: 'Invalid workstation ID' }, { status: 400 })
+    }
+
     // 解除绑定
     await prisma.userWorkstation.delete({
       where: {
         userId_workstationId: {
           userId,
-          workstationId
+          workstationId: workstationIdNum
         }
       }
     })
