@@ -17,6 +17,17 @@ interface BindingInfo {
   boundAt: string
 }
 
+interface UserInfo {
+  id: string
+  name: string
+  email?: string
+  avatar?: string
+  points: number
+  gold: number
+  createdAt: string
+  updatedAt: string
+}
+
 const WorkstationInfoModal = memo(({ 
   isVisible, 
   workstationId, 
@@ -24,6 +35,7 @@ const WorkstationInfoModal = memo(({
   onClose 
 }: WorkstationInfoModalProps) => {
   const [bindingInfo, setBindingInfo] = useState<BindingInfo | null>(null)
+  const [userInfo, setUserInfo] = useState<UserInfo | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -87,23 +99,36 @@ const WorkstationInfoModal = memo(({
     setError(null)
     
     try {
-      const response = await fetch(`/api/workstations/user-bindings?userId=${userId}`)
-      const result = await response.json()
+      // 并行获取绑定信息和用户信息
+      const [bindingResponse, userResponse] = await Promise.all([
+        fetch(`/api/workstations/user-bindings?userId=${userId}`),
+        fetch(`/api/users?userId=${userId}`)
+      ])
       
-      if (result.success) {
+      const bindingResult = await bindingResponse.json()
+      const userResult = await userResponse.json()
+      
+      if (bindingResult.success) {
         // 查找指定工位的绑定信息
-        const binding = result.data.find((b: BindingInfo) => b.workstationId === workstationId)
+        const binding = bindingResult.data.find((b: BindingInfo) => b.workstationId === workstationId)
         if (binding) {
           setBindingInfo(binding)
         } else {
           setError('未找到该工位的绑定信息')
         }
       } else {
-        setError(result.error || '获取绑定信息失败')
+        setError(bindingResult.error || '获取绑定信息失败')
+      }
+      
+      if (userResult.success) {
+        setUserInfo(userResult.data)
+      } else {
+        console.warn('获取用户信息失败:', userResult.error)
+        // 用户信息获取失败不影响主要功能
       }
     } catch (error) {
-      console.error('获取绑定信息失败:', error)
-      setError('获取绑定信息失败')
+      console.error('获取信息失败:', error)
+      setError('获取信息失败')
     } finally {
       setLoading(false)
     }
@@ -137,7 +162,7 @@ const WorkstationInfoModal = memo(({
       />
       
       {/* 弹窗容器 */}
-      <div className="relative bg-gray-900 border border-green-500/30 rounded-xl p-6 w-full max-w-md mx-4 shadow-2xl">
+      <div className="relative bg-gray-900 border border-green-500/30 rounded-xl p-4 w-full max-w-sm mx-4 shadow-2xl">
         {/* 关闭按钮 */}
         <button
           onClick={handleClose}
@@ -149,9 +174,9 @@ const WorkstationInfoModal = memo(({
         </button>
 
         {/* 标题 */}
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold text-white mb-2">工位信息</h2>
-          <div className="w-12 h-1 bg-gradient-to-r from-green-500 to-emerald-500 rounded"></div>
+        <div className="mb-4">
+          <h2 className="text-lg font-bold text-white mb-1">工位信息</h2>
+          <div className="w-8 h-1 bg-gradient-to-r from-green-500 to-emerald-500 rounded"></div>
         </div>
 
         {/* 加载状态 */}
@@ -171,67 +196,95 @@ const WorkstationInfoModal = memo(({
 
         {/* 绑定信息 */}
         {bindingInfo && timeInfo && (
-          <div className="space-y-4">
-            {/* 工位基本信息 */}
-            <div className="bg-gray-800/50 rounded-lg p-4">
-              <h3 className="text-sm font-medium text-gray-400 mb-3">工位信息</h3>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-gray-400">工位ID:</span>
-                  <span className="text-white font-mono">{workstationId}</span>
+          <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+            {/* 用户信息 - 横向布局 */}
+            {userInfo && (
+              <div className="bg-gray-800/50 rounded-lg p-3">
+                <h3 className="text-xs font-medium text-gray-400 mb-2">绑定用户</h3>
+                <div className="flex items-center space-x-3">
+                  {userInfo.avatar ? (
+                    <img 
+                      src={userInfo.avatar} 
+                      alt={userInfo.name}
+                      className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0">
+                      <span className="text-white font-bold text-xs">
+                        {userInfo.name.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="text-white text-sm font-medium truncate">{userInfo.name}</div>
+                    <div className="flex items-center justify-between mt-1">
+                      <span className="text-yellow-400 text-xs font-bold">{userInfo.points} 积分</span>
+                      <span className="text-gray-400 text-xs">{userInfo.id.slice(0, 8)}...</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">绑定费用:</span>
-                  <span className="text-yellow-400 font-bold">{bindingInfo.cost} 积分</span>
+              </div>
+            )}
+
+            {/* 工位基本信息 - 紧凑布局 */}
+            <div className="bg-gray-800/50 rounded-lg p-3">
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <div className="text-xs text-gray-400">工位ID</div>
+                  <div className="text-white text-sm font-mono">{workstationId}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-gray-400">绑定费用</div>
+                  <div className="text-yellow-400 text-sm font-bold">{bindingInfo.cost} 积分</div>
                 </div>
               </div>
             </div>
 
-            {/* 时间信息 */}
-            <div className="bg-gray-800/50 rounded-lg p-4">
-              <h3 className="text-sm font-medium text-gray-400 mb-3">租赁时间</h3>
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-gray-400">开始时间:</span>
-                  <span className="text-white text-sm">{timeInfo.rentalStart}</span>
+            {/* 时间信息 - 紧凑布局 */}
+            <div className="bg-gray-800/50 rounded-lg p-3">
+              <h3 className="text-xs font-medium text-gray-400 mb-2">租赁时间</h3>
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs">
+                  <span className="text-gray-400">开始:</span>
+                  <span className="text-white">{timeInfo.rentalStart}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">到期时间:</span>
-                  <span className={`text-sm font-medium ${timeInfo.isExpired ? 'text-red-400' : 'text-green-400'}`}>
+                <div className="flex justify-between text-xs">
+                  <span className="text-gray-400">到期:</span>
+                  <span className={`font-medium ${timeInfo.isExpired ? 'text-red-400' : 'text-green-400'}`}>
                     {timeInfo.rentalEnd}
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">租赁时长:</span>
-                  <span className="text-white text-sm">{timeInfo.totalDays} 天</span>
+                <div className="flex justify-between text-xs">
+                  <span className="text-gray-400">时长:</span>
+                  <span className="text-white">{timeInfo.totalDays} 天</span>
                 </div>
               </div>
             </div>
 
-            {/* 使用情况 */}
-            <div className="bg-gray-800/50 rounded-lg p-4">
-              <h3 className="text-sm font-medium text-gray-400 mb-3">使用情况</h3>
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-gray-400">已使用时间:</span>
-                  <span className="text-blue-400 text-sm font-medium">{timeInfo.timeUsed}</span>
+            {/* 使用情况和进度 - 组合布局 */}
+            <div className="bg-gray-800/50 rounded-lg p-3">
+              <h3 className="text-xs font-medium text-gray-400 mb-2">使用情况</h3>
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs">
+                  <span className="text-gray-400">已用:</span>
+                  <span className="text-blue-400 font-medium">{timeInfo.timeUsed}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">剩余时间:</span>
-                  <span className={`text-sm font-medium ${timeInfo.isExpired ? 'text-red-400' : 'text-green-400'}`}>
+                <div className="flex justify-between text-xs">
+                  <span className="text-gray-400">剩余:</span>
+                  <span className={`font-medium ${timeInfo.isExpired ? 'text-red-400' : 'text-green-400'}`}>
                     {timeInfo.timeRemaining}
                   </span>
                 </div>
                 
                 {/* 进度条 */}
-                <div className="mt-3">
+                <div className="pt-1">
                   <div className="flex justify-between text-xs text-gray-400 mb-1">
-                    <span>使用进度</span>
+                    <span>进度</span>
                     <span>{Math.round(timeInfo.usagePercentage)}%</span>
                   </div>
-                  <div className="w-full bg-gray-700 rounded-full h-2">
+                  <div className="w-full bg-gray-700 rounded-full h-1.5">
                     <div 
-                      className={`h-2 rounded-full transition-all duration-300 ${
+                      className={`h-1.5 rounded-full transition-all duration-300 ${
                         timeInfo.isExpired 
                           ? 'bg-red-500' 
                           : 'bg-gradient-to-r from-green-500 to-emerald-500'
@@ -245,17 +298,17 @@ const WorkstationInfoModal = memo(({
               </div>
             </div>
 
-            {/* 状态指示器 */}
-            <div className={`p-3 rounded-lg border ${
+            {/* 状态指示器 - 更紧凑 */}
+            <div className={`p-2 rounded-lg border ${
               timeInfo.isExpired 
                 ? 'bg-red-500/20 border-red-500/30' 
                 : 'bg-green-500/20 border-green-500/30'
             }`}>
-              <div className="flex items-center gap-2">
-                <div className={`w-3 h-3 rounded-full ${
+              <div className="flex items-center justify-center gap-2">
+                <div className={`w-2 h-2 rounded-full ${
                   timeInfo.isExpired ? 'bg-red-400' : 'bg-green-400 animate-pulse'
                 }`}></div>
-                <span className={`text-sm font-medium ${
+                <span className={`text-xs font-medium ${
                   timeInfo.isExpired ? 'text-red-400' : 'text-green-400'
                 }`}>
                   {timeInfo.isExpired ? '租赁已过期' : '租赁有效中'}
@@ -266,10 +319,10 @@ const WorkstationInfoModal = memo(({
         )}
 
         {/* 底部按钮 */}
-        <div className="flex gap-3 mt-6 pt-4 border-t border-gray-700">
+        <div className="flex gap-2 mt-4 pt-3 border-t border-gray-700">
           <button
             onClick={handleClose}
-            className="flex-1 py-2 px-4 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-medium transition-all duration-200"
+            className="flex-1 py-2 px-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm font-medium transition-all duration-200"
           >
             关闭
           </button>
