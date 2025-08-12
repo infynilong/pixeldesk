@@ -841,13 +841,26 @@ export class WorkstationManager {
         characterContainer.setScrollFactor(1); // 跟随地图滚动
         characterContainer.setDepth(1000); // 在工位上方
         
-        // 创建角色精灵
-        const characterSprite = this.scene.add.image(0, 0, characterKey);
-        characterSprite.setOrigin(0.5, 0.5);
-        characterSprite.setScale(0.8); // 稍微缩小一点
+        // 创建头部和身体精灵（像Player类一样）
+        const headSprite = this.scene.add.image(0, 0, characterKey);
+        const bodySprite = this.scene.add.image(0, 48, characterKey);
+        
+        // 设置纹理区域（从tileset中提取正确的帧）
+        headSprite.setFrame(0);  // user_head对应的帧
+        bodySprite.setFrame(56);  // user_body对应的帧
+        
+        // 设置原点和缩放
+        headSprite.setOrigin(0.5, 0.5);
+        bodySprite.setOrigin(0.5, 0.5);
+        headSprite.setScale(0.8); // 稍微缩小一点
+        bodySprite.setScale(0.8);
         
         // 添加到容器
-        characterContainer.add(characterSprite);
+        characterContainer.add([headSprite, bodySprite]);
+        
+        // 根据工位方向设置角色朝向
+        const characterDirection = this.getCharacterDirectionFromWorkstation(workstation);
+        this.setCharacterDirectionFrame(headSprite, bodySprite, characterDirection);
         
         // 添加角色名称标签
         const nameLabel = this.scene.add.text(0, 25, workstation.userInfo?.name || `玩家${userId.slice(-4)}`, {
@@ -879,8 +892,9 @@ export class WorkstationManager {
         // 保存引用
         workstation.characterSprite = characterContainer;
         workstation.characterKey = characterKey;
+        workstation.characterDirection = characterDirection;
         
-        console.log(`在工位 ${workstation.id} 上添加角色: ${characterKey}`);
+        console.log(`在工位 ${workstation.id} 上添加角色: ${characterKey}, 方向: ${characterDirection}`);
     }
     
     onCharacterClick(userId, workstation) {
@@ -908,6 +922,44 @@ export class WorkstationManager {
             workstation.characterSprite.destroy();
             workstation.characterSprite = null;
             workstation.characterKey = null;
+            workstation.characterDirection = null;
+        }
+    }
+    
+    // 根据工位方向获取角色朝向
+    getCharacterDirectionFromWorkstation(workstation) {
+        switch (workstation.direction) {
+            case 'right':
+                return 'right';
+            case 'left':
+                return 'left';
+            case 'center':
+                return 'down';
+            case 'single':
+            default:
+                return 'down';
+        }
+    }
+    
+    // 设置角色方向帧（复制Player类的逻辑）
+    setCharacterDirectionFrame(headSprite, bodySprite, direction) {
+        switch (direction) {
+            case 'up':
+                headSprite.setFrame(1);
+                bodySprite.setFrame(57);
+                break;
+            case 'left':
+                headSprite.setFrame(2);
+                bodySprite.setFrame(58);
+                break;
+            case 'down': 
+                headSprite.setFrame(3);
+                bodySprite.setFrame(59);
+                break;
+            case 'right':
+                headSprite.setFrame(0);
+                bodySprite.setFrame(56);
+                break;
         }
     }
 
