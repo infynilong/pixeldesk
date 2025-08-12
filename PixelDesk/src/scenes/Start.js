@@ -100,13 +100,13 @@ export class Start extends Phaser.Scene {
         this.setupSocialFeatures();
         
         // 创建完成后的初始化
-        this.time.delayedCall(100, () => {
+        this.time.delayedCall(100, async () => {
             // 清理所有现有绑定和星星标记
             this.workstationManager.clearAllBindings();
             this.workstationManager.printStatistics();
             
-            // 加载保存的工位绑定信息
-            this.workstationManager.loadSavedBindings();
+            // 从服务器同步工位绑定信息
+            await this.workstationManager.syncWorkstationBindings();
             
             // 高亮当前用户的工位
             if (this.currentUser) {
@@ -119,6 +119,9 @@ export class Start extends Phaser.Scene {
             // 重新启用自动绑定，显示随机其他玩家
             // this.setupTestBindings(); // 示例绑定
             this.checkExpiredWorkstations(); // 检查过期工位
+            
+            // 设置定时同步工位状态（每30秒）
+            this.setupWorkstationSync();
             
             // 更新UI显示用户数据（积分和工位绑定状态）
             this.sendUserDataToUI();
@@ -992,6 +995,22 @@ export class Start extends Phaser.Scene {
         if (this.currentUser) {
             localStorage.setItem('pixelDeskUser', JSON.stringify(this.currentUser));
         }
+    }
+
+    // 设置工位状态定时同步
+    setupWorkstationSync() {
+        // 每30秒同步一次工位状态
+        this.time.addEvent({
+            delay: 30000, // 30秒
+            callback: async () => {
+                console.log('定时同步工位状态...');
+                await this.workstationManager.syncWorkstationBindings();
+            },
+            callbackScope: this,
+            loop: true // 循环执行
+        });
+        
+        console.log('工位状态定时同步已设置（每30秒）');
     }
 
     sendUserDataToUI() {

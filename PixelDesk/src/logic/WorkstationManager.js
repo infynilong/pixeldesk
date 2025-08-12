@@ -459,6 +459,87 @@ export class WorkstationManager {
 
     // ===== 后端接口预留 =====
     
+    async loadAllWorkstationBindings() {
+        // 从服务器加载所有工位绑定信息
+        try {
+            const response = await fetch('/api/workstations/all-bindings');
+            const result = await response.json();
+            
+            if (result.success && result.data) {
+                console.log('从服务器加载工位绑定信息:', result.data);
+                return result.data;
+            } else {
+                console.error('获取工位绑定信息失败:', result.error);
+                return [];
+            }
+        } catch (error) {
+            console.error('调用工位绑定API失败:', error);
+            return [];
+        }
+    }
+    
+    async syncWorkstationBindings() {
+        // 同步工位绑定状态：先清空本地，然后加载服务器数据
+        console.log('开始同步工位绑定状态...');
+        
+        // 清理现有绑定
+        this.clearAllBindings();
+        
+        // 从服务器获取所有绑定
+        const allBindings = await this.loadAllWorkstationBindings();
+        
+        // 应用绑定状态到本地工位
+        allBindings.forEach(binding => {
+            const workstation = this.workstations.get(binding.workstationId);
+            if (workstation) {
+                // 计算剩余天数（30天有效期）
+                const boundAt = new Date(binding.boundAt);
+                const expiresAt = new Date(boundAt.getTime() + 30 * 24 * 60 * 60 * 1000);
+                const now = new Date();
+                
+                // 检查是否过期
+                if (now > expiresAt) {
+                    console.log(`工位 ${binding.workstationId} 已过期，跳过`);
+                    return;
+                }
+                
+                // 应用绑定状态
+                workstation.isOccupied = true;
+                workstation.userId = binding.userId;
+                workstation.boundAt = binding.boundAt;
+                workstation.expiresAt = expiresAt.toISOString();
+                workstation.remainingDays = Math.ceil((expiresAt - now) / (24 * 60 * 60 * 1000));
+                
+                this.userBindings.set(binding.workstationId, binding.userId);
+                
+                // 更新视觉效果
+                if (workstation.sprite) {
+                    workstation.sprite.setTint(this.config.occupiedTint);
+                }
+                
+                // 移除交互图标，添加占用图标
+                this.removeInteractionIcon(workstation);
+                this.addOccupiedIcon(workstation);
+                
+                console.log(`同步工位 ${binding.workstationId} 绑定状态: 用户 ${binding.userId}`);
+            }
+        });
+        
+        console.log(`工位绑定状态同步完成，共同步 ${allBindings.length} 个绑定`);
+        this.printStatistics();
+    }
+    
+    // 手动刷新工位状态
+    async refreshWorkstationStatus() {
+        console.log('手动刷新工位状态...');
+        await this.syncWorkstationBindings();
+        
+        // 触发刷新完成事件
+        this.scene.events.emit('workstation-status-refreshed');
+        
+        return { success: true, message: '工位状态已刷新' };
+    }
+
     loadSavedBindings() {
         const savedBindings = JSON.parse(localStorage.getItem('pixelDeskWorkstationBindings') || '{}');
         const now = new Date();
