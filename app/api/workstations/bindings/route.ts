@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '../../../../lib/db'
+import { prisma } from '@/lib/db'
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,10 +12,7 @@ export async function GET(request: NextRequest) {
 
     // 获取用户的工位绑定
     const userWorkstations = await prisma.userWorkstation.findMany({
-      where: { userId },
-      include: {
-        workstation: true
-      }
+      where: { userId }
     })
 
     return NextResponse.json({ success: true, data: userWorkstations })
@@ -84,7 +81,7 @@ export async function POST(request: NextRequest) {
 
     // 更新Redis缓存（如果Redis可用）
     try {
-      const redis = require('../../../../lib/redis').redis
+      const redis = require('@/lib/redis').redis
       await redis.setJSON(`user:${userId}`, result.user, 3600)
     } catch (redisError) {
       console.warn('Redis缓存更新失败，但绑定操作已成功:', redisError)

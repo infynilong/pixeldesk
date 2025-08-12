@@ -6,11 +6,11 @@ let redisConnected = false;
 // 模拟Redis客户端
 const redisClient = {
   connect: async () => { throw new Error('Redis已禁用'); },
-  set: async () => { return null; },
-  get: async () => { return null; },
-  del: async () => { return null; },
-  exists: async () => { return false; },
-  setEx: async () => { return null; },
+  set: async (key: string, value: string) => { return null; },
+  get: async (key: string) => { return null; },
+  del: async (key: string) => { return null; },
+  exists: async (key: string) => { return false; },
+  setEx: async (key: string, seconds: number, value: string) => { return null; },
   quit: async () => { return null; }
 };
 
@@ -44,9 +44,12 @@ export const redis = {
   },
 
   // Delete a key
-  async del(key: string) {
+  async del(key: string | string[]) {
     if (!redisConnected) return null;
     try {
+      if (Array.isArray(key)) {
+        return await Promise.all(key.map(k => redisClient.del(k)))
+      }
       return await redisClient.del(key)
     } catch (error) {
       console.warn('Redis del操作失败:', error);
@@ -62,6 +65,18 @@ export const redis = {
     } catch (error) {
       console.warn('Redis exists操作失败:', error);
       return false;
+    }
+  },
+
+  // Get keys by pattern
+  async keys(pattern: string) {
+    if (!redisConnected) return [];
+    try {
+      // Mock implementation - return empty array since Redis is disabled
+      return []
+    } catch (error) {
+      console.warn('Redis keys操作失败:', error);
+      return [];
     }
   },
 

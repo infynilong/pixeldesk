@@ -1,18 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '../../../lib/db'
+import { prisma } from '@/lib/db'
 
 export async function GET() {
   try {
     // 获取所有工位
-    const workstations = await prisma.workstation.findMany({
-      include: {
-        userWorkstations: {
-          include: {
-            user: true
-          }
-        }
-      }
-    })
+    const workstations = await prisma.workstation.findMany()
 
     return NextResponse.json({ success: true, data: workstations })
   } catch (error) {

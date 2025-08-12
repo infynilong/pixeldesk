@@ -1,14 +1,14 @@
 import { prisma } from '../lib/db'
-import redis from '../lib/redis'
+import { redis } from '../lib/redis'
 
 export interface StatusHistory {
-  id: string
+  id: number
   type: string
   status: string
-  emoji: string
-  message: string
+  emoji: string | null
+  message: string | null
   timestamp: Date
-  userId?: string
+  userId: string
 }
 
 export class DatabaseStatusHistoryManager {
@@ -55,7 +55,7 @@ export class DatabaseStatusHistoryManager {
     try {
       const historyItem = await prisma.statusHistory.create({
         data: {
-          userId,
+          userId: userId || '',
           type: status.type,
           status: status.status,
           emoji: status.emoji,
@@ -93,7 +93,7 @@ export class DatabaseStatusHistoryManager {
         // 清除所有相关缓存
         const keys = await redis.keys('status_history:*')
         if (keys.length > 0) {
-          await redis.del(...keys)
+          await redis.del(keys)
         }
       }
       return true

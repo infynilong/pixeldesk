@@ -32,6 +32,11 @@ const PlayerClickModal = dynamic(() => import('@/components/PlayerClickModal'), 
   ssr: false
 })
 
+// 工位信息弹窗组件
+const WorkstationInfoModal = dynamic(() => import('@/components/WorkstationInfoModal'), {
+  ssr: false
+})
+
 export default function Home() {
   const [isMobile, setIsMobile] = useState(false)
   const [selectedPlayer, setSelectedPlayer] = useState(null)
@@ -49,6 +54,13 @@ export default function Home() {
   const [playerClickModal, setPlayerClickModal] = useState({
     isVisible: false,
     player: null
+  })
+  
+  // 工位信息弹窗状态
+  const [workstationInfoModal, setWorkstationInfoModal] = useState({
+    isVisible: false,
+    workstationId: null as number | null,
+    userId: null as string | null
   })
   
   // 检测移动设备和加载用户数据
@@ -74,6 +86,15 @@ export default function Home() {
     if (typeof window !== 'undefined') {
       window.setWorkstationBindingModal = (modalState: any) => {
         setBindingModal(modalState)
+      }
+      
+      // 设置工位信息弹窗的全局函数
+      window.showWorkstationInfo = (workstationId: number, userId: string) => {
+        setWorkstationInfoModal({
+          isVisible: true,
+          workstationId,
+          userId
+        })
       }
     }
     
@@ -183,6 +204,15 @@ export default function Home() {
     setPlayerClickModal({
       isVisible: false,
       player: null
+    })
+  }, [])
+
+  // 关闭工位信息弹窗
+  const handleWorkstationInfoModalClose = useCallback(() => {
+    setWorkstationInfoModal({
+      isVisible: false,
+      workstationId: null,
+      userId: null
     })
   }, [])
 
@@ -321,6 +351,14 @@ export default function Home() {
         isVisible={playerClickModal.isVisible}
         player={playerClickModal.player}
         onClose={handlePlayerClickModalClose}
+      />
+      
+      {/* 工位信息弹窗 */}
+      <WorkstationInfoModal
+        isVisible={workstationInfoModal.isVisible}
+        workstationId={workstationInfoModal.workstationId}
+        userId={workstationInfoModal.userId}
+        onClose={handleWorkstationInfoModalClose}
       />
     </div>
   )

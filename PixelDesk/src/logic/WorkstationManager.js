@@ -98,6 +98,17 @@ export class WorkstationManager {
                     workstationId,
                     workstation
                 });
+            } else {
+                // 已占用的工位显示工位信息弹窗
+                const userId = this.getUserByWorkstation(workstationId);
+                if (userId) {
+                    console.log(`显示工位 ${workstationId} 的信息弹窗，用户ID: ${userId}`);
+                    
+                    // 调用全局函数显示工位信息弹窗
+                    if (typeof window !== 'undefined' && window.showWorkstationInfo) {
+                        window.showWorkstationInfo(workstationId, userId);
+                    }
+                }
             }
             
             // 触发自定义事件

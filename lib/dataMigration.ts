@@ -104,21 +104,14 @@ export class DataMigration {
             where: { id: ws.id },
             update: {
               name: ws.name,
-              type: ws.type,
-              x: ws.x,
-              y: ws.y,
-              cost: ws.cost || 0,
-              description: ws.description,
-              updatedAt: new Date()
+              xPosition: ws.x,
+              yPosition: ws.y
             },
             create: {
               id: ws.id,
               name: ws.name,
-              type: ws.type,
-              x: ws.x,
-              y: ws.y,
-              cost: ws.cost || 0,
-              description: ws.description
+              xPosition: ws.x,
+              yPosition: ws.y
             }
           })
           results.workstations.success++
@@ -213,7 +206,7 @@ export class DataMigration {
           (SELECT COUNT(*) FROM status_history) as status_count,
           (SELECT COUNT(*) FROM workstations) as workstation_count,
           (SELECT COUNT(*) FROM user_workstations) as binding_count
-      `
+      ` as any[]
 
       console.log('Database statistics:', stats[0])
       return stats[0]

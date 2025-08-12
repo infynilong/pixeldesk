@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '../../../lib/db'
+import { prisma } from '@/lib/db'
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,11 +14,7 @@ export async function GET(request: NextRequest) {
     const user = await prisma.user.findUnique({
       where: { id: userId },
       include: {
-        workstations: {
-          include: {
-            workstation: true
-          }
-        }
+        workstations: true
       }
     })
 
@@ -63,7 +59,7 @@ export async function POST(request: NextRequest) {
     })
 
     // 缓存到Redis
-    const redis = require('../../../lib/redis').redis
+    const redis = require('@/lib/redis').redis
     await redis.setJSON(`user:${id}`, user, 3600)
 
     return NextResponse.json({ success: true, data: user })
@@ -92,7 +88,7 @@ export async function PUT(request: NextRequest) {
     })
 
     // 更新Redis缓存
-    const redis = require('../../../lib/redis').redis
+    const redis = require('@/lib/redis').redis
     await redis.setJSON(`user:${userId}`, user, 3600)
 
     return NextResponse.json({ success: true, data: user })
