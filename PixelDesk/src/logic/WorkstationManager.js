@@ -802,9 +802,8 @@ export class WorkstationManager {
             return; // 已有角色精灵
         }
         
-        // 计算角色位置（在工位上方）
-        const charX = workstation.position.x + workstation.size.width / 2;
-        const charY = workstation.position.y - 10; // 在工位上方一点
+        // 根据工位方向计算角色位置
+        const { x: charX, y: charY, direction: characterDirection } = this.calculateCharacterPosition(workstation);
         
         // 确定角色图片
         let characterKey = 'Premade_Character_48x48_01'; // 默认角色
@@ -820,22 +819,22 @@ export class WorkstationManager {
             if (!this.scene.textures.exists(characterKey)) {
                 this.scene.load.image(characterKey, `/assets/characters/${characterKey}.png`);
                 this.scene.load.once(`complete`, () => {
-                    this.createCharacterSprite(workstation, charX, charY, characterKey, userId);
+                    this.createCharacterSprite(workstation, charX, charY, characterKey, userId, characterDirection);
                 });
                 this.scene.load.start();
             } else {
-                this.createCharacterSprite(workstation, charX, charY, characterKey, userId);
+                this.createCharacterSprite(workstation, charX, charY, characterKey, userId, characterDirection);
             }
         } catch (error) {
             console.warn('无法加载角色图片:', characterKey, error);
             // 使用默认角色
             if (characterKey !== 'Premade_Character_48x48_01') {
-                this.createCharacterSprite(workstation, charX, charY, 'Premade_Character_48x48_01', userId);
+                this.createCharacterSprite(workstation, charX, charY, 'Premade_Character_48x48_01', userId, characterDirection);
             }
         }
     }
     
-    createCharacterSprite(workstation, x, y, characterKey, userId) {
+    createCharacterSprite(workstation, x, y, characterKey, userId, characterDirection) {
         // 创建角色容器
         const characterContainer = this.scene.add.container(x, y);
         characterContainer.setScrollFactor(1); // 跟随地图滚动
@@ -858,8 +857,7 @@ export class WorkstationManager {
         // 添加到容器
         characterContainer.add([headSprite, bodySprite]);
         
-        // 根据工位方向设置角色朝向
-        const characterDirection = this.getCharacterDirectionFromWorkstation(workstation);
+        // 使用传入的方向设置角色朝向
         this.setCharacterDirectionFrame(headSprite, bodySprite, characterDirection);
         
         // 添加角色名称标签
@@ -894,7 +892,7 @@ export class WorkstationManager {
         workstation.characterKey = characterKey;
         workstation.characterDirection = characterDirection;
         
-        console.log(`在工位 ${workstation.id} 上添加角色: ${characterKey}, 方向: ${characterDirection}`);
+        console.log(`在工位 ${workstation.id} 上添加角色: ${characterKey}, 位置: (${x}, ${y}), 方向: ${characterDirection} (工位方向: ${workstation.direction})`);
     }
     
     onCharacterClick(userId, workstation) {
@@ -926,19 +924,83 @@ export class WorkstationManager {
         }
     }
     
-    // 根据工位方向获取角色朝向
+    // 根据工位方向获取角色朝向（角色应该面向工位）
     getCharacterDirectionFromWorkstation(workstation) {
         switch (workstation.direction) {
             case 'right':
-                return 'right';
+                return 'left';  // 右侧工位，角色面向左（面向工位）
             case 'left':
-                return 'left';
+                return 'right'; // 左侧工位，角色面向右（面向工位）
             case 'center':
-                return 'down';
+                return 'down';  // 中间工位，角色面向下（面向工位）
             case 'single':
             default:
-                return 'down';
+                return 'down';  // 单人桌，角色面向下（面向工位）
         }
+    }
+    
+    // 根据工位方向计算角色位置（复制Start.js的逻辑）
+    calculateCharacterPosition(workstation) {
+        const position = workstation.position;
+        const size = workstation.size;
+        const direction = workstation.direction;
+        const offsetX = 24;
+        const offsetY = 48;
+        
+        let characterX = position.x;
+        let characterY = position.y;
+        let characterDirection = 'down';
+        
+        switch (direction) {
+            case 'right':
+                // 右侧工位，角色放在工位右侧，面向左
+                characterX = position.x + size.width + offsetX;
+                characterY = position.y - offsetY;
+                characterDirection = 'left';
+                break;
+                
+            case 'left':
+                // 左侧工位，角色放在工位左侧，面向右
+                characterX = position.x - offsetX;
+                characterY = position.y  - offsetY;
+                characterDirection = 'right';
+                break;
+                
+            case 'single':
+                // 单人桌，角色放在工位上方，面向下
+                characterX = position.x + (size.width / 2); // 居中
+                characterY = position.y - offsetY - 30;
+                characterDirection = 'down';
+                break;
+                
+            case 'center':
+                // 中间工位，角色放在工位上方，面向下
+                characterX = position.x + (size.width / 2) - 24; // 居中
+                characterY = position.y - offsetY;
+                characterDirection = 'down';
+                break;
+                
+            default:
+                // 默认处理
+                characterX = position.x + size.width + offsetX;
+                characterY = position.y;
+                characterDirection = 'left';
+        }
+        
+        // 额外调整：向上移动48像素，根据朝向左右调整30像素
+        characterY -= 48; // 向上移动48像素
+        
+        switch (characterDirection) {
+            case 'left':
+                characterX -= 30; // 向左调整30像素
+                break;
+            case 'right':
+                characterX += 30; // 向右调整30像素
+                break;
+            // down方向不需要左右调整
+        }
+        
+        return { x: characterX, y: characterY, direction: characterDirection };
     }
     
     // 设置角色方向帧（复制Player类的逻辑）
