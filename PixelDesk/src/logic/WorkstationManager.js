@@ -802,6 +802,12 @@ export class WorkstationManager {
             return; // 已有角色精灵
         }
         
+        // 如果是当前用户绑定的工位，则不显示角色形象
+        const currentUser = this.scene.currentUser;
+        if (currentUser && workstation.userId === currentUser.id) {
+            return;
+        }
+        
         // 根据工位方向计算角色位置
         const { x: charX, y: charY, direction: characterDirection } = this.calculateCharacterPosition(workstation);
         
