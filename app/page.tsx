@@ -10,6 +10,14 @@ declare global {
     showWorkstationInfo: (workstationId: number, userId: string) => void
     showPlayerInfo: (userId: string, userInfo: any) => void
     showCharacterInfo: (userId: string, userInfo: any, position: { x: number; y: number }) => void
+    saveGameScene: (scene: any) => void
+    getGameWorkstationCount: () => number
+    getGameWorkstationStats: () => {
+      totalWorkstations: number
+      boundWorkstations: number
+      availableWorkstations: number
+      occupancyRate: string
+    }
   }
 }
 
@@ -57,6 +65,7 @@ export default function Home() {
   const [selectedPlayer, setSelectedPlayer] = useState(null)
   const [myStatus, setMyStatus] = useState<any>('')
   const [currentUser, setCurrentUser] = useState<any>(null)
+  const [workstationStats, setWorkstationStats] = useState<any>(null)
   
   // 工位绑定弹窗状态
   const [bindingModal, setBindingModal] = useState({
@@ -105,6 +114,31 @@ export default function Home() {
       }
     }
     
+        
+    // 加载当前用户的工位绑定信息
+    const loadUserWorkstationBinding = async () => {
+      try {
+        const userData = localStorage.getItem('pixelDeskUser')
+        if (userData) {
+          const user = JSON.parse(userData)
+          const response = await fetch(`/api/workstations/user-bindings?userId=${user.id}`)
+          if (response.ok) {
+            const data = await response.json()
+            if (data.success && data.data.length > 0) {
+              // 获取最新的绑定记录
+              const latestBinding = data.data[0]
+              setCurrentUser((prev: any) => ({
+                ...prev,
+                workstationId: latestBinding.workstationId
+              }))
+            }
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to load user workstation binding:', error)
+      }
+    }
+    
     // 设置全局函数供Phaser调用
     if (typeof window !== 'undefined') {
       window.setWorkstationBindingModal = (modalState: any) => {
@@ -143,6 +177,8 @@ export default function Home() {
     
     checkMobile()
     loadCurrentUser()
+    loadWorkstationStats()
+    loadUserWorkstationBinding()
     window.addEventListener('resize', checkMobile)
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
@@ -153,7 +189,12 @@ export default function Home() {
       const { userId, points } = event.detail
       
       // 如果是当前用户的积分更新，更新本地状态
-      // 这里可以根据需要更新UI显示
+      if (currentUser && currentUser.id === userId) {
+        setCurrentUser((prev: any) => ({
+          ...prev,
+          points: points
+        }))
+      }
       console.log('用户积分更新:', userId, points)
     }
 
@@ -162,7 +203,54 @@ export default function Home() {
     return () => {
       window.removeEventListener('user-points-updated', handleUserPointsUpdated as EventListener)
     }
+  }, [currentUser])
+
+  // 加载工位统计信息 - 包装在useCallback中
+  const loadWorkstationStats = useCallback(async () => {
+    try {
+      // 首先尝试从Phaser游戏获取工位统计
+      if (typeof window !== 'undefined' && window.getGameWorkstationStats) {
+        const stats = window.getGameWorkstationStats()
+        setWorkstationStats(stats)
+        console.log('Got workstation stats from game:', stats)
+        return
+      }
+      
+      // 备用方案：从API获取
+      const response = await fetch('/api/workstations/stats')
+      if (response.ok) {
+        const data = await response.json()
+        setWorkstationStats(data.data)
+        console.log('Got workstation stats from API:', data.data)
+      }
+    } catch (error) {
+      console.warn('Failed to load workstation stats:', error)
+    }
   }, [])
+
+  // 监听工位绑定状态更新事件
+  useEffect(() => {
+    const handleWorkstationBindingUpdated = (event: CustomEvent) => {
+      const { userId, workstationId } = event.detail
+      
+      // 如果是当前用户的工位绑定状态更新，更新本地状态
+      if (currentUser && currentUser.id === userId) {
+        setCurrentUser((prev: any) => ({
+          ...prev,
+          workstationId: workstationId
+        }))
+        // 重新加载工位统计信息
+        loadWorkstationStats()
+      }
+      console.log('工位绑定状态更新:', userId, workstationId)
+    }
+
+    window.addEventListener('workstation-binding-updated', handleWorkstationBindingUpdated as EventListener)
+    
+    return () => {
+      window.removeEventListener('workstation-binding-updated', handleWorkstationBindingUpdated as EventListener)
+    }
+  }, [currentUser, loadWorkstationStats])
 
   // 处理玩家碰撞事件 - 优化避免不必要重新渲染
   const handlePlayerCollision = useCallback((playerData: any) => {
@@ -184,6 +272,7 @@ export default function Home() {
     // 这个函数现在仅作为备用，主要逻辑在workstationBindingManager中处理
   }, [])
 
+  
   // 处理玩家点击请求
   const handlePlayerClick = useCallback((playerData: any) => {
     setPlayerClickModal({
@@ -284,8 +373,14 @@ export default function Home() {
       onStatusUpdate={handleStatusUpdate} 
       currentStatus={myStatus} 
       userId={currentUser?.id} 
+      userData={{
+        username: currentUser?.username,
+        points: currentUser?.points,
+        workstationId: currentUser?.workstationId
+      }}
+      workstationStats={workstationStats}
     />
-  ), [handleStatusUpdate, myStatus, currentUser?.id])
+  ), [handleStatusUpdate, myStatus, currentUser?.id, currentUser?.username, currentUser?.points, currentUser?.workstationId, workstationStats])
 
   // 优化：使用 memo 避免 selectedPlayer 变化导致 SocialFeed 不必要重新渲染
   const memoizedSocialFeed = useMemo(() => (

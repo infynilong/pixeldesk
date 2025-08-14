@@ -530,7 +530,7 @@ export class WorkstationManager {
                 // 添加角色显示
                 this.addCharacterToWorkstation(workstation, binding.userId, {
                     name: binding.user?.name || `玩家${binding.userId.slice(-4)}`,
-                    character: binding.user?.avatar || 'Premade_Character_48x48_01'
+                    avatar: binding.user?.avatar || binding.user?.character || 'Premade_Character_48x48_01'
                 });
                 
                 console.log(`同步工位 ${binding.workstationId} 绑定状态: 用户 ${binding.userId}`);
@@ -811,12 +811,11 @@ export class WorkstationManager {
         // 根据工位方向计算角色位置
         const { x: charX, y: charY, direction: characterDirection } = this.calculateCharacterPosition(workstation);
         
-        // 确定角色图片
+        // 确定角色图片 - 使用用户选择的角色形象
         let characterKey = 'Premade_Character_48x48_01'; // 默认角色
-        if (userInfo.character) {
-            characterKey = userInfo.character;
-        } else if (userInfo.avatar) {
-            characterKey = userInfo.avatar;
+        if (userInfo && (userInfo.character || userInfo.avatar)) {
+            // 优先使用用户选择的角色形象
+            characterKey = userInfo.character || userInfo.avatar;
         }
         
         // 尝试加载角色图片

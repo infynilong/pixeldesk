@@ -16,9 +16,19 @@ interface PostStatusProps {
   onStatusUpdate: (status: any) => void
   currentStatus: any
   userId?: string
+  userData?: {
+    username?: string
+    points?: number
+    workstationId?: string
+  }
+  workstationStats?: {
+    totalWorkstations?: number
+    boundWorkstations?: number
+    availableWorkstations?: number
+  }
 }
 
-const PostStatus = memo(({ onStatusUpdate, currentStatus, userId }: PostStatusProps) => {
+const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData, workstationStats }: PostStatusProps) => {
   const [selectedStatus, setSelectedStatus] = useState('working')
   const [customMessage, setCustomMessage] = useState('')
   const [isExpanded, setIsExpanded] = useState(false)
@@ -103,6 +113,112 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId }: PostStatusPr
   
   return (
     <div className="space-y-4">
+      {/* 用户信息卡片 */}
+      {userData && (
+        <div className="group relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          <div className="relative bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
+                  <span className="text-xl font-bold text-white">
+                    {userData.username?.charAt(0).toUpperCase() || 'U'}
+                  </span>
+                </div>
+                <div>
+                  <div className="text-white font-medium text-lg">{userData.username || '用户'}</div>
+                  <div className="text-gray-400 text-sm">ID: {userId || 'unknown'}</div>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-yellow-400 font-bold text-xl">
+                  <span className="text-sm">💎</span> {userData.points || 0}
+                </div>
+                <div className="text-gray-400 text-xs">积分</div>
+              </div>
+            </div>
+            
+            {/* 工位信息 */}
+            <div className="flex items-center justify-between pt-3 border-t border-white/10">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">🏢</span>
+                <span className="text-gray-300 text-sm">工位状态</span>
+              </div>
+              <div className="text-right">
+                {userData.workstationId ? (
+                  <div className="text-green-400 text-sm font-medium">
+                    已绑定: {userData.workstationId}
+                  </div>
+                ) : (
+                  <div className="text-orange-400 text-sm font-medium">
+                    未绑定工位
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 工位统计信息 */}
+      {workstationStats && (
+        <div className="group relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-green-500/10 to-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          <div className="relative bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">🏢</span>
+                <span className="text-white font-medium">工位统计</span>
+              </div>
+              <div className="text-xs text-gray-400">实时更新</div>
+            </div>
+            
+            <div className="grid grid-cols-3 gap-4 text-center">
+              <div>
+                <div className="text-lg font-bold text-blue-400">
+                  {workstationStats.totalWorkstations || 0}
+                </div>
+                <div className="text-xs text-gray-400">总工位</div>
+              </div>
+              <div>
+                <div className="text-lg font-bold text-green-400">
+                  {workstationStats.boundWorkstations || 0}
+                </div>
+                <div className="text-xs text-gray-400">已绑定</div>
+              </div>
+              <div>
+                <div className="text-lg font-bold text-orange-400">
+                  {workstationStats.availableWorkstations || 0}
+                </div>
+                <div className="text-xs text-gray-400">可用</div>
+              </div>
+            </div>
+            
+            {/* 进度条 */}
+            <div className="mt-3 pt-3 border-t border-white/10">
+              <div className="flex items-center justify-between text-xs text-gray-400 mb-1">
+                <span>占用率</span>
+                <span>
+                  {workstationStats.totalWorkstations && workstationStats.boundWorkstations ? 
+                    Math.round((workstationStats.boundWorkstations / workstationStats.totalWorkstations) * 100) : 
+                    0}%
+                </span>
+              </div>
+              <div className="w-full bg-white/10 rounded-full h-2">
+                <div 
+                  className="bg-gradient-to-r from-green-400 to-blue-500 h-2 rounded-full transition-all duration-300"
+                  style={{ 
+                    width: `${workstationStats.totalWorkstations && workstationStats.boundWorkstations ? 
+                      (workstationStats.boundWorkstations / workstationStats.totalWorkstations) * 100 : 
+                      0}%` 
+                  }}
+                ></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 当前状态显示 */}
       {currentStatus && (
         <div className="group relative overflow-hidden">

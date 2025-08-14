@@ -47,23 +47,70 @@ export class TextUIScene extends Phaser.Scene {
                 this.updateUserDisplay(data);
             });
         }
+        
+        // 从API获取工位统计信息
+        this.fetchWorkstationStats();
+        
+        // 定期更新工位统计信息（每30秒）
+        this.time.addEvent({
+            delay: 30000,
+            callback: this.fetchWorkstationStats,
+            callbackScope: this,
+            loop: true
+        });
     }
     
     updateUserDisplay(data) {
         if (data) {
-            const points = data.points || 0;
-            const username = data.username || 'Player';
             const deskCount = data.deskCount || this.deskCount;
-            const workstationId = data.workstationId || '';
+            const boundCount = data.boundCount || 0;
             
-            let displayText = `${username} | 积分: ${points} | 桌子: ${deskCount}`;
-            if (workstationId) {
-                displayText += ` | 我的工位: ${workstationId}`;
-            } else {
-                displayText += ` | 未绑定工位`;
-            }
+            let displayText = `工位总数: ${deskCount} | 已绑定: ${boundCount}`;
             
             this.userInfoText.setText(displayText);
+        }
+    }
+    
+    // 从Phaser游戏获取工位统计信息
+    fetchWorkstationStats() {
+        try {
+            // 首先尝试从全局游戏实例获取工位统计
+            if (typeof window !== 'undefined' && window.getGameWorkstationStats) {
+                const stats = window.getGameWorkstationStats();
+                this.updateUserDisplay({
+                    deskCount: stats.totalWorkstations,
+                    boundCount: stats.boundWorkstations
+                });
+                console.log('Got workstation stats from game:', stats);
+                return;
+            }
+            
+            // 备用方案：从API获取
+            this.fetchWorkstationStatsFromAPI();
+        } catch (error) {
+            console.error('Failed to fetch workstation stats from game:', error);
+            // 备用方案：从API获取
+            this.fetchWorkstationStatsFromAPI();
+        }
+    }
+    
+    // 从API获取工位统计信息（备用方案）
+    async fetchWorkstationStatsFromAPI() {
+        try {
+            const response = await fetch('/api/workstations/stats');
+            if (response.ok) {
+                const data = await response.json();
+                if (data.success) {
+                    const stats = data.data;
+                    this.updateUserDisplay({
+                        deskCount: stats.totalWorkstations,
+                        boundCount: stats.boundWorkstations
+                    });
+                    console.log('Got workstation stats from API:', stats);
+                }
+            }
+        } catch (error) {
+            console.error('Failed to fetch workstation stats from API:', error);
         }
     }
     
@@ -86,6 +133,26 @@ export class TextUIScene extends Phaser.Scene {
                 const updatedData = {
                     ...gameScene.userData,
                     deskCount: count
+                };
+                this.updateUserDisplay(updatedData);
+            }
+        }
+    }
+    
+    updateBoundCount(count) {
+        // 更新已绑定工位数量
+        if (this.userData) {
+            const updatedData = {
+                ...this.userData,
+                boundCount: count
+            };
+            this.updateUserDisplay(updatedData);
+        } else {
+            const gameScene = this.scene.get('Start');
+            if (gameScene.userData) {
+                const updatedData = {
+                    ...gameScene.userData,
+                    boundCount: count
                 };
                 this.updateUserDisplay(updatedData);
             }

@@ -31,7 +31,13 @@ export class Start extends Phaser.Scene {
 
         // 保存场景引用到全局变量，供Next.js调用
         if (typeof window !== 'undefined') {
-            window.saveGameScene(this);
+            window.saveGameScene = this.saveGameScene.bind(this);
+            
+            // 添加获取工位总数的全局函数
+            window.getGameWorkstationCount = this.getWorkstationCount.bind(this);
+            
+            // 添加获取工位统计的全局函数
+            window.getGameWorkstationStats = this.getWorkstationStats.bind(this);
         }
 
         // 获取用户数据（从场景参数或本地存储）
@@ -731,6 +737,39 @@ export class Start extends Phaser.Scene {
                 this.adjustZoom(zoomDelta);
             }
         });
+    }
+
+    // ===== 全局函数方法 =====
+    saveGameScene() {
+        // 保存游戏场景引用的全局函数
+        console.log('Game scene saved globally');
+    }
+    
+    getWorkstationCount() {
+        // 获取工位总数的全局函数
+        if (this.workstationManager) {
+            return this.workstationManager.workstations.size;
+        }
+        return 0;
+    }
+    
+    getWorkstationStats() {
+        // 获取工位统计的全局函数
+        if (this.workstationManager) {
+            const stats = this.workstationManager.getStatistics();
+            return {
+                totalWorkstations: stats.total,
+                boundWorkstations: stats.occupied,
+                availableWorkstations: stats.available,
+                occupancyRate: stats.occupancyRate
+            };
+        }
+        return {
+            totalWorkstations: 0,
+            boundWorkstations: 0,
+            availableWorkstations: 0,
+            occupancyRate: '0%'
+        };
     }
 
     // ===== 工位管理便捷方法 =====
