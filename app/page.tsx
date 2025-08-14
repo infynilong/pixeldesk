@@ -173,6 +173,18 @@ export default function Home() {
           position
         })
       }
+      
+      // 监听Phaser游戏初始化完成事件
+      window.addEventListener('phaser-game-ready', () => {
+        console.log('Phaser game is ready, loading workstation stats')
+        loadWorkstationStats()
+      })
+      
+      // 监听工位统计数据更新事件
+      window.addEventListener('workstation-stats-updated', (event: any) => {
+        console.log('Workstation stats updated:', event.detail)
+        setWorkstationStats(event.detail)
+      })
     }
     
     checkMobile()
@@ -216,12 +228,29 @@ export default function Home() {
         return
       }
       
-      // 备用方案：从API获取
-      const response = await fetch('/api/workstations/stats')
-      if (response.ok) {
-        const data = await response.json()
-        setWorkstationStats(data.data)
-        console.log('Got workstation stats from API:', data.data)
+      // 如果Phaser游戏还没有初始化，等待一段时间后重试
+      if (typeof window !== 'undefined') {
+        console.log('Waiting for Phaser game to initialize...')
+        setTimeout(() => {
+          if (window.getGameWorkstationStats) {
+            const stats = window.getGameWorkstationStats()
+            setWorkstationStats(stats)
+            console.log('Got workstation stats from game after delay:', stats)
+          } else {
+            // 备用方案：从API获取
+            fetch('/api/workstations/stats')
+              .then(response => response.json())
+              .then(data => {
+                if (data.success) {
+                  setWorkstationStats(data.data)
+                  console.log('Got workstation stats from API:', data.data)
+                }
+              })
+              .catch(error => {
+                console.warn('Failed to load workstation stats from API:', error)
+              })
+          }
+        }, 3000) // 等待3秒让Phaser游戏初始化
       }
     } catch (error) {
       console.warn('Failed to load workstation stats:', error)
@@ -433,6 +462,42 @@ export default function Home() {
             <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
           </div>
           {memoizedPostStatus}
+        </div>
+        
+        {/* 工位统计区域 */}
+        <div className="p-6 border-b border-white/10">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-white">工位统计</h2>
+            <div className="flex items-center space-x-2">
+              <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
+              <span className="text-xs text-gray-400">实时</span>
+            </div>
+          </div>
+          {workstationStats ? (
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-300 text-sm">工位总数</span>
+                <span className="text-white font-medium">{workstationStats.totalWorkstations}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-300 text-sm">已绑定</span>
+                <span className="text-green-400 font-medium">{workstationStats.boundWorkstations}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-300 text-sm">可用</span>
+                <span className="text-blue-400 font-medium">{workstationStats.availableWorkstations}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-300 text-sm">占用率</span>
+                <span className="text-purple-400 font-medium">{workstationStats.occupancyRate}</span>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center py-4">
+              <div className="w-4 h-4 bg-purple-400 rounded-full animate-pulse mr-2"></div>
+              <span className="text-gray-400 text-sm">加载中...</span>
+            </div>
+          )}
         </div>
         
         {/* 社交动态区域 */}

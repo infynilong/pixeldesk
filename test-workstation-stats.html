@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>测试工位统计</title>
+</head>
+<body>
+    <h1>工位统计测试</h1>
+    <div id="stats"></div>
+    
+    <script>
+        // 模拟Phaser游戏环境
+        window.getGameWorkstationStats = function() {
+            return {
+                totalWorkstations: 15,
+                boundWorkstations: 8,
+                availableWorkstations: 7,
+                occupancyRate: '53.33%'
+            };
+        };
+        
+        // 测试获取工位统计
+        function testWorkstationStats() {
+            if (typeof window !== 'undefined' && window.getGameWorkstationStats) {
+                const stats = window.getGameWorkstationStats();
+                console.log('Got workstation stats:', stats);
+                
+                const statsDiv = document.getElementById('stats');
+                statsDiv.innerHTML = `
+                    <h2>工位统计信息</h2>
+                    <p>工位总数: ${stats.totalWorkstations}</p>
+                    <p>已绑定: ${stats.boundWorkstations}</p>
+                    <p>可用: ${stats.availableWorkstations}</p>
+                    <p>占用率: ${stats.occupancyRate}</p>
+                `;
+            } else {
+                console.error('getGameWorkstationStats function not available');
+            }
+        }
+        
+        // 页面加载后测试
+        window.addEventListener('load', testWorkstationStats);
+    </script>
+</body>
+</html>

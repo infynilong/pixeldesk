@@ -38,6 +38,9 @@ export class Start extends Phaser.Scene {
             
             // 添加获取工位统计的全局函数
             window.getGameWorkstationStats = this.getWorkstationStats.bind(this);
+            
+            // 触发Phaser游戏初始化完成事件
+            window.dispatchEvent(new Event('phaser-game-ready'));
         }
 
         // 获取用户数据（从场景参数或本地存储）
@@ -415,13 +418,25 @@ export class Start extends Phaser.Scene {
             return;
         }
         
-        // 发送初始数据到UI - 只对desk_objs图层执行
-        this.userData.deskCount = this.workstationManager.getWorkstationsByType('desk').length; 
-       
         // 创建桌子碰撞组
         this.deskColliders = this.physics.add.staticGroup();
         
         objectLayer.objects.forEach((obj, index) => this.renderObject(obj, index));
+        
+        // 在所有工位创建完成后更新deskCount - 只对desk_objs图层执行
+        if (layerName === 'desk_objs') {
+            this.userData.deskCount = this.workstationManager.getWorkstationsByType('desk').length; 
+            console.log(`Desk count updated: ${this.userData.deskCount}`);
+            
+            // 发送更新到UI
+            this.sendUserDataToUI();
+            
+            // 如果TextUIScene存在，也更新它
+            const textUIScene = this.scene.get('TextUIScene');
+            if (textUIScene && textUIScene.updateDeskCount) {
+                textUIScene.updateDeskCount(this.userData.deskCount);
+            }
+        }
     }
 
     renderObject(obj, index) {  
@@ -1068,6 +1083,7 @@ export class Start extends Phaser.Scene {
             console.log('用户积分:', userPoints);
             console.log('找到的工位:', userWorkstation);
             console.log('工位ID:', workstationId);
+            console.log('工位总数:', this.userData.deskCount);
             console.log('所有用户绑定:', Array.from(this.workstationManager.userBindings.entries()));
             console.log('所有工位状态:', this.workstationManager.getAllWorkstations().map(ws => ({
                 id: ws.id,
@@ -1079,8 +1095,17 @@ export class Start extends Phaser.Scene {
                 username: this.currentUser.username,
                 points: userPoints,
                 character: this.currentUser.character,
-                workstationId: workstationId
+                workstationId: workstationId,
+                deskCount: this.userData.deskCount
             });
+            
+            // 触发工位统计更新事件给Next.js
+            if (typeof window !== 'undefined') {
+                const stats = this.getWorkstationStats();
+                window.dispatchEvent(new CustomEvent('workstation-stats-updated', { 
+                    detail: stats 
+                }));
+            }
         }
     }
 

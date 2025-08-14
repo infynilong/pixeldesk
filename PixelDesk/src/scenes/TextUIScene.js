@@ -61,13 +61,16 @@ export class TextUIScene extends Phaser.Scene {
     }
     
     updateUserDisplay(data) {
-        if (data) {
+        if (data && this.userInfoText) {
             const deskCount = data.deskCount || this.deskCount;
             const boundCount = data.boundCount || 0;
             
             let displayText = `工位总数: ${deskCount} | 已绑定: ${boundCount}`;
             
             this.userInfoText.setText(displayText);
+            console.log('UI Updated - Desk count:', deskCount, 'Bound count:', boundCount);
+        } else if (!this.userInfoText) {
+            console.warn('userInfoText is not initialized yet');
         }
     }
     
