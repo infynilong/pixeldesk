@@ -321,7 +321,17 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData, work
 
       {/* 详细状态设置 */}
       {isExpanded && (
-        <div className="space-y-4 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4">
+        <div 
+          className="space-y-4 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4"
+          onClick={(e) => {
+            // 阻止点击事件冒泡到Phaser游戏
+            e.stopPropagation();
+          }}
+          onKeyDown={(e) => {
+            // 阻止键盘事件冒泡到Phaser游戏
+            e.stopPropagation();
+          }}
+        >
           {/* 状态类型选择 */}
           <div>
             <label className="block text-sm font-medium text-white mb-3">选择状态</label>
@@ -353,6 +363,18 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData, work
             <textarea
               value={customMessage}
               onChange={memoizedHandleMessageChange}
+              onKeyDown={(e) => {
+                // 阻止键盘事件冒泡到Phaser游戏
+                e.stopPropagation();
+              }}
+              onKeyUp={(e) => {
+                // 阻止键盘事件冒泡到Phaser游戏
+                e.stopPropagation();
+              }}
+              onClick={(e) => {
+                // 阻止点击事件冒泡
+                e.stopPropagation();
+              }}
               placeholder="分享你正在做什么..."
               className="w-full p-3 bg-white/5 border border-white/10 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400 backdrop-blur-sm transition-all duration-300"
               rows={3}
