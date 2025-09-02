@@ -40,6 +40,9 @@ export class Player extends Phaser.GameObjects.Container {
         this.bodySprite.setFrame(56); // user_body对应的帧
         this.headSprite.setFrame(0);  // user_head对应的帧
 
+        // 初始化角色浮动动画
+        this.initCharacterFloatAnimation();
+
         // 启用物理特性
         scene.physics.world.enable(this);
         // 修改碰撞体大小和偏移量，使其与玩家精灵重叠
@@ -186,6 +189,42 @@ export class Player extends Phaser.GameObjects.Container {
         
         // 初始化可视范围检测
         this.initVisibilityCheck();
+    }
+    
+    // 初始化角色浮动动画
+    initCharacterFloatAnimation() {
+        // 角色浮动动画参数
+        this.characterFloatAmplitude = 1.5; // 角色浮动幅度（像素）
+        this.characterFloatSpeed = 0.003;   // 角色浮动速度
+        this.characterFloatOffset = 0;      // 当前浮动偏移
+        
+        // 记录角色的初始Y位置
+        this.characterBaseY = this.y;
+        
+        // 启动角色浮动动画
+        this.scene.events.on('update', this.updateCharacterFloatAnimation, this);
+    }
+    
+    // 更新角色浮动动画
+    updateCharacterFloatAnimation() {
+        if (!this.body || !this.isVisible) return;
+        
+        // 如果角色正在移动，不应用浮动动画
+        if (this.body.velocity.x !== 0 || this.body.velocity.y !== 0) {
+            return;
+        }
+        
+        // 计算浮动偏移
+        this.characterFloatOffset += this.characterFloatSpeed;
+        const floatY = Math.sin(this.characterFloatOffset) * this.characterFloatAmplitude;
+        
+        // 应用浮动效果到整个角色容器
+        this.y = this.characterBaseY + floatY;
+        
+        // 同时更新物理体的位置
+        if (this.body) {
+            this.body.y = this.y;
+        }
     }
     
     // 初始化浮动动画
@@ -415,6 +454,7 @@ export class Player extends Phaser.GameObjects.Container {
         // 清理事件监听器
         if (this.scene) {
             this.scene.events.off('update', this.updateFloatingAnimation, this);
+            this.scene.events.off('update', this.updateCharacterFloatAnimation, this);
             this.scene.events.off('update', this.checkVisibility, this);
         }
         
