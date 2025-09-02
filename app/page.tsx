@@ -415,9 +415,8 @@ export default function Home() {
         points: currentUser?.points,
         workstationId: currentUser?.workstationId
       }}
-      workstationStats={workstationStats}
     />
-  ), [handleStatusUpdate, myStatus, currentUser?.id, currentUser?.username, currentUser?.points, currentUser?.workstationId, workstationStats])
+  ), [handleStatusUpdate, myStatus, currentUser?.id, currentUser?.username, currentUser?.points, currentUser?.workstationId])
 
   // 优化：使用 memo 避免 selectedPlayer 变化导致 SocialFeed 不必要重新渲染
   const memoizedSocialFeed = useMemo(() => (

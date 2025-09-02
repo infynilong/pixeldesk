@@ -22,14 +22,9 @@ interface PostStatusProps {
     points?: number
     workstationId?: string
   }
-  workstationStats?: {
-    totalWorkstations?: number
-    boundWorkstations?: number
-    availableWorkstations?: number
-  }
 }
 
-const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData, workstationStats }: PostStatusProps) => {
+const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: PostStatusProps) => {
   const [selectedStatus, setSelectedStatus] = useState('working')
   const [customMessage, setCustomMessage] = useState('')
   const [isExpanded, setIsExpanded] = useState(false)
@@ -241,64 +236,6 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData, work
         </div>
       )}
 
-      {/* 工位统计信息 */}
-      {workstationStats && (
-        <div className="group relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-retro-green/20 to-retro-blue/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-          <div className="relative bg-retro-bg-darker/80 backdrop-blur-sm border border-retro-border rounded-md p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <span className="text-lg">🏢</span>
-                <span className="text-white font-medium">工位统计</span>
-              </div>
-              <div className="text-xs text-retro-textMuted">实时更新</div>
-            </div>
-            
-            <div className="grid grid-cols-3 gap-4 text-center">
-              <div>
-                <div className="text-lg font-bold text-retro-blue">
-                  {workstationStats.totalWorkstations || 0}
-                </div>
-                <div className="text-xs text-retro-textMuted">总工位</div>
-              </div>
-              <div>
-                <div className="text-lg font-bold text-retro-green">
-                  {workstationStats.boundWorkstations || 0}
-                </div>
-                <div className="text-xs text-retro-textMuted">已绑定</div>
-              </div>
-              <div>
-                <div className="text-lg font-bold text-retro-orange">
-                  {workstationStats.availableWorkstations || 0}
-                </div>
-                <div className="text-xs text-retro-textMuted">可用</div>
-              </div>
-            </div>
-            
-            {/* 进度条 */}
-            <div className="mt-3 pt-3 border-t border-retro-border">
-              <div className="flex items-center justify-between text-xs text-retro-textMuted mb-1">
-                <span>占用率</span>
-                <span>
-                  {workstationStats.totalWorkstations && workstationStats.boundWorkstations ? 
-                    Math.round((workstationStats.boundWorkstations / workstationStats.totalWorkstations) * 100) : 
-                    0}%
-                </span>
-              </div>
-              <div className="w-full bg-retro-border rounded-full h-2">
-                <div 
-                  className="bg-gradient-to-r from-retro-green to-retro-blue h-2 rounded-full transition-all duration-300"
-                  style={{ 
-                    width: `${workstationStats.totalWorkstations && workstationStats.boundWorkstations ? 
-                      (workstationStats.boundWorkstations / workstationStats.totalWorkstations) * 100 : 
-                      0}%` 
-                  }}
-                ></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* 当前状态显示 */}
       {currentStatus && (
