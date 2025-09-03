@@ -193,10 +193,13 @@ export class Player extends Phaser.GameObjects.Container {
     
     // 初始化角色浮动动画
     initCharacterFloatAnimation() {
-        // 角色浮动动画参数
-        this.characterFloatAmplitude = 1.5;   // 角色浮动幅度（像素）
-        this.characterFloatInterval = 2000;   // 浮动间隔（毫秒）
-        this.characterFloatDuration = 800;    // 单次浮动持续时间（毫秒）
+        // 为每个角色生成随机的浮动参数，创造不同的浮动节奏
+        const randomFactor = 0.7 + Math.random() * 0.6; // 0.7 到 1.3 的随机因子
+        
+        // 角色浮动动画参数（每个角色都有不同的节奏）
+        this.characterFloatAmplitude = 1.2 + Math.random() * 0.6;   // 浮动幅度：1.2 到 1.8 像素
+        this.characterFloatInterval = 1800 + Math.random() * 800;   // 浮动间隔：1800 到 2600 毫秒
+        this.characterFloatDuration = 600 + Math.random() * 400;    // 单次浮动持续时间：600 到 1000 毫秒
         
         // 记录角色的初始Y位置
         this.characterBaseY = this.y;
@@ -299,6 +302,9 @@ export class Player extends Phaser.GameObjects.Container {
         if (currentTime - this.lastCheckTime < this.checkInterval) return;
         
         this.lastCheckTime = currentTime;
+        
+        // 安全检查：确保scene和cameras存在
+        if (!this.scene || !this.scene.cameras) return;
         
         // 获取相机边界
         const camera = this.scene.cameras.main;

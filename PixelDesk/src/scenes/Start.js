@@ -44,12 +44,6 @@ export class Start extends Phaser.Scene {
                     return { success: false, error: '请先登录' };
                 }
                 
-                // 显示确认对话框
-                const confirmed = confirm('快速回到工位将扣除1积分，确定要继续吗？');
-                if (!confirmed) {
-                    return { success: false, error: '操作已取消' };
-                }
-                
                 try {
                     const result = await this.workstationManager.teleportToWorkstation(this.currentUser.id, this.player);
                     
@@ -62,10 +56,6 @@ export class Start extends Phaser.Scene {
                             }
                         });
                         window.dispatchEvent(event);
-                        
-                        alert(`成功回到工位！扣除1积分，剩余积分: ${result.remainingPoints}`);
-                    } else {
-                        alert(`操作失败: ${result.error}`);
                     }
                     
                     return result;

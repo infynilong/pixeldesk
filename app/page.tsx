@@ -68,6 +68,11 @@ const CharacterDisplayModal = dynamic(() => import('@/components/CharacterDispla
   ssr: false
 })
 
+// 快速回到工位确认弹窗组件
+const TeleportConfirmModal = dynamic(() => import('@/components/TeleportConfirmModal'), {
+  ssr: false
+})
+
 export default function Home() {
   const [isMobile, setIsMobile] = useState(false)
   const [selectedPlayer, setSelectedPlayer] = useState(null)
@@ -101,6 +106,12 @@ export default function Home() {
     userId: null as string | null,
     userInfo: null as any,
     position: null as { x: number; y: number } | null
+  })
+
+  // 快速回到工位确认弹窗状态
+  const [teleportConfirmModal, setTeleportConfirmModal] = useState({
+    isVisible: false,
+    currentPoints: currentUser?.points || 0
   })
   
   // 检测移动设备和加载用户数据
@@ -213,6 +224,11 @@ export default function Home() {
         setCurrentUser((prev: any) => ({
           ...prev,
           points: points
+        }))
+        // 同时更新teleport确认弹窗的积分显示
+        setTeleportConfirmModal(prev => ({
+          ...prev,
+          currentPoints: points
         }))
       }
       console.log('用户积分更新:', userId, points)
@@ -503,10 +519,11 @@ export default function Home() {
               {currentUser?.workstationId && (
                 <div className="pt-4 border-t border-retro-border mt-4">
                   <button
-                    onClick={async () => {
-                      if (typeof window !== 'undefined' && window.teleportToWorkstation) {
-                        await window.teleportToWorkstation();
-                      }
+                    onClick={() => {
+                      setTeleportConfirmModal({
+                        isVisible: true,
+                        currentPoints: currentUser?.points || 0
+                      })
                     }}
                     className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 transform hover:scale-105"
                   >
@@ -607,6 +624,24 @@ export default function Home() {
           onClose={handleCharacterDisplayModalClose}
         />
       )}
+
+      {/* 快速回到工位确认弹窗 */}
+      <TeleportConfirmModal
+        isVisible={teleportConfirmModal.isVisible}
+        currentPoints={teleportConfirmModal.currentPoints}
+        onConfirm={async () => {
+          if (typeof window !== 'undefined' && window.teleportToWorkstation) {
+            const result = await window.teleportToWorkstation();
+            setTeleportConfirmModal({ isVisible: false, currentPoints: currentUser?.points || 0 });
+            
+            if (result && !result.success) {
+              // 显示错误消息
+              alert(result.error || '传送失败');
+            }
+          }
+        }}
+        onCancel={() => setTeleportConfirmModal({ isVisible: false, currentPoints: currentUser?.points || 0 })}
+      />
     </div>
   )
 }
