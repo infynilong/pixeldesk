@@ -114,6 +114,9 @@ export default function Home() {
     currentPoints: currentUser?.points || 0
   })
   
+  // 错误消息状态
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  
   // 检测移动设备和加载用户数据
   useEffect(() => {
     const checkMobile = () => {
@@ -636,12 +639,38 @@ export default function Home() {
             
             if (result && !result.success) {
               // 显示错误消息
-              alert(result.error || '传送失败');
+              setErrorMessage(result.error || '传送失败');
             }
           }
         }}
         onCancel={() => setTeleportConfirmModal({ isVisible: false, currentPoints: currentUser?.points || 0 })}
       />
+
+      {/* 错误消息弹窗 */}
+      {errorMessage && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-retro-bg-darker border border-retro-border rounded-lg p-6 w-full max-w-md">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-gradient-to-r from-red-600 to-orange-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl">⚠️</span>
+              </div>
+              <h3 className="text-white text-xl font-bold mb-2">操作失败</h3>
+              <p className="text-retro-textMuted">
+                {errorMessage}
+              </p>
+            </div>
+            
+            <div className="flex justify-center">
+              <button
+                onClick={() => setErrorMessage(null)}
+                className="bg-retro-blue hover:bg-retro-blue/80 text-white font-medium py-3 px-6 rounded-md transition-all duration-200"
+              >
+                确定
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

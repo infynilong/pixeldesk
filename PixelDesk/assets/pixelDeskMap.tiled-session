@@ -1,0 +1,164 @@
+{
+    "activeFile": "",
+    "expandedProjectPaths": [
+        ".",
+        "templates"
+    ],
+    "fileStates": {
+        "": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "#tileset": {
+            "dynamicWrapping": false
+        },
+        "/Users/jiangyilong/project/Game/PixelTest/PixelTest/assets/foxyLayer.tmx": {
+            "scale": 0.4358516483516483,
+            "selectedLayer": 5,
+            "viewCenter": {
+                "x": 681.424519382288,
+                "y": 232.87740308855973
+            }
+        },
+        "/Users/jiangyilong/project/Game/PixelTest/PixelTest/assets/foxyLayer.tmx#actors": {
+            "dynamicWrapping": true,
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "/Users/jiangyilong/project/Game/PixelTest/PixelTest/assets/foxyLayer.tmx#items": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1
+        },
+        "/Users/jiangyilong/project/Game/PixelTest/PixelTest/assets/foxyLayer.tmx#props": {
+            "dynamicWrapping": true,
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "/Users/jiangyilong/project/Game/PixelTest/PixelTest/assets/foxyLayer.tmx#tileset": {
+            "scaleInDock": 1
+        },
+        "/Users/jiangyilong/project/PixelDesk/public/assets/officemap.json": {
+            "scale": 0.33,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 5863.636363636364,
+                "y": 904.5454545454546
+            }
+        },
+        "/Users/jiangyilong/project/PixelDesk/public/assets/officemap.json#bathroom": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1
+        },
+        "/Users/jiangyilong/project/PixelDesk/public/assets/officemap.json#characters_list": {
+            "scaleInDock": 1
+        },
+        "/Users/jiangyilong/project/PixelDesk/public/assets/officemap.json#grassgrand": {
+            "scaleInEditor": 1
+        },
+        "/Users/jiangyilong/project/PixelDesk/public/assets/officemap.json#ice_creem_floor": {
+            "scaleInDock": 1
+        },
+        "/Users/jiangyilong/project/PixelDesk/public/assets/officemap.json#library_tileset": {
+            "dynamicWrapping": true,
+            "scaleInDock": 1
+        },
+        "/Users/jiangyilong/project/PixelDesk/public/assets/officemap.json#park": {
+            "dynamicWrapping": false,
+            "scaleInEditor": 1
+        },
+        "/Users/jiangyilong/project/PixelDesk/public/assets/officemap.json#room_floor_tileset": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1
+        },
+        "industial-map/town.tmx": {
+            "scale": 0.3368,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 878.8598574821852,
+                "y": 714.0736342042755
+            }
+        },
+        "officemap.tmx": {
+            "expandedObjectLayers": [
+                4,
+                10,
+                11
+            ],
+            "scale": 0.125,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 3740,
+                "y": 2784
+            }
+        },
+        "officemap.tmx#Amelia_idle_48x48": {
+            "dynamicWrapping": false
+        },
+        "officemap.tmx#bathroom": {
+            "dynamicWrapping": true,
+            "scaleInDock": 1
+        },
+        "officemap.tmx#characters_list": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "officemap.tmx#condominium": {
+            "dynamicWrapping": false,
+            "scaleInDock": 0.5,
+            "scaleInEditor": 1
+        },
+        "officemap.tmx#hospital": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "officemap.tmx#ice_creem": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1
+        },
+        "officemap.tmx#ice_creem_floor": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "officemap.tmx#library_tileset": {
+            "dynamicWrapping": true,
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "officemap.tmx#office_tileset_blue": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1.5,
+            "scaleInEditor": 1
+        },
+        "officemap.tmx#player": {
+            "dynamicWrapping": false,
+            "scaleInEditor": 1
+        },
+        "officemap.tmx#room_floor_tileset": {
+            "dynamicWrapping": false,
+            "scaleInDock": 0.33,
+            "scaleInEditor": 1
+        },
+        "officemap.tmx#room_wall_tileset": {
+            "scaleInDock": 0.33
+        }
+    },
+    "last.imagePath": "/Users/jiangyilong/project/PixelDesk/public/assets/tileset",
+    "openFiles": [
+    ],
+    "project": "pixelDeskMap.tiled-project",
+    "property.type": "bool",
+    "recentFiles": [
+        "/Users/jiangyilong/project/PixelDesk/public/assets/officemap.json",
+        "officemap.tmx",
+        "industial-map/town.tmx",
+        "/Users/jiangyilong/project/Game/PixelTest/PixelTest/assets/foxyLayer.tmx"
+    ],
+    "tileset.embedInMap": true,
+    "tileset.tileSize": {
+        "height": 48,
+        "width": 48
+    }
+}

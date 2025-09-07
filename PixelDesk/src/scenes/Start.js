@@ -229,6 +229,12 @@ export class Start extends Phaser.Scene {
                 this.physics.add.collider(this.player, officeLayer);
                 officeLayer?.setCollisionByProperty({ solid: true });
             }
+
+            const treeLayer = this.mapLayers?.tree;
+            if (treeLayer) {
+                this.physics.add.collider(this.player, treeLayer);
+                treeLayer?.setCollisionByProperty({ solid: true });
+            }
             
             // 添加玩家碰撞边界调试显示
             if (this.player.body) {
@@ -306,6 +312,10 @@ export class Start extends Phaser.Scene {
         const tilesetAssets = {
             'room_builder_walls_image': '/assets/floor/Room_Builder_Walls_48x48.png',
             'ice_creem_floor_image': '/assets/floor/Ice_Cream_Shop_Design_layer_1_48x48.png',
+            'grassgrand': '/assets/tileset/grassgrand.png',
+            'park': '/assets/tileset/park.png',
+            'road': '/assets/tileset/road.png',
+            'park_obj': '/assets/tileset/park_obj.png',
         };
 
         Object.entries(tilesetAssets).forEach(([key, path]) => {
@@ -394,7 +404,7 @@ export class Start extends Phaser.Scene {
         const tilesets = this.addTilesets(map);
         
         // 创建图层
-        const layerNames = ['office_1'];
+        const layerNames = ['background','tree','office_1'];
         const layers = {};
         
         layerNames.forEach(layerName => {
@@ -420,6 +430,10 @@ export class Start extends Phaser.Scene {
             ['room_floor_tileset', 'room_builder_walls_image'],
             ['ice_creem_floor', 'ice_creem_floor_image'],
             ['characters_list', 'characters_list_image'],
+            ['grassgrand', 'grassgrand'],
+            ['park', 'park'],
+            ['road', 'road'],
+            ['park_obj', 'park_obj'],
         ];
 
         const addedTilesets = [];
