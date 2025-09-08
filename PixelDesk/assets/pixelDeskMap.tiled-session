@@ -1,5 +1,5 @@
 {
-    "activeFile": "",
+    "activeFile": "/Users/jiangyilong/project/PixelDesk/public/assets/officemap.json",
     "expandedProjectPaths": [
         ".",
         "templates"
@@ -39,11 +39,11 @@
             "scaleInDock": 1
         },
         "/Users/jiangyilong/project/PixelDesk/public/assets/officemap.json": {
-            "scale": 0.33,
-            "selectedLayer": 0,
+            "scale": 0.0625,
+            "selectedLayer": 6,
             "viewCenter": {
-                "x": 5863.636363636364,
-                "y": 904.5454545454546
+                "x": 1072,
+                "y": 2680
             }
         },
         "/Users/jiangyilong/project/PixelDesk/public/assets/officemap.json#bathroom": {
@@ -153,6 +153,7 @@
     },
     "last.imagePath": "/Users/jiangyilong/project/PixelDesk/public/assets/desk",
     "openFiles": [
+        "/Users/jiangyilong/project/PixelDesk/public/assets/officemap.json"
     ],
     "project": "pixelDeskMap.tiled-project",
     "property.type": "string",

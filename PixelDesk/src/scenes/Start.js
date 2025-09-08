@@ -313,7 +313,7 @@ export class Start extends Phaser.Scene {
             'room_builder_walls_image': '/assets/floor/Room_Builder_Walls_48x48.png',
             'ice_creem_floor_image': '/assets/floor/Ice_Cream_Shop_Design_layer_1_48x48.png',
             'grassgrand': '/assets/tileset/grassgrand.png',
-            'park': '/assets/tileset/park.png',
+            'park': '/assets/tileset/park.jpeg',
             'road': '/assets/tileset/road.png',
             'park_obj': '/assets/tileset/park_obj.png',
         };
