@@ -205,9 +205,9 @@ export class Start extends Phaser.Scene {
         const userBody = userLayer.objects.find(obj => obj.name === 'user_body');
         const userHead = userLayer.objects.find(obj => obj.name === 'user_head');
 
-        // 创建玩家实例（位置会从保存状态中恢复），启用移动和状态保存
+        // 创建玩家实例（禁用状态保存以避免位置跳转），启用移动但禁用状态保存
         const playerSpriteKey = this.currentUser?.character || 'characters_list_image';
-        this.player = new Player(this, userBody.x, userBody.y - userBody.height, playerSpriteKey, true, true);
+        this.player = new Player(this, userBody.x, userBody.y - userBody.height, playerSpriteKey, true, false);
         this.add.existing(this.player);
         
         // 确保玩家移动是启用的
@@ -367,6 +367,9 @@ export class Start extends Phaser.Scene {
         this.load.image("desk_long_left", "/assets/desk/desk_long_left.png");
         this.load.image("desk_short_right", "/assets/desk/single_desk.png");
         this.load.image("desk_short_left", "/assets/desk/single_desk_short_left.png");
+        this.load.image("desk_park_short_down", "/assets/desk/desk_park_short_down.png");
+        this.load.image("desk_park_short_top", "/assets/desk/desk_park_short_top.png");
+        this.load.image("desk_park_long_top", "/assets/desk/desk_park_long_top.png");
         this.load.image("single_desk", "/assets/desk/single_desk.png");
         this.load.image("library_bookcase_normal", "/assets/desk/library_bookcase_normal.png");
         this.load.image("library_bookcase_tall", "/assets/desk/library_bookcase_tall.png");
@@ -564,6 +567,7 @@ export class Start extends Phaser.Scene {
 
     renderTilesetObject(obj, adjustedY) {
         const imageKey = obj.name || 'desk_image';
+        console.log('render object', obj.name)
         if (!imageKey) return null;
  
         const sprite = this.add.image(obj.x, adjustedY, imageKey);
@@ -605,8 +609,9 @@ export class Start extends Phaser.Scene {
 
     // ===== 辅助方法 =====
     isDeskObject(obj) {
+        console.log('is desk object', obj)
         // 修改为同时识别desk和bookcase对象
-        return obj.name === 'desk' || obj.type === 'desk' || 
+        return obj.name === 'desk' || obj.type === 'desk' || obj.name.includes('desk_') ||
                obj.name === 'library_bookcase_normal' || obj.name === 'library_bookcase_tall' ||
                obj.type === 'bookcase' || obj.type === 'bookcase_tall' || obj.type === 'sofa' || obj.type === 'flower';
     }

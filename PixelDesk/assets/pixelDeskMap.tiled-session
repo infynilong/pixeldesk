@@ -4,6 +4,7 @@
         ".",
         "templates"
     ],
+    "file.lastUsedOpenFilter": "全部文件 (*)",
     "fileStates": {
         "": {
             "scaleInDock": 1,
@@ -53,9 +54,11 @@
             "scaleInDock": 1
         },
         "/Users/jiangyilong/project/PixelDesk/public/assets/officemap.json#grassgrand": {
+            "dynamicWrapping": false,
             "scaleInEditor": 1
         },
         "/Users/jiangyilong/project/PixelDesk/public/assets/officemap.json#ice_creem_floor": {
+            "dynamicWrapping": false,
             "scaleInDock": 1
         },
         "/Users/jiangyilong/project/PixelDesk/public/assets/officemap.json#library_tileset": {
@@ -65,6 +68,9 @@
         "/Users/jiangyilong/project/PixelDesk/public/assets/officemap.json#park": {
             "dynamicWrapping": false,
             "scaleInEditor": 1
+        },
+        "/Users/jiangyilong/project/PixelDesk/public/assets/officemap.json#park_obj": {
+            "dynamicWrapping": false
         },
         "/Users/jiangyilong/project/PixelDesk/public/assets/officemap.json#room_floor_tileset": {
             "dynamicWrapping": false,
@@ -145,11 +151,11 @@
             "scaleInDock": 0.33
         }
     },
-    "last.imagePath": "/Users/jiangyilong/project/PixelDesk/public/assets/tileset",
+    "last.imagePath": "/Users/jiangyilong/project/PixelDesk/public/assets/desk",
     "openFiles": [
     ],
     "project": "pixelDeskMap.tiled-project",
-    "property.type": "bool",
+    "property.type": "string",
     "recentFiles": [
         "/Users/jiangyilong/project/PixelDesk/public/assets/officemap.json",
         "officemap.tmx",

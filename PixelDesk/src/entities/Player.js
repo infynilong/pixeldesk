@@ -44,7 +44,8 @@ export class Player extends Phaser.GameObjects.Container {
         scene.physics.world.enable(this);
 
         // 初始化角色浮动动画（必须在物理体创建后）
-        this.initCharacterFloatAnimation();
+        // 暂时禁用浮动动画以避免位置跳转问题
+        // this.initCharacterFloatAnimation();
         // 修改碰撞体大小和偏移量，使其与玩家精灵重叠
         this.body.setSize(40, 60);
         this.body.setOffset(-20, -12);
@@ -233,6 +234,9 @@ export class Player extends Phaser.GameObjects.Container {
             return;
         }
         
+        // 记录动画开始时的基准位置
+        const originalBaseY = this.characterBaseY;
+        
         // 创建浮动动画
         this.scene.tweens.add({
             targets: this,
@@ -241,16 +245,26 @@ export class Player extends Phaser.GameObjects.Container {
             ease: 'Sine.easeOut',
             yoyo: true,
             onUpdate: () => {
+                // 如果玩家开始移动，立即停止动画
+                if (this.body && (this.body.velocity.x !== 0 || this.body.velocity.y !== 0)) {
+                    this.scene.tweens.killTweensOf(this);
+                    this.y = originalBaseY;
+                    if (this.body) {
+                        this.body.y = originalBaseY;
+                    }
+                    return;
+                }
+                
                 // 同步更新物理体位置
                 if (this.body) {
                     this.body.y = this.y;
                 }
             },
             onComplete: () => {
-                // 动画完成后重置到基准位置
-                this.y = this.characterBaseY;
-                if (this.body) {
-                    this.body.y = this.characterBaseY;
+                // 动画完成后重置到基准位置，但只在玩家仍然静止时
+                if (this.body && this.body.velocity.x === 0 && this.body.velocity.y === 0) {
+                    this.y = originalBaseY;
+                    this.body.y = originalBaseY;
                 }
             }
         });
