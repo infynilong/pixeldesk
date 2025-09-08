@@ -205,9 +205,9 @@ export class Start extends Phaser.Scene {
         const userBody = userLayer.objects.find(obj => obj.name === 'user_body');
         const userHead = userLayer.objects.find(obj => obj.name === 'user_head');
 
-        // 创建玩家实例（禁用状态保存以避免位置跳转），启用移动但禁用状态保存
+        // 创建玩家实例，启用移动和状态保存
         const playerSpriteKey = this.currentUser?.character || 'characters_list_image';
-        this.player = new Player(this, userBody.x, userBody.y - userBody.height, playerSpriteKey, true, false);
+        this.player = new Player(this, userBody.x, userBody.y - userBody.height, playerSpriteKey, true, true);
         this.add.existing(this.player);
         
         // 确保玩家移动是启用的

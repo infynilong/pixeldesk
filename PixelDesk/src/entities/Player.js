@@ -44,8 +44,10 @@ export class Player extends Phaser.GameObjects.Container {
         scene.physics.world.enable(this);
 
         // 初始化角色浮动动画（必须在物理体创建后）
-        // 暂时禁用浮动动画以避免位置跳转问题
-        // this.initCharacterFloatAnimation();
+        // 仅为其他玩家启用浮动动画，主玩家不启用
+        if (this.isOtherPlayer) {
+            this.initCharacterFloatAnimation();
+        }
         // 修改碰撞体大小和偏移量，使其与玩家精灵重叠
         this.body.setSize(40, 60);
         this.body.setOffset(-20, -12);
@@ -228,6 +230,26 @@ export class Player extends Phaser.GameObjects.Container {
         this.performFloatAnimation();
     }
     
+    // 停止浮动动画
+    stopFloatAnimation() {
+        // 停止所有浮动相关的tweens
+        this.scene.tweens.killTweensOf(this);
+        
+        // 停止周期性计时器
+        if (this.floatTimer) {
+            this.floatTimer.remove();
+            this.floatTimer = null;
+        }
+        
+        // 重置到基准位置
+        if (this.characterBaseY !== undefined) {
+            this.y = this.characterBaseY;
+            if (this.body) {
+                this.body.y = this.characterBaseY;
+            }
+        }
+    }
+    
     // 执行单次浮动动画
     performFloatAnimation() {
         if (!this.body || this.body.velocity.x !== 0 || this.body.velocity.y !== 0) {
@@ -303,6 +325,7 @@ export class Player extends Phaser.GameObjects.Container {
         this.isVisible = true;
         this.lastCheckTime = 0;
         this.checkInterval = 200; // 每200ms检查一次可视性
+        this.visibilityDebounceTimer = null; // 防抖计时器
         
         // 监听相机移动事件
         this.scene.events.on('update', this.checkVisibility, this);
@@ -339,14 +362,24 @@ export class Player extends Phaser.GameObjects.Container {
             this.y <= cameraBottom + padding
         );
         
-        // 优化：只有在可视性发生变化时才更新
+        // 优化：只有在可视性发生变化时才更新，并且添加防抖
         if (wasVisible !== this.isVisible) {
-            this.statusLabel.setVisible(this.isVisible);
-            
-            // 如果重新进入可视范围，重置浮动动画
-            if (this.isVisible && !wasVisible) {
-                this.floatingOffset = 0;
+            // 清除之前的防抖计时器
+            if (this.visibilityDebounceTimer) {
+                this.scene.time.removeEvent(this.visibilityDebounceTimer);
             }
+            
+            // 设置防抖计时器，避免快速闪烁
+            this.visibilityDebounceTimer = this.scene.time.delayedCall(100, () => {
+                this.statusLabel.setVisible(this.isVisible);
+                
+                // 如果重新进入可视范围，重置浮动动画
+                if (this.isVisible && !wasVisible) {
+                    this.floatingOffset = 0;
+                }
+                
+                this.visibilityDebounceTimer = null;
+            });
         }
     }
     
@@ -506,6 +539,11 @@ export class Player extends Phaser.GameObjects.Container {
         // 清理浮动计时器
         if (this.floatTimer) {
             this.floatTimer.remove();
+        }
+        
+        // 清理防抖计时器
+        if (this.visibilityDebounceTimer) {
+            this.scene.time.removeEvent(this.visibilityDebounceTimer);
         }
         
         // 清理精灵
