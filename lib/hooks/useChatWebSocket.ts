@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { ChatWebSocketClient, getChatWebSocketClient } from '@/lib/websocketClient';
+import { type ChatError, type ConnectionState } from '@/lib/chatErrorHandler';
 
 interface UseChatWebSocketOptions {
   userId: string;
@@ -13,12 +14,19 @@ interface UseChatWebSocketOptions {
   onUserTyping?: (data: any) => void;
   onRateLimitExceeded?: (data: any) => void;
   onUnauthorized?: (data: any) => void;
+  onChatError?: (error: ChatError) => void;
+  onConnectionStateChange?: (state: ConnectionState) => void;
+  onMessageSendFailure?: (error: ChatError) => void;
+  enableGracefulDegradation?: boolean;
 }
 
 interface UseChatWebSocketReturn {
   client: ChatWebSocketClient | null;
   isConnected: boolean;
   isConnecting: boolean;
+  connectionState: ConnectionState | null;
+  lastError: ChatError | null;
+  retryQueueCount: number;
   connect: () => Promise<void>;
   disconnect: () => void;
   send: (type: string, data?: any) => boolean;
@@ -28,6 +36,8 @@ interface UseChatWebSocketReturn {
   markAsRead: (conversationId: string, messageId: string) => boolean;
   joinRoom: (conversationId: string) => boolean;
   leaveRoom: (conversationId: string) => boolean;
+  clearRetryQueue: () => void;
+  getConnectionHealth: () => any;
 }
 
 export function useChatWebSocket(options: UseChatWebSocketOptions): UseChatWebSocketReturn {
@@ -42,12 +52,19 @@ export function useChatWebSocket(options: UseChatWebSocketOptions): UseChatWebSo
     onMessageSent,
     onUserTyping,
     onRateLimitExceeded,
-    onUnauthorized
+    onUnauthorized,
+    onChatError,
+    onConnectionStateChange,
+    onMessageSendFailure,
+    enableGracefulDegradation = true
   } = options;
 
   const [client, setClient] = useState<ChatWebSocketClient | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [connectionState, setConnectionState] = useState<ConnectionState | null>(null);
+  const [lastError, setLastError] = useState<ChatError | null>(null);
+  const [retryQueueCount, setRetryQueueCount] = useState(0);
   const [token, setToken] = useState<string | null>(null);
   
   const clientRef = useRef<ChatWebSocketClient | null>(null);
@@ -141,6 +158,42 @@ export function useChatWebSocket(options: UseChatWebSocketOptions): UseChatWebSo
 
           wsClient.on('message_queued', (data) => {
             console.log('Message queued:', data);
+          });
+
+          // Enhanced error handling events
+          wsClient.on('chat_error', (error: ChatError) => {
+            setLastError(error);
+            onChatError?.(error);
+            
+            if (error.type === 'send_failed') {
+              onMessageSendFailure?.(error);
+            }
+          });
+
+          wsClient.on('connection_state_changed', (state: ConnectionState) => {
+            setConnectionState(state);
+            onConnectionStateChange?.(state);
+            
+            // Update retry queue count
+            const health = wsClient.getConnectionHealth();
+            setRetryQueueCount(health.retryQueueStatus.totalMessages);
+          });
+
+          wsClient.on('message_send_success', (data) => {
+            // Clear any previous send errors for successful messages
+            setLastError(null);
+          });
+
+          wsClient.on('connection_health', (health) => {
+            setRetryQueueCount(health.retryQueueStatus.totalMessages);
+          });
+
+          wsClient.on('graceful_degradation_enabled', () => {
+            console.log('Graceful degradation mode enabled');
+          });
+
+          wsClient.on('graceful_degradation_disabled', () => {
+            console.log('Graceful degradation mode disabled');
           });
 
           // Auto-connect if enabled
@@ -251,10 +304,35 @@ export function useChatWebSocket(options: UseChatWebSocketOptions): UseChatWebSo
     return client.markAsRead(conversationId, messageId);
   }, [client]);
 
+  // Clear retry queue function
+  const clearRetryQueue = useCallback(() => {
+    if (client) {
+      const errorHandler = client.getErrorHandler();
+      errorHandler.clearRetryQueue();
+      setRetryQueueCount(0);
+    }
+  }, [client]);
+
+  // Get connection health function
+  const getConnectionHealth = useCallback(() => {
+    if (!client) return null;
+    return client.getConnectionHealth();
+  }, [client]);
+
+  // Set up graceful degradation if enabled
+  useEffect(() => {
+    if (client && enableGracefulDegradation) {
+      client.setGracefulDegradation(true);
+    }
+  }, [client, enableGracefulDegradation]);
+
   return {
     client,
     isConnected,
     isConnecting,
+    connectionState,
+    lastError,
+    retryQueueCount,
     connect,
     disconnect,
     send,
@@ -263,6 +341,8 @@ export function useChatWebSocket(options: UseChatWebSocketOptions): UseChatWebSo
     stopTyping,
     markAsRead,
     joinRoom,
-    leaveRoom
+    leaveRoom,
+    clearRetryQueue,
+    getConnectionHealth
   };
 }

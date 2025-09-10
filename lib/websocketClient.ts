@@ -1,3 +1,5 @@
+import { ChatErrorHandler, getChatErrorHandler, type ChatError, type ConnectionState } from './chatErrorHandler';
+
 interface WebSocketMessage {
   type: string;
   data?: any;
@@ -12,6 +14,7 @@ interface WebSocketConfig {
   reconnectInterval?: number;
   maxReconnectAttempts?: number;
   heartbeatInterval?: number;
+  enableErrorHandling?: boolean;
 }
 
 type EventHandler = (data: any) => void;
@@ -36,14 +39,105 @@ export class ChatWebSocketClient {
   private isManuallyDisconnected = false;
   private messageQueue: QueuedMessage[] = [];
   private messageIdCounter = 0;
+  private errorHandler: ChatErrorHandler;
+  private connectionHealthTimer: NodeJS.Timeout | null = null;
 
   constructor(config: WebSocketConfig) {
     this.config = {
       reconnectInterval: 5000,
       maxReconnectAttempts: 10,
       heartbeatInterval: 30000,
+      enableErrorHandling: true,
       ...config
     };
+    
+    // Initialize error handler
+    this.errorHandler = getChatErrorHandler();
+    
+    // Set up error handler listeners
+    if (this.config.enableErrorHandling) {
+      this.setupErrorHandling();
+    }
+  }
+
+  /**
+   * Set up error handling integration
+   */
+  private setupErrorHandling(): void {
+    // Listen for connection state changes
+    this.errorHandler.onConnectionStateChange((state: ConnectionState) => {
+      this.emit('connection_state_changed', state);
+      
+      // Handle offline/online transitions
+      if (state.isOnline && !this.isConnected && !this.isManuallyDisconnected) {
+        this.scheduleReconnect();
+      }
+    });
+
+    // Listen for errors
+    this.errorHandler.onError((error: ChatError) => {
+      this.emit('chat_error', error);
+      
+      // Handle specific error types
+      if (error.type === 'send_failed' && error.retryable) {
+        // Message will be handled by retry queue
+        console.log(`Message send failed, will retry: ${error.messageId}`);
+      }
+    });
+  }
+
+  /**
+   * Start connection health monitoring
+   */
+  private startConnectionHealthMonitoring(): void {
+    this.stopConnectionHealthMonitoring();
+    
+    this.connectionHealthTimer = setInterval(() => {
+      const health = this.getConnectionHealth();
+      this.emit('connection_health', health);
+      
+      // Check for stale connection
+      if (health.isConnected && health.lastHeartbeat) {
+        const timeSinceHeartbeat = Date.now() - health.lastHeartbeat;
+        if (timeSinceHeartbeat > this.config.heartbeatInterval! * 2) {
+          console.warn('Connection appears stale, forcing reconnect');
+          this.handleConnectionError(new Event('stale_connection'));
+        }
+      }
+    }, 10000); // Check every 10 seconds
+  }
+
+  /**
+   * Stop connection health monitoring
+   */
+  private stopConnectionHealthMonitoring(): void {
+    if (this.connectionHealthTimer) {
+      clearInterval(this.connectionHealthTimer);
+      this.connectionHealthTimer = null;
+    }
+  }
+
+  /**
+   * Handle connection errors with enhanced error reporting
+   */
+  private handleConnectionError(event: Event | CloseEvent): void {
+    const error = this.errorHandler.handleConnectionError(event, {
+      reconnectAttempts: this.reconnectAttempts,
+      maxReconnectAttempts: this.config.maxReconnectAttempts,
+      wasManuallyDisconnected: this.isManuallyDisconnected
+    });
+
+    // Update connection state in error handler
+    if (error.retryable && !this.isManuallyDisconnected) {
+      this.errorHandler.updateConnectionState({
+        status: 'reconnecting',
+        reconnectAttempts: this.reconnectAttempts
+      });
+    } else {
+      this.errorHandler.updateConnectionState({
+        status: 'failed'
+      });
+    }
   }
 
   /**
@@ -74,6 +168,13 @@ export class ChatWebSocketClient {
           this.isConnecting = false;
           this.reconnectAttempts = 0;
           this.startHeartbeat();
+          this.startConnectionHealthMonitoring();
+          
+          // Update error handler connection state
+          this.errorHandler.updateConnectionState({
+            status: 'connected',
+            reconnectAttempts: 0
+          });
           
           // Process any queued messages
           setTimeout(() => this.processMessageQueue(), 100);
@@ -95,6 +196,11 @@ export class ChatWebSocketClient {
           console.log('WebSocket disconnected:', event.code, event.reason);
           this.isConnecting = false;
           this.stopHeartbeat();
+          this.stopConnectionHealthMonitoring();
+          
+          // Handle connection error through error handler
+          this.handleConnectionError(event);
+          
           this.emit('disconnected', { code: event.code, reason: event.reason });
           
           if (!this.isManuallyDisconnected) {
@@ -105,6 +211,10 @@ export class ChatWebSocketClient {
         this.ws.onerror = (error) => {
           console.error('WebSocket error:', error);
           this.isConnecting = false;
+          
+          // Handle error through error handler
+          this.handleConnectionError(error);
+          
           this.emit('error', { error });
           
           if (this.reconnectAttempts === 0) {
@@ -125,7 +235,13 @@ export class ChatWebSocketClient {
   disconnect(): void {
     this.isManuallyDisconnected = true;
     this.stopHeartbeat();
+    this.stopConnectionHealthMonitoring();
     this.clearReconnectTimer();
+    
+    // Update error handler connection state
+    this.errorHandler.updateConnectionState({
+      status: 'disconnected'
+    });
     
     if (this.ws) {
       this.ws.close(1000, 'Manual disconnect');
@@ -138,14 +254,34 @@ export class ChatWebSocketClient {
    */
   send(type: string, data?: any, options?: { queue?: boolean; maxRetries?: number }): boolean {
     const { queue = true, maxRetries = 3 } = options || {};
+    const messageId = `msg_${++this.messageIdCounter}_${Date.now()}`;
 
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
       if (queue && !this.isManuallyDisconnected) {
         // Queue message for later sending
         this.queueMessage(type, data, maxRetries);
         console.log('WebSocket not connected, message queued:', type);
+        
+        // Also add to error handler retry queue
+        this.errorHandler.addToRetryQueue(
+          messageId,
+          type,
+          data,
+          data?.conversationId,
+          { maxRetries }
+        );
+        
         return true;
       } else {
+        // Handle send failure through error handler
+        this.errorHandler.handleMessageSendError(
+          messageId,
+          type,
+          data,
+          new Error('WebSocket not connected'),
+          data?.conversationId
+        );
+        
         console.warn('WebSocket not connected, cannot send message:', type);
         return false;
       }
@@ -154,9 +290,22 @@ export class ChatWebSocketClient {
     try {
       const message = { type, ...data };
       this.ws.send(JSON.stringify(message));
+      
+      // Emit successful send event
+      this.emit('message_send_success', { messageId, type, data });
+      
       return true;
     } catch (error) {
       console.error('Error sending WebSocket message:', error);
+      
+      // Handle send failure through error handler
+      this.errorHandler.handleMessageSendError(
+        messageId,
+        type,
+        data,
+        error,
+        data?.conversationId
+      );
       
       if (queue && !this.isManuallyDisconnected) {
         this.queueMessage(type, data, maxRetries);
@@ -501,14 +650,37 @@ export class ChatWebSocketClient {
     reconnectAttempts: number;
     queuedMessages: number;
     lastHeartbeat: number | null;
+    errorHandlerState: any;
+    retryQueueStatus: any;
   } {
     return {
       isConnected: this.isConnected,
       readyState: this.readyState,
       reconnectAttempts: this.reconnectAttempts,
       queuedMessages: this.messageQueue.length,
-      lastHeartbeat: this.lastHeartbeat
+      lastHeartbeat: this.lastHeartbeat,
+      errorHandlerState: this.errorHandler.getConnectionState(),
+      retryQueueStatus: this.errorHandler.getRetryQueueStatus()
     };
+  }
+
+  /**
+   * Get error handler instance
+   */
+  getErrorHandler(): ChatErrorHandler {
+    return this.errorHandler;
+  }
+
+  /**
+   * Enable/disable graceful degradation mode
+   */
+  setGracefulDegradation(enabled: boolean): void {
+    if (enabled) {
+      // In graceful degradation mode, queue all messages and show offline UI
+      this.emit('graceful_degradation_enabled', {});
+    } else {
+      this.emit('graceful_degradation_disabled', {});
+    }
   }
 
   private lastHeartbeat: number | null = null;
