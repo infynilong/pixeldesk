@@ -146,7 +146,7 @@ export default function NotificationToast({
       onClick={handleClick}
     >
       {/* Progress bar */}
-      <div className="absolute top-0 left-0 h-1 bg-gradient-to-r from-retro-cyan to-retro-blue rounded-t-lg animate-shrink-width"></div>
+      <div className="absolute top-0 left-0 h-1 bg-gradient-to-r from-retro-purple to-retro-pink rounded-t-lg animate-shrink-width"></div>
       
       <div className="p-4">
         <div className="flex items-start space-x-3">

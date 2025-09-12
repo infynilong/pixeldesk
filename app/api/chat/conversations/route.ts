@@ -11,8 +11,25 @@ export async function GET(request: NextRequest) {
     if (!userId) {
       return NextResponse.json({ 
         success: false, 
-        error: 'User ID required' 
+        error: 'User ID required',
+        code: 'MISSING_USER_ID',
+        retryable: false
       } as ApiResponse<null>, { status: 400 })
+    }
+
+    // Validate user exists
+    const userExists = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true }
+    })
+
+    if (!userExists) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'User not found',
+        code: 'USER_NOT_FOUND',
+        retryable: false
+      } as ApiResponse<null>, { status: 404 })
     }
 
     // Get user's conversations with participants and last message
@@ -122,10 +139,31 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('Error fetching conversations:', error)
+    
+    // Handle specific database errors
+    let errorCode = 'INTERNAL_SERVER_ERROR'
+    let errorMessage = 'Internal server error'
+    let statusCode = 500
+    let retryable = true
+
+    if (error instanceof Error) {
+      if (error.message.includes('prisma') || error.message.includes('database')) {
+        errorCode = 'DATABASE_ERROR'
+        errorMessage = 'Database connection error'
+        retryable = true
+      } else if (error.message.includes('timeout')) {
+        errorCode = 'REQUEST_TIMEOUT'
+        errorMessage = 'Request timeout'
+        retryable = true
+      }
+    }
+
     return NextResponse.json({ 
       success: false, 
-      error: 'Internal server error' 
-    } as ApiResponse<null>, { status: 500 })
+      error: errorMessage,
+      code: errorCode,
+      retryable
+    } as ApiResponse<null>, { status: statusCode })
   }
 }
 
@@ -137,8 +175,73 @@ export async function POST(request: NextRequest) {
     if (!participantIds || participantIds.length === 0) {
       return NextResponse.json({ 
         success: false, 
-        error: 'Participant IDs required' 
+        error: 'Participant IDs required',
+        code: 'MISSING_PARTICIPANTS',
+        retryable: false
       } as ApiResponse<null>, { status: 400 })
+    }
+
+    // Validate participant IDs
+    const validParticipants = await prisma.user.findMany({
+      where: {
+        id: { in: participantIds }
+      },
+      select: { id: true }
+    })
+
+    if (validParticipants.length !== participantIds.length) {
+      const invalidIds = participantIds.filter(id => 
+        !validParticipants.some(p => p.id === id)
+      )
+      
+      return NextResponse.json({ 
+        success: false, 
+        error: `Invalid participant IDs: ${invalidIds.join(', ')}`,
+        code: 'INVALID_PARTICIPANTS',
+        retryable: false,
+        data: { invalidIds }
+      } as ApiResponse<{ invalidIds: string[] }>, { status: 400 })
+    }
+
+    // Validate conversation type constraints
+    if (type === 'private' && participantIds.length !== 2) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Private conversations must have exactly 2 participants',
+        code: 'INVALID_CONVERSATION_TYPE',
+        retryable: false
+      } as ApiResponse<null>, { status: 400 })
+    }
+
+    // Check if private conversation already exists
+    if (type === 'private') {
+      const existingConversation = await prisma.conversation.findFirst({
+        where: {
+          type: 'private',
+          participants: {
+            every: {
+              userId: { in: participantIds },
+              isActive: true
+            }
+          }
+        },
+        include: {
+          participants: {
+            where: { isActive: true }
+          }
+        }
+      })
+
+      if (existingConversation && 
+          existingConversation.participants.length === participantIds.length) {
+        return NextResponse.json({ 
+          success: false, 
+          error: 'Private conversation already exists',
+          code: 'CONVERSATION_EXISTS',
+          retryable: false,
+          data: { existingConversationId: existingConversation.id }
+        } as ApiResponse<{ existingConversationId: string }>, { status: 409 })
+      }
     }
 
     // Use ConversationManager to create conversation
@@ -155,9 +258,31 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Error creating conversation:', error)
+    
+    // Handle specific errors
+    let errorCode = 'INTERNAL_SERVER_ERROR'
+    let errorMessage = 'Internal server error'
+    let statusCode = 500
+    let retryable = true
+
+    if (error instanceof Error) {
+      if (error.message.includes('prisma') || error.message.includes('database')) {
+        errorCode = 'DATABASE_ERROR'
+        errorMessage = 'Database connection error'
+        retryable = true
+      } else if (error.message.includes('unique') || error.message.includes('duplicate')) {
+        errorCode = 'DUPLICATE_CONVERSATION'
+        errorMessage = 'Conversation already exists'
+        retryable = false
+        statusCode = 409
+      }
+    }
+
     return NextResponse.json({ 
       success: false, 
-      error: 'Internal server error' 
-    } as ApiResponse<null>, { status: 500 })
+      error: errorMessage,
+      code: errorCode,
+      retryable
+    } as ApiResponse<null>, { status: statusCode })
   }
 }

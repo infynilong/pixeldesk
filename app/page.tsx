@@ -59,6 +59,7 @@ const PlayerClickModal = dynamic(() => import('@/components/PlayerClickModal'), 
   ssr: false
 })
 
+
 // 工位信息弹窗组件
 const WorkstationInfoModal = dynamic(() => import('@/components/WorkstationInfoModal'), {
   ssr: false

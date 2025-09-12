@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { EventBus } from '../../lib/eventBus'
 import ChatManager from '../ChatManager'
+import { useUser } from '../../contexts/UserContext'
 
 interface ChatTabProps {
   isActive?: boolean
@@ -15,6 +16,7 @@ export default function ChatTab({
   isMobile = false, 
   isTablet = false 
 }: ChatTabProps) {
+  const { user, isLoading } = useUser()
   const [unreadCount, setUnreadCount] = useState(0)
   const [isVisible, setIsVisible] = useState(true)
 
@@ -50,10 +52,10 @@ export default function ChatTab({
   return (
     <div className="h-full flex flex-col bg-retro-bg-darker">
       {/* Chat Header */}
-      <div className="p-4 border-b border-retro-border bg-gradient-to-r from-green-500/10 to-emerald-500/10">
+      <div className="p-4 border-b border-retro-border bg-gradient-to-r from-retro-purple/10 to-retro-pink/10">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
+            <div className="w-10 h-10 bg-gradient-to-r from-retro-purple to-retro-pink rounded-full flex items-center justify-center">
               <span className="text-white text-lg">💬</span>
             </div>
             <div>
@@ -73,11 +75,18 @@ export default function ChatTab({
 
       {/* Chat Content */}
       <div className="flex-1 relative">
-        <ChatManager 
-          currentUserId="current-user" // This should come from props or context
-          isVisible={isVisible}
-          onToggle={() => setIsVisible(!isVisible)}
-        />
+        {!isLoading && user && (
+          <ChatManager 
+            currentUserId={user.id}
+            isVisible={isVisible}
+            onToggle={() => setIsVisible(!isVisible)}
+          />
+        )}
+        {!isLoading && !user && (
+          <div className="flex items-center justify-center h-full text-retro-textMuted">
+            <p>请先登录以使用聊天功能</p>
+          </div>
+        )}
       </div>
 
       {/* Chat Status */}

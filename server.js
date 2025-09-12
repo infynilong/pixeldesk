@@ -32,6 +32,10 @@ app.prepare().then(() => {
 
   // Import WebSocket handler
   const { handleWebSocketConnection } = require('./lib/websocketHandler');
+  const { setWebSocketServer } = require('./lib/websocketBroadcast');
+  
+  // Set the WebSocket server instance for broadcasting
+  setWebSocketServer(wss);
   
   wss.on('connection', (ws, req) => {
     handleWebSocketConnection(ws, req, wss);

@@ -7,6 +7,9 @@ import UserAvatar from './UserAvatar'
 import LastSeenDisplay from './LastSeenDisplay'
 import { useChatWebSocket } from '../lib/hooks/useChatWebSocket'
 import { useSingleUserOnlineStatus } from '../lib/hooks/useOnlineStatus'
+import { ConnectionError } from './errors'
+import VirtualizedMessageList from './VirtualizedMessageList'
+import { getCachedMessages, cacheMessages, getCachedConversations, cacheConversations, deduplicateMessages } from '../lib/cacheUtils'
 
 interface ConversationWindowProps {
   conversation: ChatConversation
@@ -45,6 +48,8 @@ export default function ConversationWindow({
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
   const [windowPosition, setWindowPosition] = useState(position)
   const [isTyping, setIsTyping] = useState(false)
+  const [connectionStatus, setConnectionStatus] = useState<'connected' | 'connecting' | 'disconnected' | 'reconnecting' | 'failed'>('disconnected')
+  const [lastConnectionError, setLastConnectionError] = useState<any>(null)
 
   // Get the other participant for private conversations
   const otherParticipant = conversation.type === 'private' 
@@ -62,9 +67,32 @@ export default function ConversationWindow({
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const typingCleanupRef = useRef<NodeJS.Timeout | null>(null)
 
-  // WebSocket integration for typing indicators
-  const { startTyping, stopTyping, joinRoom, leaveRoom } = useChatWebSocket({
+  // WebSocket integration with error handling
+  const { 
+    startTyping, 
+    stopTyping, 
+    joinRoom, 
+    leaveRoom, 
+    sendMessage,
+    isConnected,
+    isConnecting,
+    connectionState,
+    lastError,
+    retryQueueCount,
+    clearRetryQueue
+  } = useChatWebSocket({
     userId: currentUserId,
+    onMessageReceived: useCallback((data: { message: ChatMessage; conversationId: string }) => {
+      if (data.conversationId === conversation.id) {
+        // Update messages list with new message
+        setMessages(prev => {
+          const newMessages = [...prev, data.message]
+          // Cache the updated messages
+          cacheMessages(conversation.id, newMessages)
+          return newMessages
+        })
+      }
+    }, [conversation.id]),
     onUserTyping: useCallback((data: { userId: string; userName: string; conversationId: string; isTyping: boolean; timestamp: string }) => {
       if (data.conversationId === conversation.id && data.userId !== currentUserId) {
         const timestamp = Date.now()
@@ -84,7 +112,41 @@ export default function ConversationWindow({
           setTypingUsers(prev => prev.filter(user => user.userId !== data.userId))
         }
       }
-    }, [conversation.id, currentUserId])
+    }, [conversation.id, currentUserId]),
+    onChatError: useCallback((error: any) => {
+      console.error('Chat error:', error)
+      // Handle specific error types
+      if (error.type === 'send_failed') {
+        // Update message status to failed
+        if (error.messageId && error.messageId.startsWith('temp-')) {
+          setMessages(prev => prev.map(msg => 
+            msg.id === error.messageId ? { ...msg, status: 'failed' } : msg
+          ))
+        }
+      }
+    }, []),
+    onMessageSendFailure: useCallback((error: any) => {
+      console.error('Message send failure:', error)
+      // Update optimistic message status
+      if (error.messageId && error.messageId.startsWith('temp-')) {
+        setMessages(prev => prev.map(msg => 
+          msg.id === error.messageId ? { ...msg, status: 'failed' } : msg
+        ))
+      }
+    }, []),
+    onConnectionStateChange: useCallback((state: any) => {
+      console.log('Connection state changed:', state.status)
+      setConnectionStatus(state.status)
+      
+      // Update UI based on connection state
+      if (state.status === 'failed') {
+        // Show offline indicator
+        setLastConnectionError(state.lastError || 'Connection failed')
+      } else if (state.status === 'connected') {
+        // Hide offline indicator and clear errors
+        setLastConnectionError(null)
+      }
+    }, [])
   })
 
   // Update window position when prop changes
@@ -179,14 +241,40 @@ export default function ConversationWindow({
 
   const loadMessages = async () => {
     setIsLoadingMessages(true)
+    
+    // First try to load from cache
+    const cachedMessages = getCachedMessages(conversation.id)
+    if (cachedMessages && cachedMessages.length > 0) {
+      setMessages(cachedMessages)
+    }
+    
     try {
-      const response = await fetch(`/api/chat/conversations/${conversation.id}/messages`)
+      // Then fetch from API to get latest messages
+      const response = await fetch(`/api/chat/conversations/${conversation.id}/messages?userId=${currentUserId}`)
       if (response.ok) {
         const data = await response.json()
-        setMessages(data.messages || [])
+        const apiMessages = data.messages || []
+        
+        // Merge cached and API messages, deduplicate
+        const allMessages = [...(cachedMessages || []), ...apiMessages]
+        const deduplicatedMessages = deduplicateMessages(allMessages)
+        
+        // Sort by timestamp (newest first)
+        const sortedMessages = deduplicatedMessages.sort((a, b) => 
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        )
+        
+        setMessages(sortedMessages)
+        
+        // Cache the merged messages
+        cacheMessages(conversation.id, sortedMessages)
       }
     } catch (error) {
       console.error('Failed to load messages:', error)
+      // If API fails, we still have cached messages
+      if (!cachedMessages || cachedMessages.length === 0) {
+        setMessages([])
+      }
     } finally {
       setIsLoadingMessages(false)
     }
@@ -214,42 +302,65 @@ export default function ConversationWindow({
       updatedAt: new Date().toISOString()
     }
 
-    // Add optimistic message to local state
-    setMessages(prev => [...prev, optimisticMessage])
+    // Add optimistic message to local state and update cache
+    setMessages(prev => {
+      const newMessages = [...prev, optimisticMessage]
+      cacheMessages(conversation.id, newMessages)
+      return newMessages
+    })
     setNewMessage('')
 
     try {
-      const requestBody: SendMessageRequest = {
-        content: optimisticMessage.content,
-        type: 'text'
+      // Use WebSocket to send message
+      const success = sendMessage(conversation.id, optimisticMessage.content, 'text')
+      
+      if (!success) {
+        // If WebSocket is not available, fall back to HTTP API
+        const requestBody: SendMessageRequest = {
+          content: optimisticMessage.content,
+          type: 'text'
+        }
+
+        const response = await fetch(`/api/chat/conversations/${conversation.id}/messages?userId=${currentUserId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody)
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          const sentMessage = data.message
+
+          // Replace optimistic message with real message and update cache
+          setMessages(prev => {
+            const newMessages = prev.map(msg => 
+              msg.id === optimisticMessage.id ? sentMessage : msg
+            )
+            cacheMessages(conversation.id, newMessages)
+            return newMessages
+          })
+        } else {
+          // Mark message as failed and update cache
+          setMessages(prev => {
+            const newMessages = prev.map(msg => 
+              msg.id === optimisticMessage.id ? { ...msg, status: 'failed' } : msg
+            )
+            cacheMessages(conversation.id, newMessages)
+            return newMessages
+          })
+        }
       }
-
-      const response = await fetch(`/api/chat/conversations/${conversation.id}/messages`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody)
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        const sentMessage = data.message
-
-        // Replace optimistic message with real message
-        setMessages(prev => prev.map(msg => 
-          msg.id === optimisticMessage.id ? sentMessage : msg
-        ))
-      } else {
-        // Mark message as failed
-        setMessages(prev => prev.map(msg => 
-          msg.id === optimisticMessage.id ? { ...msg, status: 'failed' } : msg
-        ))
-      }
+      // If WebSocket send was successful, the message will be updated via WebSocket events
     } catch (error) {
       console.error('Failed to send message:', error)
-      // Mark message as failed
-      setMessages(prev => prev.map(msg => 
-        msg.id === optimisticMessage.id ? { ...msg, status: 'failed' } : msg
-      ))
+      // Mark message as failed and update cache
+      setMessages(prev => {
+        const newMessages = prev.map(msg => 
+          msg.id === optimisticMessage.id ? { ...msg, status: 'failed' } : msg
+        )
+        cacheMessages(conversation.id, newMessages)
+        return newMessages
+      })
     } finally {
       setIsSending(false)
     }
@@ -259,42 +370,65 @@ export default function ConversationWindow({
     const message = messages.find(m => m.id === messageId)
     if (!message) return
 
-    // Update message status to sending
-    setMessages(prev => prev.map(msg => 
-      msg.id === messageId ? { ...msg, status: 'sending' } : msg
-    ))
+    // Update message status to sending and update cache
+    setMessages(prev => {
+      const newMessages = prev.map(msg => 
+        msg.id === messageId ? { ...msg, status: 'sending' } : msg
+      )
+      cacheMessages(conversation.id, newMessages)
+      return newMessages
+    })
 
     try {
-      const requestBody: SendMessageRequest = {
-        content: message.content,
-        type: message.type
+      // Try to use WebSocket first
+      const success = sendMessage(conversation.id, message.content, message.type)
+      
+      if (!success) {
+        // Fall back to HTTP API if WebSocket is not available
+        const requestBody: SendMessageRequest = {
+          content: message.content,
+          type: message.type
+        }
+
+        const response = await fetch(`/api/chat/conversations/${conversation.id}/messages?userId=${currentUserId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody)
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          const sentMessage = data.message
+
+          // Replace failed message with new message and update cache
+          setMessages(prev => {
+            const newMessages = prev.map(msg => 
+              msg.id === messageId ? sentMessage : msg
+            )
+            cacheMessages(conversation.id, newMessages)
+            return newMessages
+          })
+        } else {
+          // Mark message as failed again and update cache
+          setMessages(prev => {
+            const newMessages = prev.map(msg => 
+              msg.id === messageId ? { ...msg, status: 'failed' } : msg
+            )
+            cacheMessages(conversation.id, newMessages)
+            return newMessages
+          })
+        }
       }
-
-      const response = await fetch(`/api/chat/conversations/${conversation.id}/messages`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody)
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        const sentMessage = data.message
-
-        // Replace failed message with new message
-        setMessages(prev => prev.map(msg => 
-          msg.id === messageId ? sentMessage : msg
-        ))
-      } else {
-        // Mark message as failed again
-        setMessages(prev => prev.map(msg => 
-          msg.id === messageId ? { ...msg, status: 'failed' } : msg
-        ))
-      }
+      // If WebSocket send was successful, the message will be updated via WebSocket events
     } catch (error) {
       console.error('Failed to retry message:', error)
-      setMessages(prev => prev.map(msg => 
-        msg.id === messageId ? { ...msg, status: 'failed' } : msg
-      ))
+      setMessages(prev => {
+        const newMessages = prev.map(msg => 
+          msg.id === messageId ? { ...msg, status: 'failed' } : msg
+        )
+        cacheMessages(conversation.id, newMessages)
+        return newMessages
+      })
     }
   }
 
@@ -333,6 +467,17 @@ export default function ConversationWindow({
       }
     }
   }, [isDragging, dragOffset])
+
+  const getConnectionStatusText = () => {
+    switch (connectionStatus) {
+      case 'connected': return '已连接'
+      case 'connecting': return '连接中...'
+      case 'reconnecting': return '重新连接中...'
+      case 'disconnected': return '已断开连接'
+      case 'failed': return lastConnectionError ? `连接失败: ${lastConnectionError}` : '连接失败'
+      default: return '未知状态'
+    }
+  }
 
   const getParticipantName = () => {
     if (conversation.type === 'group') {
@@ -426,9 +571,17 @@ export default function ConversationWindow({
 
             {/* Participant Info */}
             <div className="flex-1 min-w-0">
-              <h3 className="text-white font-medium text-sm truncate">
-                {getParticipantName()}
-              </h3>
+              <div className="flex items-center space-x-2">
+                <h3 className="text-white font-medium text-sm truncate">
+                  {getParticipantName()}
+                </h3>
+                {/* Connection Status Indicator */}
+                <div className={`w-2 h-2 rounded-full ${
+                  connectionStatus === 'connected' ? 'bg-retro-green' :
+                  connectionStatus === 'connecting' || connectionStatus === 'reconnecting' ? 'bg-retro-orange animate-pulse' :
+                  'bg-retro-red'
+                }`} title={getConnectionStatusText()} />
+              </div>
               <LastSeenDisplay
                 lastSeen={participantOnlineStatus?.lastSeen || null}
                 isOnline={isParticipantOnline()}
@@ -445,7 +598,7 @@ export default function ConversationWindow({
                 e.stopPropagation()
                 onMinimize()
               }}
-              className="w-6 h-6 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 rounded-full flex items-center justify-center transition-colors text-xs"
+              className="w-6 h-6 bg-retro-orange/20 hover:bg-retro-orange/30 text-retro-orange rounded-full flex items-center justify-center transition-colors text-xs"
               title="最小化"
             >
               −
@@ -455,7 +608,7 @@ export default function ConversationWindow({
                 e.stopPropagation()
                 onClose()
               }}
-              className="w-6 h-6 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-full flex items-center justify-center transition-colors text-xs"
+              className="w-6 h-6 bg-retro-red/20 hover:bg-retro-red/30 text-retro-red rounded-full flex items-center justify-center transition-colors text-xs"
               title="关闭"
             >
               ✕
@@ -486,16 +639,12 @@ export default function ConversationWindow({
                 </div>
               ) : (
                 <>
-                  {messages.map((message) => (
-                    <MessageBubble
-                      key={message.id}
-                      message={message}
-                      isOwn={message.senderId === currentUserId}
-                      showAvatar={message.senderId !== currentUserId}
-                      showTimestamp={true}
-                      onRetry={message.status === 'failed' ? () => handleRetryMessage(message.id) : undefined}
-                    />
-                  ))}
+                  <VirtualizedMessageList
+                    messages={messages}
+                    currentUserId={currentUserId}
+                    onRetry={handleRetryMessage}
+                    className="h-full"
+                  />
                   
                   {/* Typing indicators */}
                   {typingUsers.length > 0 && (
@@ -523,46 +672,64 @@ export default function ConversationWindow({
 
             {/* Message Input */}
             <div className={`${windowClasses.input} border-t border-retro-border`}>
-              <form onSubmit={handleSendMessage} className="flex gap-2">
-                <input
-                  ref={inputRef}
-                  type="text"
-                  value={newMessage}
-                  onChange={(e) => {
-                    setNewMessage(e.target.value)
-                    // Trigger typing indicator when user types
-                    if (e.target.value.trim()) {
-                      handleTypingStart()
-                    } else {
-                      handleTypingStop()
+              {connectionStatus === 'connected' || connectionStatus === 'connecting' ? (
+                <form onSubmit={handleSendMessage} className="flex gap-2">
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={newMessage}
+                    onChange={(e) => {
+                      setNewMessage(e.target.value)
+                      // Trigger typing indicator when user types
+                      if (e.target.value.trim()) {
+                        handleTypingStart()
+                      } else {
+                        handleTypingStop()
+                      }
+                    }}
+                    onBlur={handleTypingStop}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault()
+                        handleSendMessage(e as any)
+                      }
+                    }}
+                    placeholder={connectionStatus === 'connecting' ? '连接中...' : '输入消息...'}
+                    disabled={isSending || connectionStatus !== 'connected'}
+                    className="flex-1 px-3 py-2 bg-retro-border/30 border border-retro-border rounded-lg focus:outline-none focus:ring-2 focus:ring-retro-purple focus:border-transparent text-white placeholder-retro-textMuted text-sm transition-all duration-200 disabled:opacity-50"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!newMessage.trim() || isSending || connectionStatus !== 'connected'}
+                    className="bg-gradient-to-r from-retro-purple to-retro-pink hover:from-retro-purple/90 hover:to-retro-pink/90 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none text-sm flex-shrink-0"
+                  >
+                    {isSending ? (
+                      <div className="flex items-center space-x-1">
+                        <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin"></div>
+                        <span>发送中</span>
+                      </div>
+                    ) : (
+                      '发送'
+                    )}
+                  </button>
+                </form>
+              ) : (
+                <ConnectionError
+                  status={connectionStatus}
+                  error={lastConnectionError}
+                  onRetry={() => {
+                    // Implement reconnection logic here
+                    if (connectionStatus === 'failed' || connectionStatus === 'disconnected') {
+                      // Trigger reconnection through WebSocket hook
+                      // This would typically involve re-establishing the WebSocket connection
+                      console.log('Attempting to reconnect...')
+                      // For now, we'll just reload the page as a simple retry mechanism
+                      window.location.reload()
                     }
                   }}
-                  onBlur={handleTypingStop}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault()
-                      handleSendMessage(e as any)
-                    }
-                  }}
-                  placeholder="输入消息..."
-                  disabled={isSending}
-                  className="flex-1 px-3 py-2 bg-retro-border/30 border border-retro-border rounded-lg focus:outline-none focus:ring-2 focus:ring-retro-purple focus:border-transparent text-white placeholder-retro-textMuted text-sm transition-all duration-200 disabled:opacity-50"
+                  className="bg-retro-bg-darker"
                 />
-                <button
-                  type="submit"
-                  disabled={!newMessage.trim() || isSending}
-                  className="bg-gradient-to-r from-retro-purple to-retro-pink hover:from-retro-blue hover:to-retro-cyan text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none text-sm flex-shrink-0"
-                >
-                  {isSending ? (
-                    <div className="flex items-center space-x-1">
-                      <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin"></div>
-                      <span>发送中</span>
-                    </div>
-                  ) : (
-                    '发送'
-                  )}
-                </button>
-              </form>
+              )}
             </div>
           </>
         )}

@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,39 +8,35 @@ datasource db {
 }
 
 model User {
-  id            String   @id @default(cuid())
-  name          String
-  email         String?  @unique
-  avatar        String?
-  points        Int      @default(50)
-  gold          Int      @default(50)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
-  statusHistory StatusHistory[]
-  workstations  UserWorkstation[]
-  workSessions  WorkSession[]
-  timeTracking  TimeTracking[]
-  
-  // Chat-related relations
+  id                       String                    @id @default(cuid())
+  points                   Int                       @default(50)
+  createdAt                DateTime                  @default(now())
+  updatedAt                DateTime                  @updatedAt
+  avatar                   String?
+  email                    String?                   @unique
+  gold                     Int                       @default(50)
+  name                     String
   conversationParticipants ConversationParticipant[]
-  sentMessages            Message[]
-  onlineStatus            UserOnlineStatus?
-  
+  sentMessages             Message[]
+  statusHistory            StatusHistory[]
+  timeTracking             TimeTracking[]
+  onlineStatus             UserOnlineStatus?
+  workstations             UserWorkstation[]
+  workSessions             WorkSession[]
+
   @@map("users")
 }
 
 model StatusHistory {
-  id          Int      @id @default(autoincrement())
-  userId      String
-  status      String
-  type        String
-  emoji       String?
-  message     String?
-  timestamp   DateTime @default(now())
-  
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  id        Int      @id @default(autoincrement())
+  userId    String
+  emoji     String?
+  message   String?
+  status    String
+  timestamp DateTime @default(now())
+  type      String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@map("status_history")
 }
 
@@ -53,116 +46,106 @@ model Workstation {
   xPosition  Int
   yPosition  Int
   isOccupied Boolean  @default(false)
-  createdAt DateTime @default(now())
-  
+  createdAt  DateTime @default(now())
+
   @@map("workstations")
 }
 
 model UserWorkstation {
-  id            Int       @id @default(autoincrement())
+  id            Int      @id @default(autoincrement())
   userId        String
   workstationId Int
-  cost          Int       @default(0)
-  boundAt       DateTime  @default(now())
-  
-  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  boundAt       DateTime @default(now())
+  cost          Int      @default(0)
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@unique([userId, workstationId])
   @@map("user_workstations")
 }
 
-// 工作会话表 - 记录每次上班到下班的完整会话
 model WorkSession {
   id            Int       @id @default(autoincrement())
   userId        String
-  workstationId String?   // 绑定的工位ID（可能为空）
+  workstationId String?
   startTime     DateTime  @default(now())
-  endTime       DateTime? // 下班时间，为空表示还在上班中
-  totalMinutes  Int?      // 总工作时长（分钟），下班时计算
+  endTime       DateTime?
+  totalMinutes  Int?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
-  
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@map("work_sessions")
 }
 
-// 时间统计表 - 记录各种活动的时间片段
 model TimeTracking {
-  id          Int      @id @default(autoincrement())
-  userId      String
-  activityType String  // 活动类型：working, break, reading, restroom, meeting, lunch, off_work
-  startTime   DateTime @default(now())
-  endTime     DateTime?
-  duration    Int?     // 持续时长（分钟），结束时计算
-  date        DateTime @default(now()) // 用于按日期查询统计
-  workstationId String? // 相关的工位ID
-  notes       String?  // 备注信息
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  id            Int       @id @default(autoincrement())
+  userId        String
+  activityType  String
+  startTime     DateTime  @default(now())
+  endTime       DateTime?
+  duration      Int?
+  date          DateTime  @default(now())
+  workstationId String?
+  notes         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([userId, date])
   @@index([userId, activityType])
   @@map("time_tracking")
 }
-// Chat-related models
 
 model Conversation {
-  id            String   @id @default(cuid())
-  type          String   @default("private") // private, group
-  name          String?  // For group conversations
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
-  participants  ConversationParticipant[]
-  messages      Message[]
-  
+  id           String                    @id @default(cuid())
+  type         String                    @default("private")
+  name         String?
+  createdAt    DateTime                  @default(now())
+  updatedAt    DateTime                  @updatedAt
+  participants ConversationParticipant[]
+  messages     Message[]
+
   @@map("conversations")
 }
 
 model ConversationParticipant {
-  id             String   @id @default(cuid())
+  id             String       @id @default(cuid())
   conversationId String
   userId         String
-  joinedAt       DateTime @default(now())
-  lastReadAt     DateTime @default(now())
-  isActive       Boolean  @default(true)
-  
+  joinedAt       DateTime     @default(now())
+  lastReadAt     DateTime     @default(now())
+  isActive       Boolean      @default(true)
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@unique([conversationId, userId])
   @@map("conversation_participants")
 }
 
 model Message {
-  id             String   @id @default(cuid())
+  id             String       @id @default(cuid())
   conversationId String
   senderId       String
   content        String
-  type           String   @default("text") // text, emoji, system, image
-  status         String   @default("sent") // sent, delivered, read
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  
+  type           String       @default("text")
+  status         String       @default("sent")
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  sender        User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
-  
+  sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
   @@index([conversationId, createdAt])
   @@map("messages")
 }
 
 model UserOnlineStatus {
-  id           String   @id @default(cuid())
-  userId       String   @unique
-  isOnline     Boolean  @default(false)
-  lastSeen     DateTime @default(now())
-  socketId     String?  // Current WebSocket connection ID
-  updatedAt    DateTime @updatedAt
-  
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  isOnline  Boolean  @default(false)
+  lastSeen  DateTime @default(now())
+  socketId  String?
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@map("user_online_status")
 }

@@ -292,7 +292,7 @@ export default function ChatNotificationPanel({
                     onContextMenu={(e) => handleContextMenu(e, conversation.latestNotification)}
                   >
                     {/* Sender Avatar */}
-                    <div className="w-10 h-10 bg-gradient-to-br from-retro-blue to-retro-cyan rounded-full flex items-center justify-center flex-shrink-0">
+                    <div className="w-10 h-10 bg-gradient-to-r from-retro-purple to-retro-pink rounded-full flex items-center justify-center flex-shrink-0">
                       <span className="text-white font-medium text-sm">
                         {conversation.latestNotification.senderName?.charAt(0)?.toUpperCase() || '?'}
                       </span>
@@ -330,7 +330,7 @@ export default function ChatNotificationPanel({
                           {onMarkConversationRead && (
                             <button
                               onClick={(e) => handleMarkConversationRead(e, conversation.conversationId)}
-                              className="text-retro-textMuted hover:text-green-400 text-xs px-2 py-1 rounded hover:bg-green-500/10 transition-colors"
+                              className="text-retro-textMuted hover:text-retro-green text-xs px-2 py-1 rounded hover:bg-retro-green/10 transition-colors"
                               title="标记此对话为已读"
                             >
                               ✓
@@ -339,7 +339,7 @@ export default function ChatNotificationPanel({
                           {onNotificationDismiss && (
                             <button
                               onClick={(e) => handleNotificationDismiss(e, conversation.latestNotification.id)}
-                              className="text-retro-textMuted hover:text-red-400 text-xs px-2 py-1 rounded hover:bg-red-500/10 transition-colors"
+                              className="text-retro-textMuted hover:text-retro-red text-xs px-2 py-1 rounded hover:bg-retro-red/10 transition-colors"
                               title="忽略此通知"
                             >
                               ✕

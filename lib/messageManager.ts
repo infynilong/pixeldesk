@@ -1,6 +1,9 @@
 import { prisma } from '@/lib/db'
 import { ChatMessage } from '@/types/chat'
 
+// Import WebSocket handler functions (will be used dynamically)
+// We'll use dynamic imports or direct function calls to avoid module conflicts
+
 export class MessageManager {
   /**
    * Create and save a new message
@@ -50,6 +53,16 @@ export class MessageManager {
               name: true,
               avatar: true
             }
+          },
+          conversation: {
+            include: {
+              participants: {
+                where: { isActive: true },
+                select: {
+                  userId: true
+                }
+              }
+            }
           }
         }
       }),
@@ -59,7 +72,14 @@ export class MessageManager {
       })
     ])
 
-    return this.transformMessage(message)
+    const transformedMessage = this.transformMessage(message)
+
+    // WebSocket broadcasting is handled by the WebSocket handler when messages
+    // are sent via WebSocket. For HTTP API calls, broadcasting should be handled
+    // at the API level or by a separate service.
+    console.log('Message created, WebSocket broadcasting should be handled separately');
+
+    return transformedMessage
   }
 
   /**
@@ -377,10 +397,70 @@ export class MessageManager {
   }
 
   /**
+   * Broadcast message to conversation participants
+   */
+  private static async broadcastMessageToConversation(message: ChatMessage): Promise<void> {
+    try {
+      // Get all active participants in the conversation
+      const participants = await prisma.conversationParticipant.findMany({
+        where: {
+          conversationId: message.conversationId,
+          isActive: true,
+          userId: { not: message.senderId } // Exclude sender
+        },
+        select: {
+          userId: true
+        }
+      });
+
+      // Create broadcast message format
+      const broadcastMessage = {
+        type: 'message_received',
+        data: {
+          message: {
+            id: message.id,
+            conversationId: message.conversationId,
+            senderId: message.senderId,
+            senderName: message.senderName,
+            senderAvatar: message.senderAvatar,
+            content: message.content,
+            type: message.type,
+            status: message.status,
+            timestamp: message.createdAt,
+            createdAt: message.createdAt,
+            updatedAt: message.updatedAt
+          },
+          conversation: {
+            id: message.conversationId,
+            type: (message as any)._conversation?.type || 'direct',
+            name: (message as any)._conversation?.name || null
+          }
+        }
+      };
+
+      // In a real implementation, we would send this to WebSocket connections
+      // For now, we'll just log it since the actual WebSocket broadcasting
+      // should be handled by the WebSocket handler when messages are sent via WebSocket
+      console.log('Broadcasting message to participants:', {
+        conversationId: message.conversationId,
+        participantCount: participants.length,
+        messageId: message.id
+      });
+
+      // TODO: Integrate with WebSocket server to actually send messages
+      // This would require access to the WebSocket server instance
+      
+    } catch (error) {
+      console.error('Error in broadcastMessageToConversation:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Transform database message to API format
    */
   private static transformMessage(message: any): ChatMessage {
-    return {
+    const transformed: ChatMessage = {
       id: message.id,
       conversationId: message.conversationId,
       senderId: message.senderId,
@@ -392,5 +472,17 @@ export class MessageManager {
       createdAt: message.createdAt.toISOString(),
       updatedAt: message.updatedAt.toISOString()
     }
+    
+    // Add conversation data for broadcasting
+    if (message.conversation) {
+      (transformed as any)._conversation = message.conversation;
+    }
+    
+    // Add sender data for broadcasting
+    if (message.sender) {
+      (transformed as any)._sender = message.sender;
+    }
+    
+    return transformed;
   }
 }

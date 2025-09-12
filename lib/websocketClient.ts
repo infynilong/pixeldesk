@@ -159,6 +159,8 @@ export class ChatWebSocketClient {
       this.isManuallyDisconnected = false;
 
       const wsUrl = `${this.config.url}?token=${encodeURIComponent(this.config.token)}`;
+      console.log(`Attempting WebSocket connection to: ${wsUrl.substring(0, 100)}${wsUrl.length > 100 ? '...' : ''}`);
+      console.log('Token being sent:', this.config.token.substring(0, 50) + (this.config.token.length > 50 ? '...' : ''));
       
       try {
         this.ws = new WebSocket(wsUrl);
@@ -289,7 +291,9 @@ export class ChatWebSocketClient {
 
     try {
       const message = { type, ...data };
-      this.ws.send(JSON.stringify(message));
+      const messageStr = JSON.stringify(message);
+      console.log(`Sending WebSocket message: ${messageStr}`);
+      this.ws.send(messageStr);
       
       // Emit successful send event
       this.emit('message_send_success', { messageId, type, data });
@@ -690,9 +694,12 @@ export class ChatWebSocketClient {
 let chatWebSocketClient: ChatWebSocketClient | null = null;
 
 export function getChatWebSocketClient(token?: string): ChatWebSocketClient | null {
+  console.log('getChatWebSocketClient called with token:', token ? token.substring(0, 20) + '...' : 'no token');
+  
   if (!chatWebSocketClient && token) {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${protocol}//${window.location.host}/api/chat/ws`;
+    console.log('Creating new WebSocket client for URL:', wsUrl);
     
     chatWebSocketClient = new ChatWebSocketClient({
       url: wsUrl,

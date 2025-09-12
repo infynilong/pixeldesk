@@ -10,6 +10,7 @@ import ConversationWindow from './ConversationWindow'
 import ChatNotificationPanel from './ChatNotificationPanel'
 import NotificationContainer from './NotificationContainer'
 import UserAvatar from './UserAvatar'
+import { getCachedConversations, cacheConversations } from '../lib/cacheUtils'
 
 interface ChatManagerProps {
   currentUserId: string
@@ -85,7 +86,16 @@ export default function ChatManager({
     },
     onNotificationNew: (event) => {
       // Add notification using the notification manager
-      addNotification(event.latestMessage, event.latestMessage.conversationId)
+      // Create a proper ChatMessage object from the event data
+      const chatMessage: ChatMessage = {
+        ...event.latestMessage,
+        type: 'text', // Default to text type
+        status: 'delivered', // Default status for notifications
+        createdAt: event.latestMessage.timestamp,
+        updatedAt: event.latestMessage.timestamp,
+        senderAvatar: undefined // Can be populated if available
+      }
+      addNotification(chatMessage, event.latestMessage.conversationId)
     },
     onConnectionStatus: (event) => {
       console.log('[ChatManager] Connection status:', event.isConnected ? 'Connected' : 'Disconnected')
@@ -109,14 +119,32 @@ export default function ChatManager({
 
   const loadConversations = async () => {
     setIsLoading(true)
+    
+    // First try to load from cache
+    const cachedConversations = getCachedConversations(currentUserId)
+    if (cachedConversations && cachedConversations.length > 0) {
+      setConversations(cachedConversations)
+    }
+    
     try {
+      // Then fetch from API to get latest conversations
       const response = await fetch('/api/chat/conversations')
       if (response.ok) {
         const data = await response.json()
-        setConversations(data.conversations || [])
+        const apiConversations = data.conversations || []
+        
+        // Use API conversations (they are always more up-to-date)
+        setConversations(apiConversations)
+        
+        // Cache the conversations
+        cacheConversations(currentUserId, apiConversations)
       }
     } catch (error) {
       console.error('Failed to load conversations:', error)
+      // If API fails, we still have cached conversations
+      if (!cachedConversations || cachedConversations.length === 0) {
+        setConversations([])
+      }
     } finally {
       setIsLoading(false)
     }

@@ -85,6 +85,11 @@ export function useChatWebSocket(options: UseChatWebSocketOptions): UseChatWebSo
       }
 
       const data = await response.json();
+      console.log('Token API response:', data);
+      if (!data.token) {
+        console.error('No token in API response:', data);
+        throw new Error('No token received from API');
+      }
       return data.token;
     } catch (error) {
       console.error('Error generating WebSocket token:', error);
@@ -98,11 +103,15 @@ export function useChatWebSocket(options: UseChatWebSocketOptions): UseChatWebSo
 
     const initializeClient = async () => {
       try {
+        console.log('Generating WebSocket token for user:', userId);
         const wsToken = await generateToken();
         setToken(wsToken);
         
+        console.log('Getting WebSocket client with token:', wsToken.substring(0, 20) + '...');
+        console.log('Full token for debugging:', wsToken);
         const wsClient = getChatWebSocketClient(wsToken);
         if (wsClient) {
+          console.log('WebSocket client created, setting up event handlers');
           setClient(wsClient);
           clientRef.current = wsClient;
 

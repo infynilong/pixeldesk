@@ -70,7 +70,7 @@ export default function MessageBubble({
         )
       case 'delivered':
         return (
-          <div className="w-3 h-3 bg-blue-400 rounded-full flex items-center justify-center">
+          <div className="w-3 h-3 bg-retro-blue rounded-full flex items-center justify-center">
             <svg className="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
             </svg>
@@ -78,7 +78,7 @@ export default function MessageBubble({
         )
       case 'read':
         return (
-          <div className="w-3 h-3 bg-green-400 rounded-full flex items-center justify-center">
+          <div className="w-3 h-3 bg-retro-green rounded-full flex items-center justify-center">
             <svg className="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
             </svg>
@@ -86,7 +86,7 @@ export default function MessageBubble({
         )
       case 'failed':
         return (
-          <div className="w-3 h-3 bg-red-400 rounded-full flex items-center justify-center">
+          <div className="w-3 h-3 bg-retro-red rounded-full flex items-center justify-center">
             <svg className="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
             </svg>
@@ -233,7 +233,7 @@ export default function MessageBubble({
           {message.status === 'failed' && onRetry && (
             <button
               onClick={onRetry}
-              className="absolute -bottom-8 right-0 bg-red-500/20 hover:bg-red-500/30 text-red-400 text-xs px-2 py-1 rounded border border-red-500/30 transition-colors"
+              className="absolute -bottom-8 right-0 bg-retro-red/20 hover:bg-retro-red/30 text-retro-red text-xs px-2 py-1 rounded border border-retro-red/30 transition-colors"
             >
               重试
             </button>

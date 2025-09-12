@@ -123,7 +123,7 @@ export default function NotificationContextMenu({
       {/* Menu header */}
       <div className="px-3 py-2 border-b border-retro-border">
         <div className="flex items-center space-x-2">
-          <div className="w-6 h-6 bg-gradient-to-br from-retro-blue to-retro-cyan rounded-full flex items-center justify-center flex-shrink-0">
+          <div className="w-6 h-6 bg-gradient-to-br from-retro-purple to-retro-pink rounded-full flex items-center justify-center flex-shrink-0">
             <span className="text-white font-medium text-xs">
               {notification.senderName?.charAt(0)?.toUpperCase() || '?'}
             </span>

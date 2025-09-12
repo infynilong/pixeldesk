@@ -1,22 +1,54 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '../../../../lib/db'
-import { auth } from '../../../../lib/auth'
+import { verifyToken } from '../../../../lib/auth'
 
 // GET /api/chat/notifications - Get user's notifications
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth()
-    if (!session?.user?.id) {
+    const authHeader = request.headers.get('Authorization')
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const userId = session.user.id
+    const token = authHeader.substring(7)
+    const payload = verifyToken(token)
+    if (!payload?.userId) {
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
+    }
+
+    const userId = payload.userId
     const url = new URL(request.url)
     const limit = parseInt(url.searchParams.get('limit') || '50')
     const onlyUnread = url.searchParams.get('unread') === 'true'
 
     // Get notifications by finding messages in conversations where user is participant
     // and the message is not from the user and was created after their last read time
+    
+    // First get the user's last read times for all conversations
+    const userConversations = await prisma.conversation.findMany({
+      where: {
+        participants: {
+          some: {
+            userId: userId,
+            isActive: true
+          }
+        }
+      },
+      select: { id: true }
+    })
+    
+    const conversationIds = userConversations.map(c => c.id)
+    
+    const participant = await prisma.conversationParticipant.findFirst({
+      where: {
+        userId: userId,
+        conversationId: { in: conversationIds }
+      },
+      select: { lastReadAt: true }
+    })
+    
+    const lastReadAt = participant?.lastReadAt || new Date(0)
+    
     const notifications = await prisma.message.findMany({
       where: {
         AND: [
@@ -37,25 +69,7 @@ export async function GET(request: NextRequest) {
           },
           ...(onlyUnread ? [{
             createdAt: {
-              gt: prisma.conversationParticipant.findFirst({
-                where: {
-                  userId: userId,
-                  conversationId: {
-                    in: await prisma.conversation.findMany({
-                      where: {
-                        participants: {
-                          some: {
-                            userId: userId,
-                            isActive: true
-                          }
-                        }
-                      },
-                      select: { id: true }
-                    }).then(convs => convs.map(c => c.id))
-                  }
-                },
-                select: { lastReadAt: true }
-              }).then(participant => participant?.lastReadAt || new Date(0))
+              gt: lastReadAt
             }
           }] : [])
         ]
@@ -123,12 +137,18 @@ export async function GET(request: NextRequest) {
 // POST /api/chat/notifications/mark-read - Mark notifications as read
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth()
-    if (!session?.user?.id) {
+    const authHeader = request.headers.get('Authorization')
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const userId = session.user.id
+    const token = authHeader.substring(7)
+    const payload = verifyToken(token)
+    if (!payload?.userId) {
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
+    }
+
+    const userId = payload.userId
     const body = await request.json()
     const { conversationIds, markAll = false } = body
 
@@ -181,10 +201,18 @@ export async function POST(request: NextRequest) {
 // DELETE /api/chat/notifications - Clear old notifications
 export async function DELETE(request: NextRequest) {
   try {
-    const session = await auth()
-    if (!session?.user?.id) {
+    const authHeader = request.headers.get('Authorization')
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    const token = authHeader.substring(7)
+    const payload = verifyToken(token)
+    if (!payload?.userId) {
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
+    }
+
+    const userId = payload.userId
 
     const url = new URL(request.url)
     const olderThanDays = parseInt(url.searchParams.get('olderThanDays') || '30')
@@ -196,7 +224,7 @@ export async function DELETE(request: NextRequest) {
     // to effectively "clear" old notifications by marking them as read
     await prisma.conversationParticipant.updateMany({
       where: {
-        userId: session.user.id,
+        userId: userId,
         isActive: true,
         lastReadAt: {
           lt: cutoffDate

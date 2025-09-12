@@ -114,6 +114,30 @@ export default function PlayerInteractionPanel({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [chatMessages])
 
+  // Listen for incoming messages via EventBus
+  useEffect(() => {
+    const handleMessageReceived = (event: any) => {
+      if (event.message && event.message.senderId === player.id) {
+        // Add the received message to the chat
+        setChatMessages(prev => [...prev, {
+          id: event.message.id,
+          senderId: event.message.senderId,
+          receiverId: 'current-user',
+          content: event.message.content,
+          timestamp: event.message.timestamp,
+          type: event.message.type as any,
+          status: 'sent'
+        }])
+      }
+    }
+
+    EventBus.on('chat:message:received', handleMessageReceived)
+
+    return () => {
+      EventBus.off('chat:message:received', handleMessageReceived)
+    }
+  }, [player.id])
+
   const handleSendMessage = async (e: FormEvent) => {
     e.preventDefault()
     if (!newMessage.trim() || isLoading) return
@@ -141,7 +165,7 @@ export default function PlayerInteractionPanel({
     // Call external handler if provided
     if (onSendMessage) {
       try {
-        await onSendMessage(message.content)
+        onSendMessage(message.content)
         // Update message status to sent
         setChatMessages(prev => prev.map(msg => 
           msg.id === message.id ? { ...msg, status: 'sent' } : msg
@@ -152,7 +176,9 @@ export default function PlayerInteractionPanel({
         setChatMessages(prev => prev.map(msg => 
           msg.id === message.id ? { ...msg, status: 'failed' } : msg
         ))
-        setActionFeedback({ type: 'error', message: '消息发送失败，请重试' })
+        // Show more specific error message if available
+        const errorMessage = error instanceof Error ? error.message : '消息发送失败，请重试'
+        setActionFeedback({ type: 'error', message: errorMessage })
       }
     } else {
       // Simulate successful send

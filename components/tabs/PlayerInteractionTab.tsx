@@ -1,6 +1,9 @@
 'use client'
 
+import { useState, useEffect, useCallback } from 'react'
 import PlayerInteractionPanel from '@/components/PlayerInteractionPanel'
+import { useChatWebSocket } from '@/lib/hooks/useChatWebSocket'
+import { chatEventBridge } from '@/lib/chatEventBridge'
 
 interface PlayerInteractionTabProps {
   collisionPlayer?: any
@@ -15,6 +18,62 @@ export default function PlayerInteractionTab({
   isMobile = false,
   isTablet = false
 }: PlayerInteractionTabProps) {
+  const [currentUserId, setCurrentUserId] = useState<string>('')
+  const [conversationId, setConversationId] = useState<string>('')
+  const { client, sendMessage } = useChatWebSocket({
+    userId: currentUserId,
+    autoConnect: !!currentUserId
+  })
+  
+  // Get current user ID from localStorage or session
+  useEffect(() => {
+    const getCurrentUserId = () => {
+      // Try to get user ID from various sources
+      const storedUserId = localStorage.getItem('currentUserId') || 
+                          sessionStorage.getItem('currentUserId') ||
+                          '1754869526878' // Use real user ID from database
+      setCurrentUserId(storedUserId)
+    }
+    
+    getCurrentUserId()
+  }, [])
+
+  // Join conversation room when collision player is detected and WebSocket is connected
+  useEffect(() => {
+    const joinConversationRoom = async () => {
+      if (!collisionPlayer || !client || !currentUserId) return
+
+      try {
+        // Find or create conversation
+        const conversationResponse = await fetch('/api/chat/conversations', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            participantIds: [collisionPlayer.id],
+            type: 'direct'
+          })
+        })
+
+        if (conversationResponse.ok) {
+          const conversationData = await conversationResponse.json()
+          const conversationId = conversationData.data.id
+          setConversationId(conversationId)
+          
+          // Join the room
+          client.joinRoom(conversationId)
+          console.log('Joined conversation room:', conversationId)
+        }
+      } catch (error) {
+        console.error('Failed to join conversation room:', error)
+      }
+    }
+
+    if (client?.isConnected) {
+      joinConversationRoom()
+    }
+  }, [collisionPlayer, client, currentUserId])
   if (!collisionPlayer) {
     // Responsive empty state layout
     const emptyStateClasses = isMobile 
@@ -86,9 +145,106 @@ export default function PlayerInteractionTab({
   })
 
   const handleSendMessage = async (message: string) => {
-    // TODO: Implement actual message sending logic
-    console.log('Sending message to', playerData.name, ':', message)
-    // This would typically make an API call to send the message
+    try {
+      // Check if this is a collision player from the game (not a real user)
+      // Collision players typically have IDs that don't match our user ID pattern
+      const isRealUser = playerData.id && playerData.id.length > 5 && /^\d+$/.test(playerData.id)
+      
+      if (!isRealUser) {
+        throw new Error(`"${playerData.name}" is a game character and cannot receive real messages`)
+      }
+
+      // Check if the target player exists in the database
+      const userCheckResponse = await fetch(`/api/chat/conversations?userId=${playerData.id}`)
+      const userCheckData = await userCheckResponse.json()
+      
+      if (!userCheckResponse.ok || !userCheckData.success) {
+        throw new Error(`Player "${playerData.name}" is not available for chatting`)
+      }
+
+      // Find or create a conversation with this player
+      const conversationResponse = await fetch('/api/chat/conversations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          participantIds: [playerData.id, currentUserId], // Include current user as well
+          type: 'direct'
+        })
+      })
+
+      if (!conversationResponse.ok) {
+        const errorData = await conversationResponse.json()
+        console.error('Conversation creation failed:', errorData)
+        
+        // Handle specific conversation exists error
+        if (errorData.code === 'CONVERSATION_EXISTS') {
+          // Use existing conversation
+          const conversationId = errorData.data.existingConversationId
+          return await sendMessageToConversation(conversationId, message)
+        }
+        
+        throw new Error(errorData.error || 'Failed to create/find conversation')
+      }
+
+      const conversationData = await conversationResponse.json()
+      const conversationId = conversationData.data.id
+      setConversationId(conversationId)
+      
+      return await sendMessageToConversation(conversationId, message)
+      
+    } catch (error) {
+      console.error('Error sending message:', error)
+      if (error instanceof Error) {
+        throw new Error(`Failed to send message: ${error.message}`)
+      }
+      throw error
+    }
+  }
+
+  // Helper function to send message to an existing conversation
+  const sendMessageToConversation = async (conversationId: string, message: string) => {
+    // Try to use WebSocket first if available
+    if (client && sendMessage) {
+      // Join the conversation room via WebSocket
+      client.joinRoom(conversationId)
+      
+      // Send message via WebSocket
+      const success = sendMessage(conversationId, message, 'text')
+      
+      if (success) {
+        console.log('Message sent successfully to', playerData.name, 'via WebSocket')
+        return
+      }
+      console.warn('WebSocket send failed, falling back to HTTP API')
+    }
+
+    // Fallback: Send message via HTTP API
+    const messageResponse = await fetch(`/api/chat/conversations/${conversationId}/messages?userId=${currentUserId}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        content: message,
+        type: 'text'
+      })
+    })
+
+    if (!messageResponse.ok) {
+      const errorData = await messageResponse.json()
+      console.error('Message sending failed:', errorData)
+      
+      // Handle specific access denied error
+      if (errorData.code === 'CONVERSATION_NOT_FOUND') {
+        throw new Error('Conversation no longer exists. Please try starting a new chat.')
+      }
+      
+      throw new Error(errorData.error || 'Failed to send message via HTTP API')
+    }
+
+    console.log('Message sent successfully to', playerData.name, 'via HTTP API')
   }
 
   const handleFollow = (playerId: string) => {
