@@ -6,6 +6,7 @@ import { WorkstationBindingUI } from "../components/WorkstationBindingUI.js"
 import { CollisionOptimizer } from "../logic/CollisionOptimizer.js"
 import { PlayerInfoDebouncer } from "../logic/PlayerInfoDebouncer.js"
 import { MultiPlayerCollisionManager } from "../logic/MultiPlayerCollisionManager.js"
+import { FocusManager } from "../logic/FocusManager.js"
 
 export class Start extends Phaser.Scene {
   constructor() {
@@ -25,6 +26,9 @@ export class Start extends Phaser.Scene {
     this.collisionOptimizer = null
     this.playerInfoDebouncer = null
     this.multiPlayerCollisionManager = null
+    
+    // Focus management system
+    this.focusManager = null
   }
 
   preload() {
@@ -246,8 +250,9 @@ export class Start extends Phaser.Scene {
       this.bindingUI.update()
     }
 
-    // 检查T键按下，快速回到工位
-    if (Phaser.Input.Keyboard.JustDown(this.teleportKey)) {
+    // 检查T键按下，快速回到工位（仅在游戏有焦点时）
+    if (this.focusManager && this.focusManager.shouldHandleKeyboard() && 
+        Phaser.Input.Keyboard.JustDown(this.teleportKey)) {
       this.handleTeleportKeyPress()
     }
 
@@ -266,6 +271,9 @@ export class Start extends Phaser.Scene {
       
       // Initialize multi-player collision manager
       this.multiPlayerCollisionManager = new MultiPlayerCollisionManager(this)
+      
+      // Initialize focus manager for keyboard input conflict resolution
+      this.focusManager = new FocusManager(this)
       
       console.log('[Start] Performance optimization systems initialized')
       
@@ -430,6 +438,13 @@ export class Start extends Phaser.Scene {
   // 简化玩家移动处理逻辑
   handlePlayerMovement() {
     if (!this.player || !this.player.body) return
+
+    // 检查是否应该处理键盘输入（解决与Next.js输入框的冲突）
+    if (this.focusManager && !this.focusManager.shouldHandleKeyboard()) {
+      // 当输入框有焦点或鼠标在UI元素上时，停止角色移动
+      this.player.body.setVelocity(0, 0);
+      return;
+    }
 
     // 将移动处理委托给Player类
     this.player.handleMovement(this.cursors, this.wasdKeys)

@@ -51,6 +51,15 @@ export default function PhaserGame({ onPlayerCollision, onWorkstationBinding, on
       // 创建游戏实例
       gameRef.current = new Phaser.Game(config)
 
+      // 设置canvas ID，供FocusManager识别
+      setTimeout(() => {
+        if (gameRef.current && gameRef.current.canvas) {
+          gameRef.current.canvas.id = 'phaser-game'
+          gameRef.current.canvas.setAttribute('tabindex', '0')
+          console.log('🎮 Phaser canvas ID set to: phaser-game')
+        }
+      }, 100)
+
       // 设置全局回调函数，用于与 React 通信
       if (typeof window !== 'undefined') {
         (window as any).onPlayerCollision = (playerData: any) => {

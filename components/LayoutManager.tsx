@@ -320,11 +320,12 @@ export default function LayoutManager({
         </div>
         
         <div 
-          className={`${layoutClasses.infoPanel} bg-retro-bg-darker/90 backdrop-blur-lg border-t border-retro-border flex flex-col`}
+          className={`${layoutClasses.infoPanel} ui-container bg-retro-bg-darker/90 backdrop-blur-lg border-t border-retro-border flex flex-col`}
           style={{
             width: currentLayoutConfig.infoPanel.width,
             height: currentLayoutConfig.infoPanel.height
           }}
+          data-ui-element="info-panel"
         >
           {infoPanel}
         </div>
@@ -350,11 +351,12 @@ export default function LayoutManager({
         </div>
         
         <div 
-          className={`${layoutClasses.infoPanel} bg-retro-bg-darker/${opacity} backdrop-blur-lg border-l border-retro-border flex flex-col`}
+          className={`${layoutClasses.infoPanel} ui-container bg-retro-bg-darker/${opacity} backdrop-blur-lg border-l border-retro-border flex flex-col`}
           style={{
             width: currentLayoutConfig.infoPanel.width,
             height: currentLayoutConfig.infoPanel.height
           }}
+          data-ui-element="info-panel"
         >
           {infoPanel}
         </div>
