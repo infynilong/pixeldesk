@@ -2024,15 +2024,15 @@ export class Start extends Phaser.Scene {
         )
 
         // 调试信息（每5秒输出一次）
-        if (Date.now() % 5000 < 100) {
-          console.log(
-            `[CollisionDebug] 检查真实玩家 ${
-              otherPlayer.playerData.name
-            }: 距离=${Math.round(distance)}px, 敏感度=${
-              this.collisionSensitivity
-            }px, 碰撞=${isColliding}`
-          )
-        }
+        // if (Date.now() % 5000 < 100) {
+        //   console.log(
+        //     `[CollisionDebug] 检查真实玩家 ${
+        //       otherPlayer.playerData.name
+        //     }: 距离=${Math.round(distance)}px, 敏感度=${
+        //       this.collisionSensitivity
+        //     }px, 碰撞=${isColliding}`
+        //   )
+        // }
 
         if (isColliding && !wasColliding) {
           // 碰撞开始
@@ -2074,13 +2074,13 @@ export class Start extends Phaser.Scene {
     })
 
     // 调试信息（每5秒输出一次）
-    if (Date.now() % 5000 < 100) {
-      console.log(
-        `[CollisionDebug] 主玩家位置: (${Math.round(mainPlayerX)}, ${Math.round(
-          mainPlayerY
-        )}), 真实玩家: ${realPlayersFound}, 碰撞检查: ${collisionChecks}`
-      )
-    }
+    // if (Date.now() % 5000 < 100) {
+    //   console.log(
+    //     `[CollisionDebug] 主玩家位置: (${Math.round(mainPlayerX)}, ${Math.round(
+    //       mainPlayerY
+    //     )}), 真实玩家: ${realPlayersFound}, 碰撞检查: ${collisionChecks}`
+    //   )
+    // }
   }
 
   // 处理碰撞开始 (增强版本)

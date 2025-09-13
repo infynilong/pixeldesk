@@ -128,7 +128,7 @@ export default function ChatManager({
     
     try {
       // Then fetch from API to get latest conversations
-      const response = await fetch('/api/chat/conversations')
+      const response = await fetch(`/api/chat/conversations?userId=${currentUserId}`)
       if (response.ok) {
         const data = await response.json()
         const apiConversations = data.conversations || []
@@ -312,7 +312,8 @@ export default function ChatManager({
     }
   }
 
-  const handleNotificationClick = (conversationId: string) => {
+  const handleNotificationClick = (notification: any) => {
+    const conversationId = typeof notification === 'string' ? notification : notification.conversationId
     const conversation = conversations.find(conv => conv.id === conversationId)
     if (conversation) {
       openConversationWindow(conversation)
@@ -352,7 +353,7 @@ export default function ChatManager({
     const unreadNotifications = getUnreadNotifications()
     if (unreadNotifications.length > 0) {
       const latest = unreadNotifications[0]
-      handleNotificationClick(latest.conversationId)
+      handleNotificationClick(latest)
     }
   }
 

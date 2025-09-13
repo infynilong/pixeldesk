@@ -244,8 +244,6 @@ export default function TabManager({
     }
   }, [activeTab])
 
-  const activeTabData = tabs.find(tab => tab.id === tabState.activeTabId)
-
   // Responsive tab layout configuration
   const getTabLayoutClasses = () => {
     if (isMobile) {
@@ -372,28 +370,37 @@ export default function TabManager({
 
       {/* Tab Content */}
       <div className="flex-1 relative overflow-hidden">
-        <div 
-          className={`
-            absolute inset-0 transition-all duration-300 ease-in-out
-            ${tabState.animationState === 'switching' 
-              ? `transform ${tabState.switchDirection === 'right' ? 'translate-x-full scale-95' : '-translate-x-full scale-95'} opacity-0 blur-sm`
-              : 'transform translate-x-0 scale-100 opacity-100 blur-0'
-            }
-          `}
-        >
-          {activeTabData && (
-            <activeTabData.component 
-              collisionPlayer={currentCollisionPlayer || collisionPlayer}
-              isActive={tabState.activeTabId === activeTabData.id}
-              isMobile={isMobile}
-              isTablet={isTablet}
-            />
-          )}
-        </div>
+        {tabs.map((tab) => {
+          const isTabActive = tab.id === tabState.activeTabId;
+          const TabComponent = tab.component;
+          
+          return (
+            <div 
+              key={tab.id}
+              className={`
+                absolute inset-0 transition-all duration-300 ease-in-out
+                ${isTabActive
+                  ? (tabState.animationState === 'switching' 
+                      ? `transform ${tabState.switchDirection === 'right' ? 'translate-x-full scale-95' : '-translate-x-full scale-95'} opacity-0 blur-sm`
+                      : 'transform translate-x-0 scale-100 opacity-100 blur-0'
+                    )
+                  : 'transform translate-x-0 scale-100 opacity-0 pointer-events-none'
+                }
+              `}
+            >
+              <TabComponent 
+                collisionPlayer={currentCollisionPlayer || collisionPlayer}
+                isActive={isTabActive}
+                isMobile={isMobile}
+                isTablet={isTablet}
+              />
+            </div>
+          );
+        })}
         
         {/* Enhanced Loading state during animation */}
         {tabState.animationState === 'switching' && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-retro-bg-dark/80 to-retro-bg-darker/80 backdrop-blur-sm">
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-retro-bg-dark/80 to-retro-bg-darker/80 backdrop-blur-sm z-10">
             <div className="flex items-center space-x-3 mb-4">
               <div className="w-3 h-3 bg-retro-purple rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
               <div className="w-3 h-3 bg-retro-pink rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>

@@ -64,7 +64,7 @@ export default function NotificationContainer({
     const cleanup = () => {
       const currentNotificationIds = new Set(notifications.map(n => n.id))
       setProcessedNotifications(prev => {
-        const updated = new Set()
+        const updated = new Set<string>()
         prev.forEach(id => {
           if (currentNotificationIds.has(id)) {
             updated.add(id)

@@ -5,12 +5,30 @@ const nextConfig = {
     // 优化大文件处理
     optimizePackageImports: ['phaser']
   },
-  webpack: (config) => {
+  webpack: (config, { dev, isServer }) => {
     // 支持 Phaser 的资源加载
     config.resolve.alias = {
       ...config.resolve.alias,
       'phaser': 'phaser/dist/phaser.js'
     };
+    
+    // Improve HMR WebSocket handling in development
+    if (dev && !isServer) {
+      // Suppress WebSocket connection warnings for HMR
+      config.infrastructureLogging = {
+        level: 'error',
+      };
+      
+      // Configure HMR client to be more resilient to WebSocket errors
+      const originalEntry = config.entry;
+      config.entry = async () => {
+        const entries = await originalEntry();
+        if (entries['main.js'] && !entries['main.js'].includes('webpack-hot-middleware')) {
+          entries['main.js'].unshift('webpack-hot-middleware/client?path=/__webpack_hmr&timeout=20000&reload=true&overlay=false');
+        }
+        return entries;
+      };
+    }
     
     // 处理 Node.js 内置模块
     config.resolve.fallback = {

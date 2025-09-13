@@ -40,11 +40,16 @@ export function UserProvider({ children }: { children: ReactNode }) {
             const userData = await response.json()
             setUser(userData)
           } else {
+            // Don't log error for expected auth failures
+            if (response.status !== 401 && response.status !== 404) {
+              console.warn('Auth verification failed:', response.status)
+            }
             localStorage.removeItem('authToken')
           }
         }
       } catch (error) {
-        console.error('Auth check failed:', error)
+        // Silently handle auth errors to avoid noise
+        console.warn('Auth check failed:', error)
         localStorage.removeItem('authToken')
       } finally {
         setIsLoading(false)

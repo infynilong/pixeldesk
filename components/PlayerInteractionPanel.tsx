@@ -67,26 +67,65 @@ export default function PlayerInteractionPanel({
   const [actionFeedback, setActionFeedback] = useState<{type: string, message: string} | null>(null)
   const [messageSendingId, setMessageSendingId] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const currentPlayerIdRef = useRef<string | null>(null)
 
-  // Mock chat messages for demonstration with loading simulation
+  // Player loading and message initialization - optimized for stability
   useEffect(() => {
+    // Only trigger loading if player actually changed
+    if (!player?.id) {
+      currentPlayerIdRef.current = null
+      setIsPlayerLoading(false)
+      setChatMessages([])
+      return
+    }
+
+    const currentPlayerId = player.id
+    
+    // Check if this is the same player as before
+    if (currentPlayerIdRef.current === currentPlayerId) {
+      console.log('[PlayerInteractionPanel] Same player, skipping reload for:', player.name)
+      setIsPlayerLoading(false)
+      return
+    }
+
+    // Check if we should load new player based on existing messages
+    const shouldLoadNewPlayer = chatMessages.length === 0 || 
+      (chatMessages.length > 0 && !chatMessages.some(msg => 
+        msg.senderId === currentPlayerId || msg.receiverId === currentPlayerId
+      ))
+
+    if (!shouldLoadNewPlayer && currentPlayerIdRef.current !== null) {
+      console.log('[PlayerInteractionPanel] Player messages already exist, skipping reload for:', player.name)
+      currentPlayerIdRef.current = currentPlayerId
+      setIsPlayerLoading(false)
+      return
+    }
+
+    console.log('[PlayerInteractionPanel] Loading new player:', player.name)
+    currentPlayerIdRef.current = currentPlayerId
     setIsPlayerLoading(true)
     
     // Simulate loading delay for player information
     const loadingTimer = setTimeout(() => {
+      // Double-check the player hasn't changed during the loading time
+      if (currentPlayerIdRef.current !== currentPlayerId) {
+        console.log('[PlayerInteractionPanel] Player changed during loading, aborting')
+        return
+      }
+
       const mockMessages: ChatMessage[] = [
         {
-          id: '1',
-          senderId: player.id,
+          id: `${currentPlayerId}-1`,
+          senderId: currentPlayerId,
           receiverId: 'current-user',
           content: '你好！很高兴遇到你',
           timestamp: new Date(Date.now() - 300000).toISOString(),
           type: 'text'
         },
         {
-          id: '2',
+          id: `${currentPlayerId}-2`,
           senderId: 'current-user',
-          receiverId: player.id,
+          receiverId: currentPlayerId,
           content: '你好！我也很高兴认识你',
           timestamp: new Date(Date.now() - 240000).toISOString(),
           type: 'text'
@@ -97,7 +136,7 @@ export default function PlayerInteractionPanel({
     }, 800)
 
     return () => clearTimeout(loadingTimer)
-  }, [player.id])
+  }, [player?.id, player?.name])
 
   // Clear action feedback after delay
   useEffect(() => {

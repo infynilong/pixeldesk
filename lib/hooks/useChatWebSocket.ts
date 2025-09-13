@@ -72,6 +72,7 @@ export function useChatWebSocket(options: UseChatWebSocketOptions): UseChatWebSo
   // Generate WebSocket token
   const generateToken = useCallback(async () => {
     try {
+      console.log('🔐 [useChatWebSocket] Generating token for user:', userId);
       const response = await fetch('/api/chat/auth', {
         method: 'POST',
         headers: {
@@ -81,18 +82,21 @@ export function useChatWebSocket(options: UseChatWebSocketOptions): UseChatWebSo
       });
 
       if (!response.ok) {
-        throw new Error('Failed to generate WebSocket token');
+        const errorText = await response.text();
+        console.error('❌ [useChatWebSocket] Token generation failed:', response.status, errorText);
+        throw new Error(`Failed to generate WebSocket token: ${response.status} ${errorText}`);
       }
 
       const data = await response.json();
-      console.log('Token API response:', data);
-      if (!data.token) {
-        console.error('No token in API response:', data);
+      console.log('✅ [useChatWebSocket] Token API response success:', data.success);
+      if (!data.data || !data.data.token) {
+        console.error('❌ [useChatWebSocket] No token in API response:', data);
         throw new Error('No token received from API');
       }
-      return data.token;
+      console.log('🎫 [useChatWebSocket] Token generated, length:', data.data.token.length);
+      return data.data.token;
     } catch (error) {
-      console.error('Error generating WebSocket token:', error);
+      console.error('❌ [useChatWebSocket] Error generating WebSocket token:', error);
       throw error;
     }
   }, [userId]);
@@ -103,7 +107,7 @@ export function useChatWebSocket(options: UseChatWebSocketOptions): UseChatWebSo
 
     const initializeClient = async () => {
       try {
-        console.log('Generating WebSocket token for user:', userId);
+        console.log('[useChatWebSocket] Initializing client for user:', userId);
         const wsToken = await generateToken();
         setToken(wsToken);
         
@@ -117,18 +121,21 @@ export function useChatWebSocket(options: UseChatWebSocketOptions): UseChatWebSo
 
           // Set up event handlers
           wsClient.on('connected', () => {
+            console.log('✅ [useChatWebSocket] WebSocket connected successfully');
             setIsConnected(true);
             setIsConnecting(false);
             onConnected?.();
           });
 
           wsClient.on('disconnected', (data) => {
+            console.log('🔴 [useChatWebSocket] WebSocket disconnected:', data);
             setIsConnected(false);
             setIsConnecting(false);
             onDisconnected?.(data);
           });
 
           wsClient.on('error', (error) => {
+            console.error('❌ [useChatWebSocket] WebSocket error:', error);
             setIsConnecting(false);
             onError?.(error);
           });

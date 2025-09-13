@@ -25,6 +25,7 @@
     "jsonwebtoken": "^9.0.2",
     "net-browserify": "^0.2.4",
     "next": "14.0.0",
+    "node-fetch": "^2.7.0",
     "path-browserify": "^1.0.1",
     "phaser": "^3.70.0",
     "prisma": "^6.13.0",

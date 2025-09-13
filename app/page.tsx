@@ -347,19 +347,41 @@ export default function Home() {
   useEffect(() => {
     const handleCollisionStart = (event: CollisionEvent) => {
       console.log('[HomePage] Collision start:', event)
-      setCollisionPlayer(event.targetPlayer)
+      // Only update if it's a different player to avoid unnecessary re-renders
+      setCollisionPlayer((prevPlayer: any) => {
+        if (prevPlayer?.id === event.targetPlayer?.id) {
+          console.log('[HomePage] Same player collision, skipping update')
+          return prevPlayer
+        }
+        return event.targetPlayer
+      })
     }
 
     const handleCollisionEnd = (event: CollisionEvent) => {
       console.log('[HomePage] Collision end:', event)
-      setCollisionPlayer(null)
+      // Only clear if it's the same player that's ending collision
+      setCollisionPlayer((prevPlayer: any) => {
+        if (prevPlayer?.id === event.targetPlayer?.id) {
+          console.log('[HomePage] Clearing collision player:', event.targetPlayer?.id)
+          return null
+        }
+        // If it's a different player ending collision, keep the current one
+        console.log('[HomePage] Different player ending collision, keeping current player')
+        return prevPlayer
+      })
     }
 
     const handlePlayerClickEvent = (event: any) => {
       console.log('[HomePage] Player click event:', event)
       // For click events, we set the collision player to trigger the same UI behavior
-      // The TabManager will handle the priority logic between collision and click
-      setCollisionPlayer(event.targetPlayer)
+      // Only update if it's a different player
+      setCollisionPlayer((prevPlayer: any) => {
+        if (prevPlayer?.id === event.targetPlayer?.id) {
+          console.log('[HomePage] Same player click, skipping update')
+          return prevPlayer
+        }
+        return event.targetPlayer
+      })
     }
 
     const handleChatConversationOpened = (event: any) => {

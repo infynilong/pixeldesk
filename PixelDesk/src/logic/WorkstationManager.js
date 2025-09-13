@@ -13,6 +13,20 @@ export class WorkstationManager {
         };
     }
 
+    // 通用的场景有效性检查方法
+    isSceneValid() {
+        try {
+            if (!this.scene) return false;
+            if (!this.scene.add) return false;
+            if (!this.scene.scene) return false;
+            if (typeof this.scene.scene.isActive !== 'function') return false;
+            return this.scene.scene.isActive();
+        } catch (error) {
+            console.warn('Scene validity check failed:', error);
+            return false;
+        }
+    }
+
     // ===== 工位创建和管理 =====
     createWorkstation(tiledObject, sprite) {
         // 检测工位方向
@@ -616,6 +630,12 @@ export class WorkstationManager {
             return; // 已有高亮
         }
         
+        // 检查 scene 是否存在且有效
+        if (!this.isSceneValid()) {
+            console.warn('Scene is not available or not active, skipping addUserWorkstationHighlight');
+            return;
+        }
+        
         // 创建金色边框效果
         const highlight = this.scene.add.rectangle(
             workstation.position.x + workstation.size.width / 2,
@@ -811,6 +831,12 @@ export class WorkstationManager {
             return; // 已有角色精灵
         }
         
+        // 检查 scene 是否存在且有效
+        if (!this.isSceneValid()) {
+            console.warn('Scene is not available or not active, skipping addCharacterToWorkstation');
+            return;
+        }
+        
         // 如果是当前用户绑定的工位，则不显示角色形象
         const currentUser = this.scene.currentUser;
         if (currentUser && workstation.userId === currentUser.id) {
@@ -829,6 +855,13 @@ export class WorkstationManager {
         
         // 尝试加载角色图片
         try {
+            // 检查 scene 是否有纹理管理器
+            if (!this.scene || !this.scene.textures || !this.scene.load) {
+                console.warn('Scene textures or loader not available, using default character');
+                this.createCharacterSprite(workstation, charX, charY, 'Premade_Character_48x48_01', userId, characterDirection);
+                return;
+            }
+            
             // 如果图片还没加载，先加载
             if (!this.scene.textures.exists(characterKey)) {
                 this.scene.load.image(characterKey, `/assets/characters/${characterKey}.png`);
@@ -849,6 +882,12 @@ export class WorkstationManager {
     }
     
     createCharacterSprite(workstation, x, y, characterKey, userId, characterDirection) {
+        // 检查 scene 是否存在且有效
+        if (!this.isSceneValid()) {
+            console.warn('Scene is not available or not active, skipping createCharacterSprite');
+            return;
+        }
+        
         // 创建真正的Player实例（其他玩家）
         const playerData = {
             id: userId,
@@ -883,12 +922,16 @@ export class WorkstationManager {
         // 添加悬停效果
         character.on('pointerover', () => {
             character.setScale(0.88); // 稍微放大
-            this.scene.input.setDefaultCursor('pointer');
+            if (this.scene && this.scene.input) {
+                this.scene.input.setDefaultCursor('pointer');
+            }
         });
         
         character.on('pointerout', () => {
             character.setScale(0.8); // 恢复原大小
-            this.scene.input.setDefaultCursor('default');
+            if (this.scene && this.scene.input) {
+                this.scene.input.setDefaultCursor('default');
+            }
         });
         
         // 添加到场景
@@ -1041,6 +1084,12 @@ export class WorkstationManager {
             return; // 已有交互图标
         }
         
+        // 检查 scene 是否存在且有效
+        if (!this.isSceneValid()) {
+            console.warn('Scene is not available or not active, skipping addInteractionIcon');
+            return;
+        }
+        
         const iconX = workstation.position.x + workstation.size.width / 2;
         const iconY = workstation.position.y + workstation.size.height / 2;
         
@@ -1065,11 +1114,15 @@ export class WorkstationManager {
         icon.on('pointerdown', () => this.onWorkstationClick(workstation.id));
         icon.on('pointerover', () => {
             icon.setScale(1.2);
-            this.scene.input.setDefaultCursor('pointer');
+            if (this.scene && this.scene.input) {
+                this.scene.input.setDefaultCursor('pointer');
+            }
         });
         icon.on('pointerout', () => {
             icon.setScale(1);
-            this.scene.input.setDefaultCursor('default');
+            if (this.scene && this.scene.input) {
+                this.scene.input.setDefaultCursor('default');
+            }
         });
         
         workstation.interactionIcon = icon;
@@ -1078,6 +1131,12 @@ export class WorkstationManager {
     addOccupiedIcon(workstation) {
         if (workstation.occupiedIcon) {
             return; // 已有占用图标
+        }
+        
+        // 检查 scene 是否存在且有效
+        if (!this.isSceneValid()) {
+            console.warn('Scene is not available or not active, skipping addOccupiedIcon');
+            return;
         }
         
         // 检查是否为当前用户的工位

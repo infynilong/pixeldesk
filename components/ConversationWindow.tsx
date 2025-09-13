@@ -120,7 +120,7 @@ export default function ConversationWindow({
         // Update message status to failed
         if (error.messageId && error.messageId.startsWith('temp-')) {
           setMessages(prev => prev.map(msg => 
-            msg.id === error.messageId ? { ...msg, status: 'failed' } : msg
+            msg.id === error.messageId ? { ...msg, status: 'failed' as const } : msg
           ))
         }
       }
@@ -130,7 +130,7 @@ export default function ConversationWindow({
       // Update optimistic message status
       if (error.messageId && error.messageId.startsWith('temp-')) {
         setMessages(prev => prev.map(msg => 
-          msg.id === error.messageId ? { ...msg, status: 'failed' } : msg
+          msg.id === error.messageId ? { ...msg, status: 'failed' as const } : msg
         ))
       }
     }, []),
@@ -297,7 +297,7 @@ export default function ConversationWindow({
       senderName: 'You', // This should come from user context
       content: newMessage.trim(),
       type: 'text',
-      status: 'sending',
+      status: 'sending' as const,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     }
@@ -343,7 +343,7 @@ export default function ConversationWindow({
           // Mark message as failed and update cache
           setMessages(prev => {
             const newMessages = prev.map(msg => 
-              msg.id === optimisticMessage.id ? { ...msg, status: 'failed' } : msg
+              msg.id === optimisticMessage.id ? { ...msg, status: 'failed' as const } : msg
             )
             cacheMessages(conversation.id, newMessages)
             return newMessages
@@ -356,7 +356,7 @@ export default function ConversationWindow({
       // Mark message as failed and update cache
       setMessages(prev => {
         const newMessages = prev.map(msg => 
-          msg.id === optimisticMessage.id ? { ...msg, status: 'failed' } : msg
+          msg.id === optimisticMessage.id ? { ...msg, status: 'failed' as const } : msg
         )
         cacheMessages(conversation.id, newMessages)
         return newMessages
@@ -373,7 +373,7 @@ export default function ConversationWindow({
     // Update message status to sending and update cache
     setMessages(prev => {
       const newMessages = prev.map(msg => 
-        msg.id === messageId ? { ...msg, status: 'sending' } : msg
+        msg.id === messageId ? { ...msg, status: 'sending' as const } : msg
       )
       cacheMessages(conversation.id, newMessages)
       return newMessages
@@ -412,7 +412,7 @@ export default function ConversationWindow({
           // Mark message as failed again and update cache
           setMessages(prev => {
             const newMessages = prev.map(msg => 
-              msg.id === messageId ? { ...msg, status: 'failed' } : msg
+              msg.id === messageId ? { ...msg, status: 'failed' as const } : msg
             )
             cacheMessages(conversation.id, newMessages)
             return newMessages
@@ -424,7 +424,7 @@ export default function ConversationWindow({
       console.error('Failed to retry message:', error)
       setMessages(prev => {
         const newMessages = prev.map(msg => 
-          msg.id === messageId ? { ...msg, status: 'failed' } : msg
+          msg.id === messageId ? { ...msg, status: 'failed' as const } : msg
         )
         cacheMessages(conversation.id, newMessages)
         return newMessages

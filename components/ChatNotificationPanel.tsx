@@ -402,7 +402,7 @@ export default function ChatNotificationPanel({
         }}
         onDismiss={onNotificationDismiss}
         onOpenConversation={onNotificationClick}
-        onMarkConversationRead={onMarkConversationRead}
+        onMarkConversationAsRead={onMarkConversationRead}
         onMuteConversation={(conversationId) => {
           // Could implement mute functionality here
           console.log('Mute conversation:', conversationId)

@@ -292,7 +292,7 @@ export class ChatErrorHandler {
     const messagesToRetry: MessageRetryState[] = [];
 
     // Find messages ready for retry
-    for (const [messageId, retryState] of this.retryQueue.entries()) {
+    for (const [messageId, retryState] of Array.from(this.retryQueue.entries())) {
       if (retryState.nextRetryAt <= now) {
         if (retryState.retryCount >= retryState.maxRetries) {
           // Max retries exceeded

@@ -290,7 +290,13 @@ export class ChatWebSocketClient {
     }
 
     try {
-      const message = { type, ...data };
+      // Create message object, ensuring type is not overridden by data
+      const message = { 
+        type,
+        ...Object.fromEntries(
+          Object.entries(data || {}).filter(([key]) => key !== 'type')
+        )
+      };
       const messageStr = JSON.stringify(message);
       console.log(`Sending WebSocket message: ${messageStr}`);
       this.ws.send(messageStr);

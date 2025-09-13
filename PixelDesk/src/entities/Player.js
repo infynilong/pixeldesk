@@ -534,15 +534,33 @@ export class Player extends Phaser.GameObjects.Container {
     
     // 清理碰撞动画效果
     clearCollisionAnimation() {
-        // 停止所有针对此对象的缩放动画
-        this.scene.tweens.killTweensOf(this);
-        this.setScale(1);
+        // 检查场景是否存在且有效
+        if (!this.scene || !this.scene.tweens) {
+            console.warn('Scene or tweens not available, skipping collision animation cleanup');
+            // 至少重置缩放
+            if (this.setScale) {
+                this.setScale(1);
+            }
+            return;
+        }
         
-        // 清理碰撞光环
-        if (this.collisionRing) {
-            this.scene.tweens.killTweensOf(this.collisionRing);
-            this.collisionRing.destroy();
-            this.collisionRing = null;
+        try {
+            // 停止所有针对此对象的缩放动画
+            this.scene.tweens.killTweensOf(this);
+            this.setScale(1);
+            
+            // 清理碰撞光环
+            if (this.collisionRing) {
+                this.scene.tweens.killTweensOf(this.collisionRing);
+                this.collisionRing.destroy();
+                this.collisionRing = null;
+            }
+        } catch (error) {
+            console.warn('Error clearing collision animation:', error);
+            // 至少重置缩放
+            if (this.setScale) {
+                this.setScale(1);
+            }
         }
     }
     
