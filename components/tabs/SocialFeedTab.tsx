@@ -86,39 +86,58 @@ export default function SocialFeedTab({
 
   return (
     <div className={containerClasses}>
-      {/* 头部 */}
-      <div className="flex-shrink-0 p-4 border-b border-retro-border">
+      {/* 头部 - 现代像素风格 */}
+      <div className="flex-shrink-0 p-4 border-b-2 border-retro-border/50 bg-gradient-to-r from-retro-bg-darker/60 to-retro-bg-dark/60 backdrop-blur-sm">
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <div className="w-6 h-6 bg-gradient-to-r from-retro-purple to-retro-pink rounded-full flex items-center justify-center">
-              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="flex items-center space-x-4">
+            <div className="w-10 h-10 bg-gradient-to-br from-retro-purple via-retro-pink to-retro-blue rounded-xl flex items-center justify-center shadow-xl border-2 border-white/20 animate-pixel-glow">
+              <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-white/5 rounded-xl"></div>
+              <svg className="relative w-5 h-5 text-white drop-shadow-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a2 2 0 01-2-2v-6a2 2 0 012-2h2V4a2 2 0 012-2h4a2 2 0 012 2v4z" />
               </svg>
             </div>
-            <h3 className="text-lg font-semibold text-white">社交动态</h3>
-            {isRefreshing && (
-              <div className="animate-spin w-4 h-4">
-                <LoadingSpinner size="sm" />
+            <div className="flex-1">
+              <h3 className="text-white text-xl font-bold font-pixel tracking-wide drop-shadow-sm">SOCIAL FEED</h3>
+              <div className="flex items-center gap-2 mt-1">
+                <div className="w-2 h-2 bg-retro-purple rounded-full animate-pulse"></div>
+                <span className="text-retro-textMuted text-xs font-retro tracking-wide">COMMUNITY POSTS</span>
+                {isRefreshing && (
+                  <div className="flex items-center gap-1 ml-2">
+                    <div className="w-2 h-2 bg-retro-cyan rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                    <div className="w-2 h-2 bg-retro-blue rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                    <div className="w-2 h-2 bg-retro-purple rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </div>
           
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-3">
             <button
               onClick={refreshPosts}
-              className="p-2 text-retro-textMuted hover:text-white hover:bg-retro-surface rounded-lg transition-colors"
-              title="刷新"
+              disabled={isRefreshing}
+              className="group relative overflow-hidden p-3 bg-gradient-to-br from-retro-bg-dark/80 to-retro-bg-darker/80 hover:from-retro-blue/20 hover:to-retro-cyan/20 rounded-lg border-2 border-retro-border hover:border-retro-cyan/50 transition-all duration-200 disabled:opacity-50 shadow-lg"
+              title="Refresh feed"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="absolute inset-0 bg-gradient-to-r from-retro-cyan/5 to-retro-blue/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              <svg className={`relative w-5 h-5 text-retro-cyan drop-shadow-sm ${isRefreshing ? 'animate-spin' : 'group-hover:rotate-180'} transition-transform duration-300`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
               </svg>
             </button>
             
             <button
               onClick={() => setShowCreateForm(!showCreateForm)}
-              className="px-3 py-1.5 bg-gradient-to-r from-retro-purple to-retro-pink text-white text-sm rounded-lg hover:shadow-lg transition-all duration-200"
+              className="group relative overflow-hidden bg-gradient-to-r from-retro-purple via-retro-pink to-retro-blue hover:from-retro-blue hover:via-retro-cyan hover:to-retro-green text-white font-bold py-2 px-5 rounded-xl border-2 border-white/20 hover:border-white/40 transition-all duration-300 shadow-lg hover:shadow-2xl transform hover:scale-[1.02] active:scale-[0.98] backdrop-blur-sm"
             >
-              {showCreateForm ? '取消' : '发帖'}
+              <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-white/20 to-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              <div className="relative flex items-center gap-2">
+                <div className="w-5 h-5 bg-white/20 rounded-lg flex items-center justify-center">
+                  <span className="text-sm">{showCreateForm ? '✕' : '✏️'}</span>
+                </div>
+                <span className="font-pixel text-sm tracking-wide drop-shadow-lg">
+                  {showCreateForm ? 'CANCEL' : 'NEW POST'}
+                </span>
+              </div>
             </button>
           </div>
         </div>

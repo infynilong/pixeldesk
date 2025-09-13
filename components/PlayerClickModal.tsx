@@ -80,148 +80,287 @@ const PlayerClickModal = memo(({
   ]
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* 半透明背景 */}
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* 现代像素风格背景 */}
       <div 
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        className="absolute inset-0 bg-gradient-to-br from-black/60 via-retro-bg-dark/80 to-black/60 backdrop-blur-md animate-fade-in"
         onClick={handleClose}
       />
       
-      {/* 弹窗容器 */}
-      <div className="relative bg-gray-900 border border-purple-500/30 rounded-xl p-6 w-full max-w-md mx-4 shadow-2xl">
-        {/* 关闭按钮 */}
+      {/* 模态框容器 - 现代像素艺术设计 */}
+      <div className="relative bg-gradient-to-br from-retro-bg-darker/95 via-retro-bg-dark/90 to-retro-bg-darker/95 backdrop-blur-xl border-2 border-retro-border rounded-2xl p-8 w-full max-w-lg shadow-2xl shadow-retro-purple/20 animate-slide-in-up">
+        {/* 装饰性光效 */}
+        <div className="absolute inset-0 bg-gradient-to-br from-retro-purple/5 via-retro-blue/8 to-retro-pink/5 rounded-2xl animate-pulse"></div>
+        <div className="absolute inset-0 border border-retro-purple/20 rounded-2xl animate-pulse"></div>
+        
+        {/* 关闭按钮 - 像素化设计 */}
         <button
           onClick={handleClose}
-          className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors"
+          className="absolute top-4 right-4 w-8 h-8 bg-gradient-to-br from-retro-red/20 to-retro-orange/20 hover:from-retro-red/30 hover:to-retro-orange/30 text-white/80 hover:text-white rounded-lg border-2 border-retro-red/30 hover:border-retro-red/50 transition-all duration-200 flex items-center justify-center shadow-lg group"
         >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
+          <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg"></div>
+          <span className="relative font-bold">✕</span>
         </button>
 
-        {/* 玩家信息头部 */}
-        <div className="mb-6">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="w-16 h-16 bg-gradient-to-br from-retro-purple to-retro-pink rounded-full flex items-center justify-center">
-              <span className="text-xl font-bold text-white">
-                {player.name?.charAt(0) || 'P'}
-              </span>
-            </div>
-            <div className="flex-1">
-              <h2 className="text-2xl font-bold text-white mb-1">{player.name || '未知玩家'}</h2>
-              <div className="flex items-center gap-2">
-                <div className={`px-3 py-1 rounded-full bg-gradient-to-r ${getStatusBadge(player.currentStatus?.type || 'working')} text-white text-xs font-medium`}>
-                  {player.currentStatus?.emoji} {player.currentStatus?.status || '在线'}
+        {/* 玩家信息头部 - 现代像素艺术卡片 */}
+        <div className="relative mb-8">
+          {/* 背景装饰 */}
+          <div className="absolute inset-0 bg-gradient-to-r from-retro-purple/10 to-retro-pink/10 rounded-xl opacity-60 pointer-events-none"></div>
+          
+          <div className="relative bg-gradient-to-br from-retro-bg-dark/50 to-retro-bg-darker/50 backdrop-blur-sm border-2 border-retro-border/50 rounded-xl p-6 shadow-lg">
+            <div className="flex items-center gap-5 mb-4">
+              {/* 像素化头像容器 */}
+              <div className="relative">
+                <div className="w-20 h-20 bg-gradient-to-br from-retro-purple via-retro-pink to-retro-blue rounded-xl flex items-center justify-center shadow-xl border-2 border-white/20 group-hover:shadow-retro-purple/50 transition-all duration-300">
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-white/5 rounded-xl"></div>
+                  <span className="relative text-2xl font-bold text-white font-pixel drop-shadow-lg">
+                    {player.name?.charAt(0) || 'P'}
+                  </span>
                 </div>
-                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                {/* 在线状态指示器 */}
+                <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-gradient-to-br from-retro-green to-retro-cyan rounded-full border-2 border-retro-bg-darker shadow-lg">
+                  <div className="w-full h-full bg-retro-green rounded-full animate-ping opacity-60"></div>
+                </div>
               </div>
-            </div>
-          </div>
-          <div className="w-12 h-1 bg-gradient-to-r from-retro-purple to-retro-pink rounded"></div>
-        </div>
-
-        {/* 标签页 */}
-        <div className="flex space-x-1 mb-6 bg-gray-800/50 rounded-lg p-1">
-          {[
-            { id: 'status', label: '状态历史', icon: '📊' },
-            { id: 'interaction', label: '互动', icon: '🎮' },
-            { id: 'info', label: '基本信息', icon: '👤' }
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all duration-200 ${
-                activeTab === tab.id
-                  ? 'bg-gradient-to-r from-retro-purple to-retro-pink text-white shadow-lg'
-                  : 'text-retro-textMuted hover:text-white hover:bg-gray-700/50'
-              }`}
-            >
-              <div className="flex items-center justify-center gap-2">
-                <span>{tab.icon}</span>
-                <span>{tab.label}</span>
-              </div>
-            </button>
-          ))}
-        </div>
-
-        {/* 标签页内容 */}
-        <div className="space-y-4">
-          {activeTab === 'status' && (
-            <div className="space-y-3 max-h-64 overflow-y-auto">
-              {playerHistory.map((history) => (
-                <div key={history.id} className="bg-gray-800/50 rounded-lg p-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className={`px-2 py-1 rounded-full bg-gradient-to-r ${getStatusBadge(history.type)} text-white text-xs font-medium`}>
-                      {history.emoji} {history.status}
+              
+              {/* 用户信息区域 */}
+              <div className="flex-1 space-y-3">
+                <h2 className="text-white text-2xl font-bold font-pixel tracking-wide drop-shadow-sm">
+                  {player.name || '未知玩家'}
+                </h2>
+                <div className="flex items-center gap-3">
+                  <div className={`px-3 py-2 rounded-lg bg-gradient-to-r ${getStatusBadge(player.currentStatus?.type || 'working')} border border-white/20 shadow-lg`}>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm">{player.currentStatus?.emoji || '💼'}</span>
+                      <span className="text-white text-sm font-bold font-pixel tracking-wide">
+                        {player.currentStatus?.status || '在线'}
+                      </span>
                     </div>
-                    <span className="text-gray-400 text-xs">{history.timestamp}</span>
                   </div>
-                  <p className="text-gray-300 text-sm">{history.message}</p>
+                  <div className="w-3 h-3 bg-retro-green rounded-full animate-pulse shadow-lg"></div>
                 </div>
-              ))}
+              </div>
+            </div>
+            
+            {/* 装饰性分割线 */}
+            <div className="w-16 h-2 bg-gradient-to-r from-retro-purple via-retro-pink to-retro-blue rounded-full shadow-lg"></div>
+          </div>
+        </div>
+
+        {/* 选项卡导航 - 现代像素风格 */}
+        <div className="relative flex space-x-3 mb-8 pb-4 border-b-2 border-retro-border/50">
+          {[
+            { id: 'status', label: 'HISTORY', icon: '📊' },
+            { id: 'interaction', label: 'INTERACT', icon: '🎮' },
+            { id: 'info', label: 'INFO', icon: '👤' }
+          ].map((tab) => {
+            const isActive = activeTab === tab.id
+            
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`group relative overflow-hidden flex items-center gap-2 px-4 py-3 rounded-xl border-2 transition-all duration-300 ${
+                  isActive
+                    ? 'bg-gradient-to-r from-retro-purple/30 to-retro-blue/30 text-white border-retro-purple/50 shadow-lg shadow-retro-purple/20' 
+                    : 'text-retro-textMuted hover:text-white border-retro-border hover:border-retro-blue/30 hover:bg-gradient-to-r hover:from-retro-blue/10 hover:to-retro-cyan/10'
+                } ${isActive ? '' : 'hover:scale-105'}`}
+              >
+                {/* 激活状态光效 */}
+                {isActive && (
+                  <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 rounded-xl animate-pulse"></div>
+                )}
+                
+                {/* 选项卡内容 */}
+                <div className="relative flex items-center gap-2">
+                  <div className={`w-5 h-5 ${isActive ? 'bg-white/20' : 'bg-retro-textMuted/20'} rounded flex items-center justify-center transition-all duration-200`}>
+                    <span className="text-xs">{tab.icon}</span>
+                  </div>
+                  <span className={`text-sm font-bold tracking-wide ${isActive ? 'font-pixel' : 'font-retro'}`}>
+                    {tab.label}
+                  </span>
+                </div>
+                
+                {/* 激活指示器 */}
+                {isActive && (
+                  <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-retro-purple rounded-full animate-ping"></div>
+                )}
+              </button>
+            )
+          })}
+        </div>
+
+        {/* 标签页内容 - 现代像素风格 */}
+        <div className="relative space-y-6">
+          {/* 背景装饰 */}
+          <div className="absolute inset-0 bg-gradient-to-br from-retro-orange/2 via-retro-yellow/4 to-retro-red/2 rounded-xl opacity-60 pointer-events-none"></div>
+          
+          {activeTab === 'status' && (
+            <div className="relative space-y-4">
+              {/* 状态历史标题 */}
+              <div className="flex items-center gap-3 pb-3 border-b border-retro-border/30">
+                <div className="w-6 h-6 bg-gradient-to-br from-retro-orange to-retro-yellow rounded-lg flex items-center justify-center shadow-lg">
+                  <span className="text-sm">📊</span>
+                </div>
+                <h3 className="text-white font-bold text-base font-pixel tracking-wide">STATUS TIMELINE</h3>
+                <div className="flex items-center gap-2 ml-auto">
+                  <div className="w-2 h-2 bg-retro-orange rounded-full animate-pulse"></div>
+                  <span className="text-xs text-retro-textMuted font-retro">{playerHistory.length} RECORDS</span>
+                </div>
+              </div>
+              
+              {/* 状态历史列表 */}
+              <div className="space-y-4 max-h-72 overflow-y-auto pr-2 scrollbar-hide">
+                {playerHistory.map((history, index) => (
+                  <div key={history.id} className="group relative animate-fade-in" style={{ animationDelay: `${index * 100}ms` }}>
+                    <div className="absolute inset-0 bg-gradient-to-r from-retro-purple/5 to-retro-pink/5 rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
+                    <div className="relative bg-gradient-to-br from-retro-bg-dark/60 to-retro-bg-darker/60 backdrop-blur-sm border-2 border-retro-border/50 rounded-xl p-4 shadow-lg hover:border-retro-purple/40 hover:shadow-xl transition-all duration-300">
+                      <div className="flex items-start justify-between mb-3">
+                        {/* 状态标签 */}
+                        <div className={`flex items-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-r ${getStatusBadge(history.type)} border border-white/20 shadow-lg`}>
+                          <span className="text-sm">{history.emoji}</span>
+                          <span className="text-white text-sm font-bold font-pixel tracking-wide">
+                            {history.status}
+                          </span>
+                        </div>
+                        
+                        {/* 时间戳 */}
+                        <div className="flex items-center gap-2">
+                          <div className="w-1 h-1 bg-retro-textMuted rounded-full"></div>
+                          <span className="text-retro-textMuted text-xs font-retro tracking-wide">
+                            {history.timestamp}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      {/* 状态消息 */}
+                      <p className="text-retro-text text-sm font-retro leading-relaxed pl-2 border-l-2 border-retro-purple/30">
+                        {history.message}
+                      </p>
+                      
+                      {/* 历史记录序号 */}
+                      <div className="absolute top-2 right-2 w-6 h-6 bg-gradient-to-br from-retro-textMuted/20 to-retro-border/20 rounded-full flex items-center justify-center border border-retro-textMuted/30">
+                        <span className="text-xs font-bold font-pixel text-retro-textMuted">
+                          {playerHistory.length - index}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
           {activeTab === 'interaction' && (
-            <div className="space-y-4">
-              <div className="bg-gray-800/50 rounded-lg p-4">
-                <h3 className="text-sm font-medium text-gray-400 mb-3">快速互动</h3>
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { emoji: '👋', label: '打招呼', action: 'wave' },
-                    { emoji: '🎉', label: '庆祝', action: 'celebrate' },
-                    { emoji: '👍', label: '点赞', action: 'like' },
-                    { emoji: '❤️', label: '表达喜欢', action: 'love' }
-                  ].map((action) => (
-                    <button
-                      key={action.action}
-                      className="flex items-center justify-center gap-2 py-2 px-3 bg-gray-700/50 hover:bg-gray-600/50 rounded-lg text-white text-sm transition-all duration-200 hover:scale-[1.02]"
-                    >
-                      <span>{action.emoji}</span>
-                      <span>{action.label}</span>
-                    </button>
-                  ))}
+            <div className="relative space-y-5">
+              {/* 互动区域标题 */}
+              <div className="flex items-center gap-3 pb-3 border-b border-retro-border/30">
+                <div className="w-6 h-6 bg-gradient-to-br from-retro-blue to-retro-cyan rounded-lg flex items-center justify-center shadow-lg">
+                  <span className="text-sm">🎮</span>
+                </div>
+                <h3 className="text-white font-bold text-base font-pixel tracking-wide">QUICK INTERACTIONS</h3>
+              </div>
+              
+              {/* 快速互动按钮组 */}
+              <div className="relative">
+                <div className="absolute inset-0 bg-gradient-to-r from-retro-blue/5 to-retro-cyan/5 rounded-xl opacity-60 pointer-events-none"></div>
+                <div className="relative bg-gradient-to-br from-retro-bg-dark/50 to-retro-bg-darker/50 backdrop-blur-sm border-2 border-retro-border/50 rounded-xl p-5 shadow-lg">
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { emoji: '👋', label: 'WAVE', action: 'wave', color: 'from-retro-blue/20 to-retro-cyan/20 border-retro-blue/30' },
+                      { emoji: '🎉', label: 'CELEBRATE', action: 'celebrate', color: 'from-retro-green/20 to-retro-blue/20 border-retro-green/30' },
+                      { emoji: '👍', label: 'LIKE', action: 'like', color: 'from-retro-purple/20 to-retro-pink/20 border-retro-purple/30' },
+                      { emoji: '❤️', label: 'LOVE', action: 'love', color: 'from-retro-pink/20 to-retro-red/20 border-retro-pink/30' }
+                    ].map((action) => (
+                      <button
+                        key={action.action}
+                        className={`group relative overflow-hidden bg-gradient-to-br ${action.color} hover:shadow-lg text-white py-3 px-4 rounded-xl border-2 transition-all duration-300 shadow-md hover:shadow-xl transform hover:scale-105 active:scale-95 backdrop-blur-sm`}
+                      >
+                        <div className="absolute inset-0 bg-gradient-to-r from-white/5 to-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        <div className="relative flex flex-col items-center gap-2">
+                          <div className="w-6 h-6 bg-white/20 rounded flex items-center justify-center">
+                            <span className="text-sm">{action.emoji}</span>
+                          </div>
+                          <span className="text-xs font-bold font-pixel tracking-wide">{action.label}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
               
-              <div className="bg-gray-800/50 rounded-lg p-4">
-                <h3 className="text-sm font-medium text-gray-400 mb-3">发送消息</h3>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="输入消息..."
-                    className="flex-1 px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400 text-sm"
-                  />
-                  <button className="bg-gradient-to-r from-retro-purple to-retro-pink hover:from-retro-blue hover:to-retro-cyan text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200">
-                    发送
-                  </button>
+              {/* 消息发送区域 */}
+              <div className="relative">
+                <div className="absolute inset-0 bg-gradient-to-r from-retro-purple/5 to-retro-pink/5 rounded-xl opacity-60 pointer-events-none"></div>
+                <div className="relative bg-gradient-to-br from-retro-bg-dark/50 to-retro-bg-darker/50 backdrop-blur-sm border-2 border-retro-border/50 rounded-xl p-5 shadow-lg">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-5 h-5 bg-gradient-to-br from-retro-purple/30 to-retro-pink/30 rounded flex items-center justify-center">
+                      <span className="text-xs">💬</span>
+                    </div>
+                    <span className="text-xs text-retro-textMuted font-pixel tracking-wide">SEND MESSAGE</span>
+                  </div>
+                  <div className="flex gap-3">
+                    <div className="flex-1 relative group">
+                      <div className="absolute inset-0 bg-gradient-to-r from-retro-purple/10 to-retro-pink/10 rounded-xl opacity-0 group-focus-within:opacity-100 transition-all duration-300 blur-sm"></div>
+                      <input
+                        type="text"
+                        placeholder="Type your message..."
+                        className="relative w-full bg-gradient-to-br from-retro-bg-dark/80 to-retro-bg-darker/80 border-2 border-retro-border focus:border-retro-purple rounded-xl px-4 py-3 text-white placeholder-retro-textMuted focus:outline-none backdrop-blur-md transition-all duration-300 font-retro text-sm focus:shadow-lg focus:shadow-retro-purple/20"
+                        onClick={(e) => e.stopPropagation()}
+                        onKeyDown={(e) => e.stopPropagation()}
+                      />
+                    </div>
+                    <button className="group relative overflow-hidden bg-gradient-to-br from-retro-purple/30 to-retro-pink/30 hover:from-retro-purple/40 hover:to-retro-pink/40 text-white px-6 py-3 rounded-xl border-2 border-retro-purple/40 hover:border-retro-purple/60 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95 backdrop-blur-sm">
+                      <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      <div className="relative flex items-center gap-2">
+                        <div className="w-4 h-4 bg-white/20 rounded flex items-center justify-center">
+                          <span className="text-xs">🚀</span>
+                        </div>
+                        <span className="font-pixel text-sm tracking-wide">SEND</span>
+                      </div>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
           )}
 
           {activeTab === 'info' && (
-            <div className="space-y-4">
-              <div className="bg-gray-800/50 rounded-lg p-4">
-                <h3 className="text-sm font-medium text-gray-400 mb-3">基本信息</h3>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">玩家ID:</span>
-                    <span className="text-white font-mono text-sm">{player.id}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">当前状态:</span>
-                    <span className="text-white">{player.currentStatus?.status || '在线'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">状态消息:</span>
-                    <span className="text-white text-sm max-w-[200px] truncate">{player.currentStatus?.message || '无'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">更新时间:</span>
-                    <span className="text-white text-sm">
-                      {new Date(player.currentStatus?.timestamp).toLocaleTimeString() || '刚刚'}
-                    </span>
+            <div className="relative space-y-5">
+              {/* 信息区域标题 */}
+              <div className="flex items-center gap-3 pb-3 border-b border-retro-border/30">
+                <div className="w-6 h-6 bg-gradient-to-br from-retro-cyan to-retro-blue rounded-lg flex items-center justify-center shadow-lg">
+                  <span className="text-sm">👤</span>
+                </div>
+                <h3 className="text-white font-bold text-base font-pixel tracking-wide">PLAYER INFO</h3>
+              </div>
+              
+              {/* 基本信息卡片 */}
+              <div className="relative">
+                <div className="absolute inset-0 bg-gradient-to-r from-retro-cyan/5 to-retro-blue/5 rounded-xl opacity-60 pointer-events-none"></div>
+                <div className="relative bg-gradient-to-br from-retro-bg-dark/50 to-retro-bg-darker/50 backdrop-blur-sm border-2 border-retro-border/50 rounded-xl p-5 shadow-lg">
+                  <div className="space-y-4">
+                    {[
+                      { label: 'PLAYER ID', value: player.id, icon: '🆔' },
+                      { label: 'CURRENT STATUS', value: player.currentStatus?.status || '在线', icon: '📊' },
+                      { label: 'STATUS MESSAGE', value: player.currentStatus?.message || '无', icon: '💬' },
+                      { label: 'LAST UPDATE', value: new Date(player.currentStatus?.timestamp).toLocaleTimeString() || '刚刚', icon: '⏰' }
+                    ].map((info, index) => (
+                      <div key={index} className="group relative bg-gradient-to-r from-retro-bg-darker/30 to-retro-bg-dark/30 rounded-lg p-3 border border-retro-border/30 hover:border-retro-cyan/40 transition-all duration-300">
+                        <div className="absolute inset-0 bg-gradient-to-r from-retro-cyan/3 to-retro-blue/3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg"></div>
+                        <div className="relative flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-gradient-to-br from-retro-cyan/30 to-retro-blue/30 rounded-lg flex items-center justify-center shadow-lg">
+                              <span className="text-sm">{info.icon}</span>
+                            </div>
+                            <span className="text-retro-textMuted text-sm font-pixel tracking-wide">{info.label}</span>
+                          </div>
+                          <span className="text-white text-sm font-retro max-w-[200px] truncate">
+                            {info.value}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -229,22 +368,47 @@ const PlayerClickModal = memo(({
           )}
         </div>
 
-        {/* 底部操作按钮 */}
-        <div className="flex gap-3 mt-6 pt-4 border-t border-gray-700">
+        {/* 底部操作按钮 - 现代像素风格 */}
+        <div className="relative flex gap-4 mt-8 pt-6 border-t-2 border-retro-border/50">
+          {/* 背景装饰 */}
+          <div className="absolute inset-0 bg-gradient-to-r from-retro-purple/3 via-retro-blue/5 to-retro-pink/3 opacity-60 pointer-events-none rounded-xl"></div>
+          
+          {/* 关闭按钮 */}
           <button
             onClick={handleClose}
-            className="flex-1 py-2 px-4 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-medium transition-all duration-200"
+            className="relative flex-1 group overflow-hidden bg-gradient-to-r from-retro-bg-dark/80 to-retro-bg-darker/80 hover:from-retro-border/60 hover:to-retro-border/80 text-white font-medium py-4 px-6 rounded-xl border-2 border-retro-border hover:border-retro-red/60 transition-all duration-300 shadow-lg hover:shadow-xl backdrop-blur-sm transform hover:scale-[1.02] active:scale-[0.98]"
           >
-            关闭
+            {/* 按钮光效 */}
+            <div className="absolute inset-0 bg-gradient-to-r from-retro-red/5 to-retro-orange/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+            
+            {/* 按钮内容 */}
+            <div className="relative flex items-center justify-center gap-3">
+              <div className="w-6 h-6 bg-retro-red/20 rounded-lg flex items-center justify-center group-hover:bg-retro-red/30 transition-all duration-200">
+                <span className="text-sm">✕</span>
+              </div>
+              <span className="font-pixel text-base tracking-wide">CLOSE</span>
+            </div>
           </button>
+          
+          {/* 关注按钮 */}
           <button
             onClick={() => {
               // 这里可以添加关注功能
               console.log('关注玩家:', player.name)
             }}
-            className="flex-1 py-2 px-4 bg-gradient-to-r from-retro-purple to-retro-pink hover:from-retro-blue hover:to-retro-cyan text-white rounded-lg font-medium transition-all duration-200"
+            className="relative flex-1 group overflow-hidden bg-gradient-to-r from-retro-purple via-retro-pink to-retro-blue hover:from-retro-blue hover:via-retro-cyan hover:to-retro-green text-white font-bold py-4 px-6 rounded-xl border-2 border-white/20 hover:border-white/40 transition-all duration-300 shadow-lg hover:shadow-2xl transform hover:scale-[1.02] active:scale-[0.98] backdrop-blur-sm"
           >
-            关注
+            {/* 按钮光效 */}
+            <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-white/20 to-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+            <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-all duration-200 animate-shimmer"></div>
+            
+            {/* 按钮内容 */}
+            <div className="relative flex items-center justify-center gap-3">
+              <div className="w-6 h-6 bg-white/20 rounded-lg flex items-center justify-center group-hover:bg-white/30 transition-all duration-200">
+                <span className="text-sm">➕</span>
+              </div>
+              <span className="font-pixel text-base tracking-wide drop-shadow-lg">FOLLOW</span>
+            </div>
           </button>
         </div>
       </div>

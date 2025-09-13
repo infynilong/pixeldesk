@@ -436,6 +436,132 @@ canvas {
   }
 }
 
+/* 现代像素艺术渐变效果 */
+.bg-gradient-135 {
+  background: linear-gradient(135deg, var(--color-from), var(--color-to));
+}
+
+/* 像素化阴影效果 */
+.shadow-pixel {
+  box-shadow: 
+    2px 2px 0px rgba(0, 0, 0, 0.8),
+    4px 4px 0px rgba(0, 0, 0, 0.6),
+    6px 6px 0px rgba(0, 0, 0, 0.4);
+}
+
+.shadow-pixel-sm {
+  box-shadow: 
+    1px 1px 0px rgba(0, 0, 0, 0.8),
+    2px 2px 0px rgba(0, 0, 0, 0.6);
+}
+
+/* 像素化边框效果 */
+.border-pixel {
+  border-style: solid;
+  border-image: linear-gradient(45deg, var(--retro-purple), var(--retro-blue)) 1;
+}
+
+/* 现代像素发光动画 */
+@keyframes pixel-glow {
+  0%, 100% {
+    box-shadow: 0 0 5px var(--retro-purple), 0 0 10px var(--retro-purple), 0 0 15px var(--retro-purple);
+    border-color: var(--retro-purple);
+  }
+  25% {
+    box-shadow: 0 0 5px var(--retro-blue), 0 0 10px var(--retro-blue), 0 0 15px var(--retro-blue);
+    border-color: var(--retro-blue);
+  }
+  50% {
+    box-shadow: 0 0 5px var(--retro-cyan), 0 0 10px var(--retro-cyan), 0 0 15px var(--retro-cyan);
+    border-color: var(--retro-cyan);
+  }
+  75% {
+    box-shadow: 0 0 5px var(--retro-green), 0 0 10px var(--retro-green), 0 0 15px var(--retro-green);
+    border-color: var(--retro-green);
+  }
+}
+
+.animate-pixel-glow {
+  animation: pixel-glow 3s ease-in-out infinite;
+}
+
+/* 像素化悬停效果 */
+.pixel-hover {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pixel-hover:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* 像素化按钮效果 */
+.btn-pixel {
+  position: relative;
+  background: linear-gradient(45deg, var(--retro-purple), var(--retro-blue));
+  border: 2px solid var(--retro-border);
+  color: white;
+  font-family: 'Press Start 2P', monospace;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 12px 24px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 
+    2px 2px 0px rgba(0, 0, 0, 0.5),
+    4px 4px 0px rgba(0, 0, 0, 0.3);
+}
+
+.btn-pixel:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 
+    3px 3px 0px rgba(0, 0, 0, 0.5),
+    6px 6px 0px rgba(0, 0, 0, 0.3);
+}
+
+.btn-pixel:active {
+  transform: translate(1px, 1px);
+  box-shadow: 
+    1px 1px 0px rgba(0, 0, 0, 0.5),
+    2px 2px 0px rgba(0, 0, 0, 0.3);
+}
+
+/* 现代像素卡片效果 */
+.card-pixel {
+  background: linear-gradient(145deg, var(--retro-bg-darker), var(--retro-bg-dark));
+  border: 2px solid var(--retro-border);
+  border-radius: 8px;
+  box-shadow: 
+    inset 1px 1px 0px rgba(255, 255, 255, 0.1),
+    2px 2px 8px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(8px);
+}
+
+.card-pixel:hover {
+  border-color: var(--retro-purple);
+  box-shadow: 
+    inset 1px 1px 0px rgba(255, 255, 255, 0.2),
+    2px 2px 8px rgba(0, 0, 0, 0.4),
+    0 0 20px rgba(199, 77, 237, 0.3);
+}
+
+/* 增强像素文本效果 */
+.text-pixel {
+  font-family: 'Press Start 2P', monospace;
+  text-shadow: 
+    1px 1px 0px rgba(0, 0, 0, 0.8),
+    2px 2px 0px rgba(0, 0, 0, 0.6);
+  letter-spacing: 1px;
+}
+
+.text-pixel-glow {
+  text-shadow: 
+    0 0 5px currentColor,
+    0 0 10px currentColor,
+    0 0 15px currentColor,
+    1px 1px 0px rgba(0, 0, 0, 0.8);
+}
+
 /* Enhanced responsive breakpoints for better control */
 @media (max-width: 480px) {
   .ultra-mobile-hide {

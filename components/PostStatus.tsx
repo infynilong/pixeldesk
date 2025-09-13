@@ -189,48 +189,79 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
   }, [showHistory])
   
   return (
-    <div className="space-y-4">
-      {/* 用户信息卡片 */}
+    <div className="space-y-6 font-pixel">
+      {/* 用户信息卡片 - 现代像素艺术风格 */}
       {userData && (
         <div className="group relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-retro-blue/20 to-retro-purple/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-          <div className="relative bg-retro-bg-darker/80 backdrop-blur-sm border border-retro-border rounded-md p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-retro-blue to-retro-purple rounded-full flex items-center justify-center">
-                  <span className="text-xl font-bold text-white">
-                    {userData.username?.charAt(0).toUpperCase() || 'U'}
-                  </span>
+          {/* 背景光效 */}
+          <div className="absolute inset-0 bg-gradient-135 from-retro-blue/10 via-retro-purple/15 to-retro-pink/10 opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-retro-cyan/5 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-700 animate-shimmer"></div>
+          
+          {/* 主卡片 */}
+          <div className="relative bg-gradient-to-br from-retro-bg-darker/95 via-retro-bg-darker/90 to-retro-bg-dark/95 backdrop-blur-md border-2 border-retro-border rounded-lg p-5 shadow-xl hover:shadow-2xl transition-all duration-300 hover:border-retro-blue/50">
+            {/* 用户头像和基本信息 */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-4">
+                {/* 像素化头像 */}
+                <div className="relative">
+                  <div className="w-14 h-14 bg-gradient-to-br from-retro-blue via-retro-purple to-retro-pink rounded-lg flex items-center justify-center shadow-lg border-2 border-white/20 group-hover:shadow-retro-blue/50 transition-all duration-300">
+                    <span className="text-xl font-bold text-white font-pixel drop-shadow-md">
+                      {userData.username?.charAt(0).toUpperCase() || 'U'}
+                    </span>
+                  </div>
+                  {/* 在线状态指示器 */}
+                  <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-retro-green rounded-full border-2 border-retro-bg-darker shadow-lg">
+                    <div className="w-full h-full bg-retro-green rounded-full animate-ping opacity-75"></div>
+                  </div>
                 </div>
-                <div>
-                  <div className="text-white font-medium text-lg">{userData.username || '用户'}</div>
-                  <div className="text-gray-400 text-sm">ID: {userId || 'unknown'}</div>
+                
+                {/* 用户信息 */}
+                <div className="space-y-1">
+                  <div className="text-white font-bold text-lg font-pixel tracking-wider drop-shadow-sm">
+                    {userData.username || '玩家'}
+                  </div>
+                  <div className="text-retro-textMuted text-xs font-retro tracking-wide">
+                    ID: {userId?.slice(-6).toUpperCase() || 'UNKNOWN'}
+                  </div>
                 </div>
               </div>
-              <div className="text-right">
-                <div className="text-retro-yellow font-bold text-xl">
-                  <span className="text-sm">💎</span> {userData.points || 0}
+              
+              {/* 积分显示 */}
+              <div className="text-right space-y-1">
+                <div className="flex items-center gap-2 text-retro-yellow font-bold text-xl font-pixel">
+                  <span className="text-lg animate-bounce">💎</span>
+                  <span className="drop-shadow-lg">{userData.points || 0}</span>
                 </div>
-                <div className="text-retro-textMuted text-xs">积分</div>
+                <div className="text-retro-textMuted text-xs font-retro tracking-wide">POINTS</div>
               </div>
             </div>
             
-            {/* 工位信息 */}
-            <div className="flex items-center justify-between pt-3 border-t border-retro-border">
-              <div className="flex items-center gap-2">
-                <span className="text-lg">🏢</span>
-                <span className="text-retro-text text-sm">工位状态</span>
-              </div>
-              <div className="text-right">
-                {userData.workstationId ? (
-                  <div className="text-retro-green text-sm font-medium">
-                    已绑定: {userData.workstationId}
+            {/* 工位信息 - 像素化状态栏 */}
+            <div className="bg-gradient-to-r from-retro-bg-dark/50 to-retro-bg-darker/50 rounded-md p-3 border border-retro-border/50">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 bg-gradient-to-br from-retro-orange to-retro-yellow rounded flex items-center justify-center">
+                    <span className="text-xs">🏢</span>
                   </div>
-                ) : (
-                  <div className="text-retro-orange text-sm font-medium">
-                    未绑定工位
-                  </div>
-                )}
+                  <span className="text-retro-text text-sm font-retro">工位状态</span>
+                </div>
+                <div className="text-right">
+                  {userData.workstationId ? (
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-retro-green rounded-full animate-pulse"></div>
+                      <span className="text-retro-green text-sm font-bold font-pixel">
+                        {userData.workstationId}
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-retro-orange rounded-full animate-pulse"></div>
+                      <span className="text-retro-orange text-sm font-bold font-pixel">
+                        未绑定
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -238,57 +269,104 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
       )}
 
 
-      {/* 当前状态显示 */}
+      {/* 当前状态显示 - 像素艺术风格 */}
       {currentStatus && (
         <div className="group relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-retro-purple/20 to-retro-pink/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-          <div className="relative bg-retro-bg-darker/80 backdrop-blur-sm border border-retro-border rounded-md p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-retro-purple to-retro-pink rounded-full flex items-center justify-center">
-                <span className="text-xl">{currentStatus.emoji}</span>
+          {/* 动态背景效果 */}
+          <div className="absolute inset-0 bg-gradient-to-r from-retro-purple/15 via-retro-pink/20 to-retro-blue/15 opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
+          <div className="absolute inset-0 border border-retro-purple/30 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300 animate-pulse"></div>
+          
+          {/* 状态卡片 */}
+          <div className="relative bg-gradient-to-br from-retro-bg-darker/90 to-retro-bg-dark/85 backdrop-blur-md border-2 border-retro-border rounded-lg p-4 shadow-xl hover:shadow-2xl transition-all duration-300 hover:border-retro-purple/60">
+            <div className="flex items-center gap-4">
+              {/* 状态图标 */}
+              <div className="relative">
+                <div className="w-14 h-14 bg-gradient-to-br from-retro-purple via-retro-pink to-retro-blue rounded-lg flex items-center justify-center shadow-lg border-2 border-white/20 group-hover:shadow-retro-purple/50 transition-all duration-300">
+                  <span className="text-2xl">{currentStatus.emoji}</span>
+                </div>
+                {/* 活跃指示器 */}
+                <div className="absolute -top-1 -right-1 w-5 h-5 bg-retro-green rounded-full border-2 border-retro-bg-darker shadow-lg">
+                  <div className="w-full h-full bg-gradient-to-br from-retro-green to-retro-cyan rounded-full animate-pulse"></div>
+                </div>
               </div>
-              <div className="flex-1">
-                <div className="text-white font-medium">{currentStatus.status}</div>
-                <div className="text-retro-textMuted text-sm">{currentStatus.message}</div>
+              
+              {/* 状态信息 */}
+              <div className="flex-1 space-y-1">
+                <div className="text-white font-bold text-lg font-pixel tracking-wide drop-shadow-sm">
+                  {currentStatus.status}
+                </div>
+                <div className="text-retro-textMuted text-sm font-retro leading-tight">
+                  {currentStatus.message}
+                </div>
               </div>
-              <div className="w-2 h-2 bg-retro-green rounded-full animate-pulse"></div>
+              
+              {/* 时间戳和活动指示 */}
+              <div className="text-right space-y-2">
+                <div className="w-3 h-3 bg-retro-green rounded-full animate-ping shadow-lg"></div>
+                <div className="text-retro-textMuted text-xs font-retro">
+                  ACTIVE
+                </div>
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* 状态选择按钮 */}
-      <button
-        onClick={memoizedHandleToggle}
-        className="w-full group relative overflow-hidden bg-gradient-to-r from-retro-purple to-retro-pink hover:from-retro-blue hover:to-retro-cyan text-white font-medium py-3 px-6 rounded-md transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] shadow-md hover:shadow-lg"
-      >
-        <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
-        <div className="relative flex items-center justify-center gap-2">
-          <span className="text-lg">📝</span>
-          <span>{isExpanded ? '取消' : '更新状态'}</span>
-        </div>
-      </button>
-
-      {/* 状态历史按钮 */}
-      {userId && (
+      {/* 主要操作按钮区域 */}
+      <div className="space-y-3">
+        {/* 更新状态按钮 - 现代像素风格 */}
         <button
-          onClick={memoizedHandleToggleHistory}
-          className="w-full group relative overflow-hidden bg-retro-border/50 hover:bg-retro-border/70 text-white font-medium py-2 px-4 rounded-md transition-all duration-200 border border-retro-border hover:border-retro-blue"
+          onClick={memoizedHandleToggle}
+          className="w-full group relative overflow-hidden bg-gradient-to-r from-retro-purple via-retro-pink to-retro-blue hover:from-retro-blue hover:via-retro-cyan hover:to-retro-green text-white font-bold py-4 px-6 rounded-lg transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-xl hover:shadow-2xl border-2 border-white/20 hover:border-white/40"
         >
-          <div className="relative flex items-center justify-center gap-2">
-            <span className="text-lg">📊</span>
-            <span>{showHistory ? '隐藏历史' : '查看状态历史'}</span>
-            <span className="text-xs bg-retro-purple/50 text-white px-2 py-1 rounded-full">
-              {statusHistory.length}
+          {/* 按钮光效 */}
+          <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-white/20 to-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-all duration-200 animate-shimmer"></div>
+          
+          {/* 按钮内容 */}
+          <div className="relative flex items-center justify-center gap-3">
+            <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center group-hover:bg-white/30 transition-all duration-200">
+              <span className="text-lg">{isExpanded ? '✕' : '📝'}</span>
+            </div>
+            <span className="font-pixel text-lg tracking-wider drop-shadow-lg">
+              {isExpanded ? 'CANCEL' : 'UPDATE STATUS'}
             </span>
           </div>
         </button>
-      )}
 
-      {/* 详细状态设置 */}
+        {/* 状态历史按钮 - 次要操作风格 */}
+        {userId && (
+          <button
+            onClick={memoizedHandleToggleHistory}
+            className="w-full group relative overflow-hidden bg-gradient-to-r from-retro-bg-dark/80 to-retro-bg-darker/80 hover:from-retro-border/60 hover:to-retro-border/80 text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 border-2 border-retro-border hover:border-retro-blue/60 shadow-lg hover:shadow-xl backdrop-blur-sm"
+          >
+            {/* 次要按钮光效 */}
+            <div className="absolute inset-0 bg-gradient-to-r from-retro-blue/5 to-retro-purple/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+            
+            {/* 按钮内容 */}
+            <div className="relative flex items-center justify-center gap-3">
+              <div className="w-6 h-6 bg-retro-purple/30 rounded flex items-center justify-center group-hover:bg-retro-purple/50 transition-all duration-200">
+                <span className="text-sm">📊</span>
+              </div>
+              <span className="font-retro text-sm tracking-wide">
+                {showHistory ? 'HIDE HISTORY' : 'VIEW HISTORY'}
+              </span>
+              {/* 历史记录计数器 */}
+              <div className="flex items-center gap-1">
+                <div className="w-1 h-1 bg-retro-purple rounded-full animate-pulse"></div>
+                <span className="text-xs bg-gradient-to-r from-retro-purple/50 to-retro-pink/50 text-white px-2 py-1 rounded-full font-pixel border border-retro-purple/30">
+                  {statusHistory.length}
+                </span>
+              </div>
+            </div>
+          </button>
+        )}
+      </div>
+
+      {/* 详细状态设置 - 现代像素风格面板 */}
       {isExpanded && (
         <div 
-          className="space-y-4 bg-retro-bg-darker/80 backdrop-blur-sm border border-retro-border rounded-md p-4"
+          className="space-y-6 bg-gradient-to-br from-retro-bg-darker/95 via-retro-bg-dark/90 to-retro-bg-darker/95 backdrop-blur-lg border-2 border-retro-border rounded-xl p-6 shadow-2xl animate-slide-in-up"
           onClick={(e) => {
             // 阻止点击事件冒泡到Phaser游戏
             e.stopPropagation();
@@ -298,132 +376,237 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
             e.stopPropagation();
           }}
         >
-          {/* 状态类型选择 */}
-          <div>
-            <label className="block text-sm font-medium text-white mb-3">选择状态</label>
-            <div className="grid grid-cols-2 gap-3">
+          {/* 面板标题 */}
+          <div className="flex items-center gap-3 pb-4 border-b border-retro-border/50">
+            <div className="w-8 h-8 bg-gradient-to-br from-retro-purple to-retro-pink rounded-lg flex items-center justify-center shadow-lg">
+              <span className="text-lg">⚙️</span>
+            </div>
+            <h3 className="text-white font-bold text-lg font-pixel tracking-wider drop-shadow-sm">
+              STATUS CONFIG
+            </h3>
+          </div>
+
+          {/* 状态类型选择 - 像素化网格 */}
+          <div className="space-y-4">
+            <label className="block text-sm font-bold text-white font-pixel tracking-wide">SELECT MODE</label>
+            <div className="grid grid-cols-2 gap-4">
               {statusOptions.map((status) => (
                 <button
                   key={status.id}
                   onClick={() => memoizedHandleStatusSelect(status.id)}
-                  className={`group relative overflow-hidden p-4 rounded-xl border-2 transition-all duration-300 transform hover:scale-[1.02] ${
+                  className={`group relative overflow-hidden p-5 rounded-xl border-2 transition-all duration-300 transform hover:scale-[1.03] active:scale-[0.97] ${
                     selectedStatus === status.id
-                      ? 'border-white/30 bg-gradient-to-br ' + status.color + ' text-white shadow-lg'
-                      : 'border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10'
+                      ? `border-white/40 bg-gradient-to-br ${status.color} text-white shadow-xl shadow-retro-purple/25`
+                      : 'border-retro-border bg-gradient-to-br from-retro-bg-dark/50 to-retro-bg-darker/50 hover:border-retro-purple/50 hover:bg-gradient-to-br hover:from-retro-bg-dark/70 hover:to-retro-bg-darker/70 shadow-lg'
                   }`}
                 >
-                  <div className="relative flex flex-col items-center">
-                    <div className="text-3xl mb-2">{status.emoji}</div>
-                    <div className="text-sm font-medium">{status.label}</div>
+                  {/* 选择状态的光效 */}
+                  {selectedStatus === status.id && (
+                    <div className="absolute inset-0 bg-white/10 rounded-xl animate-pulse"></div>
+                  )}
+                  
+                  {/* 按钮内容 */}
+                  <div className="relative flex flex-col items-center space-y-2">
+                    <div className="text-4xl mb-1 drop-shadow-lg">{status.emoji}</div>
+                    <div className="text-sm font-bold font-pixel tracking-wide text-center">
+                      {status.label}
+                    </div>
                   </div>
+                  
+                  {/* 选中指示器 */}
+                  {selectedStatus === status.id && (
+                    <div className="absolute top-2 right-2 w-3 h-3 bg-white rounded-full shadow-lg">
+                      <div className="w-full h-full bg-retro-green rounded-full animate-ping opacity-75"></div>
+                    </div>
+                  )}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* 自定义消息 */}
-          <div>
-            <label className="block text-sm font-medium text-white mb-2">
-              自定义消息（可选）
+          {/* 自定义消息输入 - 像素化文本框 */}
+          <div className="space-y-3">
+            <label className="block text-sm font-bold text-white font-pixel tracking-wide">
+              CUSTOM MESSAGE
             </label>
-            <textarea
-              value={customMessage}
-              onChange={memoizedHandleMessageChange}
-              onKeyDown={(e) => {
-                // 阻止键盘事件冒泡到Phaser游戏
-                e.stopPropagation();
-              }}
-              onKeyUp={(e) => {
-                // 阻止键盘事件冒泡到Phaser游戏
-                e.stopPropagation();
-              }}
-              onClick={(e) => {
-                // 阻止点击事件冒泡
-                e.stopPropagation();
-              }}
-              placeholder="分享你正在做什么..."
-              className="w-full p-3 bg-white/5 border border-white/10 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400 backdrop-blur-sm transition-all duration-300"
-              rows={3}
-            />
+            <div className="relative">
+              {/* 输入框装饰边框 */}
+              <div className="absolute inset-0 bg-gradient-to-r from-retro-purple/20 to-retro-blue/20 rounded-lg blur-sm"></div>
+              <textarea
+                value={customMessage}
+                onChange={memoizedHandleMessageChange}
+                onKeyDown={(e) => {
+                  // 阻止键盘事件冒泡到Phaser游戏
+                  e.stopPropagation();
+                }}
+                onKeyUp={(e) => {
+                  // 阻止键盘事件冒泡到Phaser游戏
+                  e.stopPropagation();
+                }}
+                onClick={(e) => {
+                  // 阻止点击事件冒泡
+                  e.stopPropagation();
+                }}
+                placeholder="Share what you're doing..."
+                className="relative w-full p-4 bg-gradient-to-br from-retro-bg-dark/80 to-retro-bg-darker/80 border-2 border-retro-border rounded-lg resize-none focus:outline-none focus:border-retro-purple focus:shadow-lg focus:shadow-retro-purple/25 text-white placeholder-retro-textMuted backdrop-blur-md transition-all duration-300 font-retro text-base leading-relaxed"
+                rows={4}
+              />
+              {/* 字符计数器 */}
+              <div className="absolute bottom-2 right-2 text-xs text-retro-textMuted font-retro">
+                {customMessage.length}/200
+              </div>
+            </div>
           </div>
 
-          {/* 提交按钮 */}
-          <div className="flex gap-3">
+          {/* 操作按钮组 - 像素化按钮设计 */}
+          <div className="flex gap-4 pt-2">
+            {/* 发布按钮 */}
             <button
               onClick={memoizedHandleSubmit}
-              className="flex-1 bg-gradient-to-r from-retro-green to-retro-blue hover:from-retro-blue hover:to-retro-cyan text-white font-medium py-3 px-6 rounded-md transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] shadow-md hover:shadow-lg"
+              className="flex-1 group relative overflow-hidden bg-gradient-to-r from-retro-green via-retro-blue to-retro-cyan hover:from-retro-blue hover:via-retro-cyan hover:to-retro-green text-white font-bold py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-xl hover:shadow-2xl border-2 border-white/20 hover:border-white/40"
             >
-              发布状态
+              {/* 按钮光效 */}
+              <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-white/20 to-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              
+              {/* 发布按钮内容 */}
+              <div className="relative flex items-center justify-center gap-3">
+                <div className="w-6 h-6 bg-white/20 rounded-lg flex items-center justify-center group-hover:bg-white/30 transition-all duration-200">
+                  <span className="text-sm">🚀</span>
+                </div>
+                <span className="font-pixel text-base tracking-wider drop-shadow-lg">
+                  PUBLISH
+                </span>
+              </div>
             </button>
+            
+            {/* 取消按钮 */}
             <button
               onClick={memoizedHandleCancel}
-              className="flex-1 bg-retro-border/50 hover:bg-retro-border/70 text-white font-medium py-3 px-6 rounded-md transition-all duration-200 border border-retro-border hover:border-retro-blue"
+              className="flex-1 group relative overflow-hidden bg-gradient-to-r from-retro-bg-dark/80 to-retro-bg-darker/80 hover:from-retro-border/60 hover:to-retro-border/80 text-white font-medium py-4 px-6 rounded-xl transition-all duration-200 border-2 border-retro-border hover:border-retro-red/60 shadow-lg hover:shadow-xl backdrop-blur-sm"
             >
-              取消
+              {/* 取消按钮光效 */}
+              <div className="absolute inset-0 bg-gradient-to-r from-retro-red/5 to-retro-orange/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              
+              {/* 取消按钮内容 */}
+              <div className="relative flex items-center justify-center gap-3">
+                <div className="w-6 h-6 bg-retro-red/20 rounded-lg flex items-center justify-center group-hover:bg-retro-red/30 transition-all duration-200">
+                  <span className="text-sm">✕</span>
+                </div>
+                <span className="font-pixel text-base tracking-wide">
+                  CANCEL
+                </span>
+              </div>
             </button>
           </div>
         </div>
       )}
 
-      {/* 状态历史显示 */}
+      {/* 状态历史显示 - 现代像素风格 */}
       {showHistory && userId && (
-        <div className="space-y-3 bg-retro-bg-darker/80 backdrop-blur-sm border border-retro-border rounded-md p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-white font-medium">我的状态历史</h3>
-            <div className="text-xs text-retro-textMuted">
-              共 {statusHistory.length} 条记录
+        <div className="space-y-5 bg-gradient-to-br from-retro-bg-darker/95 via-retro-bg-dark/90 to-retro-bg-darker/95 backdrop-blur-lg border-2 border-retro-border rounded-xl p-6 shadow-2xl animate-slide-in-up">
+          {/* 历史记录标题 */}
+          <div className="flex items-center justify-between pb-4 border-b border-retro-border/50">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-gradient-to-br from-retro-cyan to-retro-blue rounded-lg flex items-center justify-center shadow-lg">
+                <span className="text-lg">📊</span>
+              </div>
+              <h3 className="text-white font-bold text-lg font-pixel tracking-wider drop-shadow-sm">
+                STATUS HISTORY
+              </h3>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-retro-cyan rounded-full animate-pulse"></div>
+              <span className="text-xs text-retro-textMuted font-retro tracking-wide">
+                {statusHistory.length} RECORDS
+              </span>
             </div>
           </div>
           
-          <div className="space-y-2 max-h-64 overflow-y-auto">
+          {/* 历史记录列表 */}
+          <div className="space-y-3 max-h-80 overflow-y-auto scrollbar-hide">
             {statusHistory.length === 0 ? (
-              <div className="text-center py-8 text-retro-textMuted">
-                <div className="text-4xl mb-2">📝</div>
-                <div className="text-sm">还没有状态记录</div>
-                <div className="text-xs mt-1">发布你的第一个状态吧！</div>
+              <div className="text-center py-12 space-y-4">
+                <div className="w-16 h-16 bg-gradient-to-br from-retro-purple/20 to-retro-pink/20 rounded-xl flex items-center justify-center mx-auto border-2 border-retro-border/30">
+                  <span className="text-4xl">📝</span>
+                </div>
+                <div className="space-y-2">
+                  <div className="text-white font-bold font-pixel text-base">NO RECORDS</div>
+                  <div className="text-retro-textMuted text-sm font-retro">Start sharing your status!</div>
+                </div>
               </div>
             ) : (
-              statusHistory.map((history) => (
-                <div key={history.id} className="bg-retro-border/30 rounded-md p-3 border border-retro-border">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className={`px-2 py-1 rounded-full bg-gradient-to-r ${getStatusBadge(history.type)} text-white text-xs font-medium`}>
-                      {history.emoji} {history.status}
+              statusHistory.map((history, index) => (
+                <div key={history.id || index} className="group relative overflow-hidden bg-gradient-to-r from-retro-bg-dark/60 to-retro-bg-darker/60 rounded-lg p-4 border border-retro-border/50 hover:border-retro-cyan/50 transition-all duration-300 hover:shadow-lg backdrop-blur-sm">
+                  {/* 悬停光效 */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-retro-cyan/5 to-retro-blue/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  
+                  {/* 记录内容 */}
+                  <div className="relative space-y-3">
+                    {/* 状态标签和时间 */}
+                    <div className="flex items-center justify-between">
+                      <div className={`flex items-center gap-2 px-3 py-1 rounded-lg bg-gradient-to-r ${getStatusBadge(history.type)} border border-white/20 shadow-sm`}>
+                        <span className="text-sm">{history.emoji}</span>
+                        <span className="text-white text-xs font-bold font-pixel tracking-wide">
+                          {history.status}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-1 h-1 bg-retro-textMuted rounded-full animate-pulse"></div>
+                        <span className="text-retro-textMuted text-xs font-retro">
+                          {formatTimestamp(history.timestamp)}
+                        </span>
+                      </div>
                     </div>
-                    <span className="text-retro-textMuted text-xs">
-                      {formatTimestamp(history.timestamp)}
-                    </span>
+                    
+                    {/* 状态消息 */}
+                    <p className="text-retro-text text-sm font-retro leading-relaxed pl-2 border-l-2 border-retro-cyan/30">
+                      {history.message}
+                    </p>
                   </div>
-                  <p className="text-retro-text text-sm">{history.message}</p>
                 </div>
               ))
             )}
           </div>
           
-          {/* 状态统计 */}
+          {/* 状态统计仪表板 */}
           {statusHistory.length > 0 && (
-            <div className="mt-4 pt-3 border-t border-retro-border">
-              <div className="grid grid-cols-3 gap-4 text-center">
-                <div>
-                  <div className="text-lg font-bold text-white">
+            <div className="pt-4 border-t border-retro-border/50">
+              <div className="grid grid-cols-3 gap-4">
+                {/* 今日状态 */}
+                <div className="text-center space-y-2 bg-gradient-to-br from-retro-green/10 to-retro-blue/10 rounded-lg p-4 border border-retro-green/20">
+                  <div className="w-8 h-8 bg-gradient-to-br from-retro-green to-retro-cyan rounded-lg flex items-center justify-center mx-auto shadow-lg">
+                    <span className="text-sm">📅</span>
+                  </div>
+                  <div className="text-2xl font-bold text-white font-pixel drop-shadow-lg">
                     {statusHistoryManager.getStatusHistoryStats(userId).todayCount}
                   </div>
-                  <div className="text-xs text-retro-textMuted">今日状态</div>
+                  <div className="text-xs text-retro-textMuted font-retro tracking-wide">TODAY</div>
                 </div>
-                <div>
-                  <div className="text-lg font-bold text-white">
+                
+                {/* 总记录数 */}
+                <div className="text-center space-y-2 bg-gradient-to-br from-retro-purple/10 to-retro-pink/10 rounded-lg p-4 border border-retro-purple/20">
+                  <div className="w-8 h-8 bg-gradient-to-br from-retro-purple to-retro-pink rounded-lg flex items-center justify-center mx-auto shadow-lg">
+                    <span className="text-sm">📈</span>
+                  </div>
+                  <div className="text-2xl font-bold text-white font-pixel drop-shadow-lg">
                     {statusHistory.length}
                   </div>
-                  <div className="text-xs text-retro-textMuted">总记录数</div>
+                  <div className="text-xs text-retro-textMuted font-retro tracking-wide">TOTAL</div>
                 </div>
-                <div>
-                  <div className="text-lg font-bold text-white">
+                
+                {/* 最常用状态 */}
+                <div className="text-center space-y-2 bg-gradient-to-br from-retro-yellow/10 to-retro-orange/10 rounded-lg p-4 border border-retro-yellow/20">
+                  <div className="w-8 h-8 bg-gradient-to-br from-retro-yellow to-retro-orange rounded-lg flex items-center justify-center mx-auto shadow-lg">
+                    <span className="text-sm">⭐</span>
+                  </div>
+                  <div className="text-2xl font-bold text-white font-pixel drop-shadow-lg">
                     {statusHistoryManager.getStatusHistoryStats(userId).mostUsedStatus === 'working' ? '💼' : 
                      statusHistoryManager.getStatusHistoryStats(userId).mostUsedStatus === 'break' ? '☕' :
                      statusHistoryManager.getStatusHistoryStats(userId).mostUsedStatus === 'reading' ? '📚' :
                      statusHistoryManager.getStatusHistoryStats(userId).mostUsedStatus === 'meeting' ? '👥' :
                      statusHistoryManager.getStatusHistoryStats(userId).mostUsedStatus === 'lunch' ? '🍽️' : '🚻'}
                   </div>
-                  <div className="text-xs text-retro-textMuted">最常用</div>
+                  <div className="text-xs text-retro-textMuted font-retro tracking-wide">POPULAR</div>
                 </div>
               </div>
             </div>

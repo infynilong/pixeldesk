@@ -154,177 +154,301 @@ const WorkstationInfoModal = memo(({
   const timeInfo = bindingInfo ? calculateTimeInfo(bindingInfo.boundAt) : null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* 半透明背景 */}
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* 现代像素风格背景 */}
       <div 
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        className="absolute inset-0 bg-gradient-to-br from-black/60 via-retro-bg-dark/80 to-black/60 backdrop-blur-md animate-fade-in"
         onClick={handleClose}
       />
       
-      {/* 弹窗容器 */}
-      <div className="relative bg-gray-900 border border-green-500/30 rounded-xl p-4 w-full max-w-sm mx-4 shadow-2xl">
-        {/* 关闭按钮 */}
+      {/* 模态框容器 - 现代像素艺术设计 */}
+      <div className="relative bg-gradient-to-br from-retro-bg-darker/95 via-retro-bg-dark/90 to-retro-bg-darker/95 backdrop-blur-xl border-2 border-retro-border rounded-2xl p-6 w-full max-w-md shadow-2xl shadow-retro-green/20 animate-slide-in-up">
+        {/* 装饰性光效 */}
+        <div className="absolute inset-0 bg-gradient-to-br from-retro-green/5 via-retro-cyan/8 to-retro-blue/5 rounded-2xl animate-pulse"></div>
+        <div className="absolute inset-0 border border-retro-green/20 rounded-2xl animate-pulse"></div>
+        
+        {/* 关闭按钮 - 像素化设计 */}
         <button
           onClick={handleClose}
-          className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors"
+          className="absolute top-4 right-4 w-8 h-8 bg-gradient-to-br from-retro-red/20 to-retro-orange/20 hover:from-retro-red/30 hover:to-retro-orange/30 text-white/80 hover:text-white rounded-lg border-2 border-retro-red/30 hover:border-retro-red/50 transition-all duration-200 flex items-center justify-center shadow-lg group"
         >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
+          <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg"></div>
+          <span className="relative font-bold">✕</span>
         </button>
 
-        {/* 标题 */}
-        <div className="mb-4">
-          <h2 className="text-lg font-bold text-white mb-1">工位信息</h2>
-          <div className="w-8 h-1 bg-gradient-to-r from-retro-green to-retro-blue rounded"></div>
+        {/* 标题区域 - 现代像素艺术风格 */}
+        <div className="relative mb-6">
+          <div className="flex items-center gap-4 mb-4">
+            {/* 工位图标 */}
+            <div className="w-12 h-12 bg-gradient-to-br from-retro-green via-retro-cyan to-retro-blue rounded-xl flex items-center justify-center shadow-xl border-2 border-white/20">
+              <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-white/5 rounded-xl"></div>
+              <span className="relative text-2xl drop-shadow-lg">🏢</span>
+            </div>
+            
+            {/* 标题文本 */}
+            <div className="flex-1">
+              <h2 className="text-white text-xl font-bold font-pixel tracking-wide drop-shadow-sm">
+                WORKSTATION INFO
+              </h2>
+              <div className="flex items-center gap-2 mt-1">
+                <div className="w-2 h-2 bg-retro-green rounded-full animate-pulse"></div>
+                <span className="text-retro-textMuted text-xs font-retro tracking-wide">RENTAL DETAILS</span>
+              </div>
+            </div>
+          </div>
+          
+          {/* 装饰性分割线 */}
+          <div className="w-16 h-2 bg-gradient-to-r from-retro-green via-retro-cyan to-retro-blue rounded-full shadow-lg"></div>
         </div>
 
-        {/* 加载状态 */}
+        {/* 加载状态 - 像素化加载器 */}
         {loading && (
-          <div className="flex items-center justify-center py-8">
-            <div className="w-6 h-6 border-2 border-green-500 border-t-transparent rounded-full animate-spin"></div>
-            <span className="ml-2 text-gray-400">加载中...</span>
+          <div className="flex flex-col items-center justify-center py-12 space-y-4">
+            <div className="relative">
+              <div className="w-12 h-12 bg-gradient-to-br from-retro-green/20 to-retro-cyan/20 rounded-xl flex items-center justify-center border-2 border-retro-green/30 animate-pulse">
+                <div className="w-6 h-6 border-2 border-retro-green border-t-transparent rounded-full animate-spin"></div>
+              </div>
+              <div className="absolute inset-0 border-2 border-retro-green/20 rounded-xl animate-ping"></div>
+            </div>
+            <div className="text-center space-y-2">
+              <div className="text-white font-bold font-pixel text-sm tracking-wide">LOADING</div>
+              <div className="text-retro-textMuted text-xs font-retro">Fetching workstation data...</div>
+            </div>
           </div>
         )}
 
-        {/* 错误状态 */}
+        {/* 错误状态 - 像素化错误显示 */}
         {error && (
-          <div className="mb-6 p-4 bg-red-500/20 border border-red-500/30 rounded-lg">
-            <p className="text-red-400 text-sm">{error}</p>
+          <div className="relative mb-6">
+            <div className="absolute inset-0 bg-gradient-to-r from-retro-red/10 to-retro-orange/10 rounded-xl opacity-60 pointer-events-none"></div>
+            <div className="relative bg-gradient-to-br from-retro-red/15 to-retro-orange/15 backdrop-blur-sm border-2 border-retro-red/30 rounded-xl p-4 shadow-lg">
+              <div className="absolute inset-0 bg-retro-red/5 rounded-xl animate-pulse"></div>
+              <div className="relative flex items-center gap-3">
+                <div className="w-8 h-8 bg-gradient-to-br from-retro-red to-retro-orange rounded-lg flex items-center justify-center shadow-lg">
+                  <span className="text-sm">⚠️</span>
+                </div>
+                <div>
+                  <div className="text-retro-red font-bold text-sm font-pixel tracking-wide">ERROR</div>
+                  <p className="text-retro-red/80 text-xs font-retro">{error}</p>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
-        {/* 绑定信息 */}
+        {/* 绑定信息 - 现代像素风格 */}
         {bindingInfo && timeInfo && (
-          <div className="space-y-3 max-h-[60vh] overflow-y-auto">
-            {/* 用户信息 - 横向布局 */}
+          <div className="relative space-y-5 max-h-[60vh] overflow-y-auto pr-2 scrollbar-hide">
+            {/* 背景装饰 */}
+            <div className="absolute inset-0 bg-gradient-to-br from-retro-green/2 via-retro-cyan/4 to-retro-blue/2 rounded-xl opacity-60 pointer-events-none"></div>
+            
+            {/* 用户信息 - 像素艺术卡片 */}
             {userInfo && (
-              <div className="bg-gray-800/50 rounded-lg p-3">
-                <h3 className="text-xs font-medium text-gray-400 mb-2">绑定用户</h3>
-                <div className="flex items-center space-x-3">
-                  {userInfo.avatar ? (
-                    <img 
-                      src={userInfo.avatar} 
-                      alt={userInfo.name}
-                      className="w-8 h-8 rounded-full object-cover flex-shrink-0"
-                    />
-                  ) : (
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-r from-retro-purple to-retro-pink flex items-center justify-center flex-shrink-0">
-                      <span className="text-white font-bold text-xs">
-                        {userInfo.name.charAt(0).toUpperCase()}
-                      </span>
+              <div className="relative group">
+                <div className="absolute inset-0 bg-gradient-to-r from-retro-purple/5 to-retro-pink/5 rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
+                <div className="relative bg-gradient-to-br from-retro-bg-dark/50 to-retro-bg-darker/50 backdrop-blur-sm border-2 border-retro-border/50 rounded-xl p-4 shadow-lg hover:border-retro-purple/40 transition-all duration-300">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-6 h-6 bg-gradient-to-br from-retro-purple/30 to-retro-pink/30 rounded-lg flex items-center justify-center shadow-lg">
+                      <span className="text-sm">👤</span>
                     </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <div className="text-white text-sm font-medium truncate">{userInfo.name}</div>
-                    <div className="flex items-center justify-between mt-1">
-                      <span className="text-yellow-400 text-xs font-bold">{userInfo.points} 积分</span>
-                      <span className="text-gray-400 text-xs">{userInfo.id.slice(0, 8)}...</span>
+                    <h3 className="text-white font-bold text-sm font-pixel tracking-wide">BOUND USER</h3>
+                  </div>
+                  <div className="flex items-center space-x-4">
+                    {userInfo.avatar ? (
+                      <div className="relative">
+                        <img 
+                          src={userInfo.avatar} 
+                          alt={userInfo.name}
+                          className="w-12 h-12 rounded-xl object-cover flex-shrink-0 border-2 border-white/20 shadow-lg"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-white/5 rounded-xl"></div>
+                      </div>
+                    ) : (
+                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-retro-purple to-retro-pink flex items-center justify-center flex-shrink-0 border-2 border-white/20 shadow-lg">
+                        <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-white/5 rounded-xl"></div>
+                        <span className="relative text-white font-bold text-base font-pixel drop-shadow-lg">
+                          {userInfo.name.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0 space-y-2">
+                      <div className="text-white text-base font-bold font-pixel tracking-wide truncate">{userInfo.name}</div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="w-4 h-4 bg-gradient-to-br from-retro-yellow/30 to-retro-orange/30 rounded flex items-center justify-center">
+                            <span className="text-xs">💎</span>
+                          </div>
+                          <span className="text-retro-yellow text-sm font-bold font-pixel">{userInfo.points}</span>
+                        </div>
+                        <span className="text-retro-textMuted text-xs font-retro tracking-wide">{userInfo.id.slice(0, 8)}...</span>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* 工位基本信息 - 紧凑布局 */}
-            <div className="bg-gray-800/50 rounded-lg p-3">
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <div className="text-xs text-gray-400">工位ID</div>
-                  <div className="text-white text-sm font-mono">{workstationId}</div>
-                </div>
-                <div>
-                  <div className="text-xs text-gray-400">绑定费用</div>
-                  <div className="text-yellow-400 text-sm font-bold">{bindingInfo.cost} 积分</div>
-                </div>
-              </div>
-            </div>
-
-            {/* 时间信息 - 紧凑布局 */}
-            <div className="bg-gray-800/50 rounded-lg p-3">
-              <h3 className="text-xs font-medium text-gray-400 mb-2">租赁时间</h3>
-              <div className="space-y-1">
-                <div className="flex justify-between text-xs">
-                  <span className="text-gray-400">开始:</span>
-                  <span className="text-white">{timeInfo.rentalStart}</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-gray-400">到期:</span>
-                  <span className={`font-medium ${timeInfo.isExpired ? 'text-red-400' : 'text-green-400'}`}>
-                    {timeInfo.rentalEnd}
-                  </span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-gray-400">时长:</span>
-                  <span className="text-white">{timeInfo.totalDays} 天</span>
-                </div>
-              </div>
-            </div>
-
-            {/* 使用情况和进度 - 组合布局 */}
-            <div className="bg-gray-800/50 rounded-lg p-3">
-              <h3 className="text-xs font-medium text-gray-400 mb-2">使用情况</h3>
-              <div className="space-y-2">
-                <div className="flex justify-between text-xs">
-                  <span className="text-gray-400">已用:</span>
-                  <span className="text-blue-400 font-medium">{timeInfo.timeUsed}</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-gray-400">剩余:</span>
-                  <span className={`font-medium ${timeInfo.isExpired ? 'text-red-400' : 'text-green-400'}`}>
-                    {timeInfo.timeRemaining}
-                  </span>
-                </div>
-                
-                {/* 进度条 */}
-                <div className="pt-1">
-                  <div className="flex justify-between text-xs text-gray-400 mb-1">
-                    <span>进度</span>
-                    <span>{Math.round(timeInfo.usagePercentage)}%</span>
+            {/* 工位基本信息 - 像素化信息卡片 */}
+            <div className="relative group">
+              <div className="absolute inset-0 bg-gradient-to-r from-retro-cyan/5 to-retro-blue/5 rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
+              <div className="relative bg-gradient-to-br from-retro-bg-dark/50 to-retro-bg-darker/50 backdrop-blur-sm border-2 border-retro-border/50 rounded-xl p-4 shadow-lg hover:border-retro-cyan/40 transition-all duration-300">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-6 h-6 bg-gradient-to-br from-retro-cyan/30 to-retro-blue/30 rounded-lg flex items-center justify-center shadow-lg">
+                    <span className="text-sm">🏢</span>
                   </div>
-                  <div className="w-full bg-gray-700 rounded-full h-1.5">
-                    <div 
-                      className={`h-1.5 rounded-full transition-all duration-300 ${
-                        timeInfo.isExpired 
-                          ? 'bg-red-500' 
-                          : 'bg-gradient-to-r from-retro-green to-retro-blue'
-                      }`}
-                      style={{ 
-                        width: `${timeInfo.usagePercentage}%` 
-                      }}
-                    ></div>
+                  <h3 className="text-white font-bold text-sm font-pixel tracking-wide">WORKSTATION</h3>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <div className="text-xs text-retro-textMuted font-pixel tracking-wide">ID</div>
+                    <div className="text-white text-base font-bold font-retro">{workstationId}</div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="text-xs text-retro-textMuted font-pixel tracking-wide">RENTAL COST</div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 bg-gradient-to-br from-retro-yellow/30 to-retro-orange/30 rounded flex items-center justify-center">
+                        <span className="text-xs">💰</span>
+                      </div>
+                      <span className="text-retro-yellow text-sm font-bold font-pixel">{bindingInfo.cost}</span>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* 状态指示器 - 更紧凑 */}
-            <div className={`p-2 rounded-lg border ${
+            {/* 时间信息 - 像素化时间卡片 */}
+            <div className="relative group">
+              <div className="absolute inset-0 bg-gradient-to-r from-retro-green/5 to-retro-cyan/5 rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
+              <div className="relative bg-gradient-to-br from-retro-bg-dark/50 to-retro-bg-darker/50 backdrop-blur-sm border-2 border-retro-border/50 rounded-xl p-4 shadow-lg hover:border-retro-green/40 transition-all duration-300">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-6 h-6 bg-gradient-to-br from-retro-green/30 to-retro-cyan/30 rounded-lg flex items-center justify-center shadow-lg">
+                    <span className="text-sm">⏰</span>
+                  </div>
+                  <h3 className="text-white font-bold text-sm font-pixel tracking-wide">RENTAL TIME</h3>
+                </div>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between bg-gradient-to-r from-retro-bg-darker/30 to-retro-bg-dark/30 rounded-lg p-2 border border-retro-border/30">
+                    <span className="text-retro-textMuted text-xs font-pixel tracking-wide">START</span>
+                    <span className="text-white text-xs font-retro">{timeInfo.rentalStart}</span>
+                  </div>
+                  <div className="flex items-center justify-between bg-gradient-to-r from-retro-bg-darker/30 to-retro-bg-dark/30 rounded-lg p-2 border border-retro-border/30">
+                    <span className="text-retro-textMuted text-xs font-pixel tracking-wide">EXPIRES</span>
+                    <span className={`text-xs font-bold font-retro ${timeInfo.isExpired ? 'text-retro-red' : 'text-retro-green'}`}>
+                      {timeInfo.rentalEnd}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between bg-gradient-to-r from-retro-bg-darker/30 to-retro-bg-dark/30 rounded-lg p-2 border border-retro-border/30">
+                    <span className="text-retro-textMuted text-xs font-pixel tracking-wide">DURATION</span>
+                    <span className="text-white text-xs font-retro">{timeInfo.totalDays} DAYS</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 使用情况和进度 - 像素化进度卡片 */}
+            <div className="relative group">
+              <div className="absolute inset-0 bg-gradient-to-r from-retro-blue/5 to-retro-purple/5 rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
+              <div className="relative bg-gradient-to-br from-retro-bg-dark/50 to-retro-bg-darker/50 backdrop-blur-sm border-2 border-retro-border/50 rounded-xl p-4 shadow-lg hover:border-retro-blue/40 transition-all duration-300">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-6 h-6 bg-gradient-to-br from-retro-blue/30 to-retro-purple/30 rounded-lg flex items-center justify-center shadow-lg">
+                    <span className="text-sm">📈</span>
+                  </div>
+                  <h3 className="text-white font-bold text-sm font-pixel tracking-wide">USAGE STATUS</h3>
+                </div>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-gradient-to-r from-retro-bg-darker/30 to-retro-bg-dark/30 rounded-lg p-3 border border-retro-border/30">
+                      <div className="text-xs text-retro-textMuted font-pixel tracking-wide mb-1">USED</div>
+                      <div className="text-retro-blue text-sm font-bold font-retro">{timeInfo.timeUsed}</div>
+                    </div>
+                    <div className="bg-gradient-to-r from-retro-bg-darker/30 to-retro-bg-dark/30 rounded-lg p-3 border border-retro-border/30">
+                      <div className="text-xs text-retro-textMuted font-pixel tracking-wide mb-1">REMAINING</div>
+                      <div className={`text-sm font-bold font-retro ${timeInfo.isExpired ? 'text-retro-red' : 'text-retro-green'}`}>
+                        {timeInfo.timeRemaining}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* 像素化进度条 */}
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-retro-textMuted font-pixel tracking-wide">PROGRESS</span>
+                      <span className="text-xs text-white font-bold font-pixel">{Math.round(timeInfo.usagePercentage)}%</span>
+                    </div>
+                    <div className="relative w-full bg-gradient-to-r from-retro-bg-darker to-retro-bg-dark rounded-full h-3 border border-retro-border/30 shadow-inner">
+                      <div 
+                        className={`h-full rounded-full transition-all duration-500 shadow-lg ${
+                          timeInfo.isExpired 
+                            ? 'bg-gradient-to-r from-retro-red to-retro-orange' 
+                            : 'bg-gradient-to-r from-retro-green via-retro-cyan to-retro-blue'
+                        }`}
+                        style={{ 
+                          width: `${Math.min(100, timeInfo.usagePercentage)}%` 
+                        }}
+                      >
+                        <div className="absolute inset-0 bg-white/20 rounded-full animate-pulse"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 状态指示器 - 像素化状态卡片 */}
+            <div className={`relative group bg-gradient-to-br backdrop-blur-sm rounded-xl p-4 border-2 shadow-lg transition-all duration-300 ${
               timeInfo.isExpired 
-                ? 'bg-red-500/20 border-red-500/30' 
-                : 'bg-green-500/20 border-green-500/30'
+                ? 'from-retro-red/15 to-retro-orange/15 border-retro-red/30 hover:border-retro-red/50' 
+                : 'from-retro-green/15 to-retro-cyan/15 border-retro-green/30 hover:border-retro-green/50'
             }`}>
-              <div className="flex items-center justify-center gap-2">
-                <div className={`w-2 h-2 rounded-full ${
-                  timeInfo.isExpired ? 'bg-red-400' : 'bg-green-400 animate-pulse'
-                }`}></div>
-                <span className={`text-xs font-medium ${
-                  timeInfo.isExpired ? 'text-red-400' : 'text-green-400'
+              <div className={`absolute inset-0 rounded-xl animate-pulse opacity-50 ${
+                timeInfo.isExpired ? 'bg-retro-red/5' : 'bg-retro-green/5'
+              }`}></div>
+              <div className="relative flex items-center justify-center gap-3">
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shadow-lg border border-white/20 ${
+                  timeInfo.isExpired 
+                    ? 'bg-gradient-to-br from-retro-red/30 to-retro-orange/30' 
+                    : 'bg-gradient-to-br from-retro-green/30 to-retro-cyan/30'
                 }`}>
-                  {timeInfo.isExpired ? '租赁已过期' : '租赁有效中'}
-                </span>
+                  <span className="text-lg">{timeInfo.isExpired ? '🛑' : '✅'}</span>
+                </div>
+                <div className="text-center">
+                  <div className={`text-sm font-bold font-pixel tracking-wide ${
+                    timeInfo.isExpired ? 'text-retro-red' : 'text-retro-green'
+                  }`}>
+                    {timeInfo.isExpired ? 'EXPIRED' : 'ACTIVE'}
+                  </div>
+                  <div className="text-xs text-retro-textMuted font-retro">
+                    {timeInfo.isExpired ? 'Rental period ended' : 'Rental in progress'}
+                  </div>
+                </div>
+                <div className={`w-3 h-3 rounded-full shadow-lg ${
+                  timeInfo.isExpired ? 'bg-retro-red' : 'bg-retro-green animate-pulse'
+                }`}></div>
               </div>
             </div>
           </div>
         )}
 
-        {/* 底部按钮 */}
-        <div className="flex gap-2 mt-4 pt-3 border-t border-gray-700">
+        {/* 底部按钮 - 现代像素风格 */}
+        <div className="relative flex gap-3 mt-6 pt-6 border-t-2 border-retro-border/50">
+          {/* 背景装饰 */}
+          <div className="absolute inset-0 bg-gradient-to-r from-retro-green/3 via-retro-cyan/5 to-retro-blue/3 opacity-60 pointer-events-none rounded-xl"></div>
+          
+          {/* 关闭按钮 */}
           <button
             onClick={handleClose}
-            className="flex-1 py-2 px-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm font-medium transition-all duration-200"
+            className="relative flex-1 group overflow-hidden bg-gradient-to-r from-retro-bg-dark/80 to-retro-bg-darker/80 hover:from-retro-border/60 hover:to-retro-border/80 text-white font-medium py-3 px-4 rounded-xl border-2 border-retro-border hover:border-retro-cyan/60 transition-all duration-300 shadow-lg hover:shadow-xl backdrop-blur-sm transform hover:scale-[1.02] active:scale-[0.98]"
           >
-            关闭
+            {/* 按钮光效 */}
+            <div className="absolute inset-0 bg-gradient-to-r from-retro-cyan/5 to-retro-blue/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+            
+            {/* 按钮内容 */}
+            <div className="relative flex items-center justify-center gap-2">
+              <div className="w-5 h-5 bg-retro-cyan/20 rounded-lg flex items-center justify-center group-hover:bg-retro-cyan/30 transition-all duration-200">
+                <span className="text-sm">✅</span>
+              </div>
+              <span className="font-pixel text-sm tracking-wide">CLOSE</span>
+            </div>
           </button>
         </div>
       </div>
