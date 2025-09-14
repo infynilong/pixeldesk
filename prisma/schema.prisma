@@ -26,6 +26,8 @@ model User {
   posts                    Post[]
   postReplies              PostReply[]
   postLikes                PostLike[]
+  notifications            Notification[]
+  relatedNotifications     Notification[] @relation("NotificationRelatedUser")
 
   @@map("users")
 }
@@ -167,9 +169,10 @@ model Post {
   viewCount   Int         @default(0)
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
-  author      User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  author      User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
   replies     PostReply[]
   likes       PostLike[]
+  notifications Notification[]
 
   @@index([createdAt])
   @@index([authorId])
@@ -210,4 +213,32 @@ enum PostType {
   TEXT
   IMAGE
   MIXED
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String           // 接收通知的用户
+  type      NotificationType
+  title     String
+  message   String
+  isRead    Boolean          @default(false)
+  relatedPostId String?      // 相关的帖子ID（用于回复通知）
+  relatedReplyId String?     // 相关的回复ID
+  relatedUserId String?      // 触发通知的用户ID（比如回复者）
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  relatedPost Post?          @relation(fields: [relatedPostId], references: [id], onDelete: Cascade)
+  relatedUser User?          @relation("NotificationRelatedUser", fields: [relatedUserId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+  @@map("notifications")
+}
+
+enum NotificationType {
+  POST_REPLY      // 有人回复了你的帖子
+  POST_LIKE       // 有人点赞了你的帖子
+  SYSTEM          // 系统通知
 }

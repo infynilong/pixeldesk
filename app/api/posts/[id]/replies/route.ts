@@ -106,10 +106,21 @@ export async function POST(
       )
     }
 
-    // 验证帖子存在
+    // 验证帖子存在，并获取作者信息
     const post = await prisma.post.findUnique({
       where: { id: postId },
-      select: { id: true }
+      select: { 
+        id: true, 
+        authorId: true,
+        title: true,
+        content: true,
+        author: {
+          select: {
+            id: true,
+            name: true
+          }
+        }
+      }
     })
 
     if (!post) {
@@ -156,6 +167,22 @@ export async function POST(
         where: { id: postId },
         data: { replyCount: { increment: 1 } }
       })
+
+      // 创建通知：如果回复者不是帖子作者，为帖子作者创建通知
+      if (post.authorId !== userId) {
+        await tx.notification.create({
+          data: {
+            userId: post.authorId, // 帖子作者接收通知
+            type: 'POST_REPLY',
+            title: '新的回复',
+            message: `${user.name} 回复了你的帖子${post.title ? `"${post.title}"` : ''}`,
+            relatedPostId: postId,
+            relatedReplyId: reply.id,
+            relatedUserId: userId // 回复者
+          }
+        })
+        console.log(`✅ [PostReply] 已为用户 ${post.authorId} 创建回复通知`)
+      }
 
       return reply
     })

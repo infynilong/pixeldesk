@@ -2,6 +2,8 @@ export interface SocialUser {
   id: string
   name: string
   avatar?: string | null
+  isOnline?: boolean
+  lastSeen?: string | null
 }
 
 export interface Post {

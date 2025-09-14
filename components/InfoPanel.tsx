@@ -4,6 +4,8 @@ import { ReactNode } from 'react'
 import TabManager, { TabType } from './TabManager'
 import StatusInfoTab from './tabs/StatusInfoTab'
 import PlayerInteractionTab from './tabs/PlayerInteractionTab'
+import MyPostsTab from './tabs/MyPostsTab'
+import NotificationsTab from './tabs/NotificationsTab'
 
 interface InfoPanelProps {
   children: ReactNode
@@ -30,7 +32,7 @@ export default function InfoPanel({
   const tabs: TabType[] = [
     {
       id: 'status-info',
-      label: '状态信息',
+      label: 'Profile',
       icon: '📊',
       component: (props: any) => (
         <StatusInfoTab
@@ -45,8 +47,22 @@ export default function InfoPanel({
       priority: 1
     },
     {
+      id: 'my-posts',
+      label: 'Posts',
+      icon: '📝',
+      component: MyPostsTab,
+      priority: 1.5
+    },
+    {
+      id: 'notifications',
+      label: 'Inbox',
+      icon: '📮',
+      component: NotificationsTab,
+      priority: 1.8
+    },
+    {
       id: 'player-interaction',
-      label: '社交动态',
+      label: 'Social',
       icon: '💬',
       component: PlayerInteractionTab,
       autoSwitch: true,

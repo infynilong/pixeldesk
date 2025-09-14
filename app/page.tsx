@@ -134,6 +134,40 @@ export default function Home() {
   const [deviceType, setDeviceType] = useState<'mobile' | 'tablet' | 'desktop'>('desktop')
   const [isTablet, setIsTablet] = useState(false)
 
+  // 加载当前用户的工位绑定信息
+  const loadUserWorkstationBinding = useCallback(async () => {
+    try {
+      const userData = localStorage.getItem('pixelDeskUser')
+      if (userData) {
+        const user = JSON.parse(userData)
+        const response = await fetch(`/api/workstations/user-bindings?userId=${user.id}`)
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success) {
+            if (data.data.length > 0) {
+              // 获取最新的绑定记录
+              const latestBinding = data.data[0]
+              setCurrentUser((prev: any) => ({
+                ...prev,
+                workstationId: latestBinding.workstationId
+              }))
+              console.log('✅ [loadUserWorkstationBinding] 工位绑定已加载:', latestBinding.workstationId)
+            } else {
+              // 没有绑定记录，确保清除工位ID
+              setCurrentUser((prev: any) => ({
+                ...prev,
+                workstationId: null
+              }))
+              console.log('⚠️ [loadUserWorkstationBinding] 用户未绑定工位')
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to load user workstation binding:', error)
+    }
+  }, [])
+
   // 检测移动设备和加载用户数据
   useEffect(() => {
     const checkDeviceType = () => {
@@ -163,31 +197,6 @@ export default function Home() {
         }
       } catch (error) {
         console.warn('Failed to load user data:', error)
-      }
-    }
-    
-        
-    // 加载当前用户的工位绑定信息
-    const loadUserWorkstationBinding = async () => {
-      try {
-        const userData = localStorage.getItem('pixelDeskUser')
-        if (userData) {
-          const user = JSON.parse(userData)
-          const response = await fetch(`/api/workstations/user-bindings?userId=${user.id}`)
-          if (response.ok) {
-            const data = await response.json()
-            if (data.success && data.data.length > 0) {
-              // 获取最新的绑定记录
-              const latestBinding = data.data[0]
-              setCurrentUser((prev: any) => ({
-                ...prev,
-                workstationId: latestBinding.workstationId
-              }))
-            }
-          }
-        }
-      } catch (error) {
-        console.warn('Failed to load user workstation binding:', error)
       }
     }
     
@@ -319,12 +328,11 @@ export default function Home() {
     const handleWorkstationBindingUpdated = (event: CustomEvent) => {
       const { userId, workstationId } = event.detail
       
-      // 如果是当前用户的工位绑定状态更新，更新本地状态
+      // 如果是当前用户的工位绑定状态更新，重新加载用户工位绑定信息
       if (currentUser && currentUser.id === userId) {
-        setCurrentUser((prev: any) => ({
-          ...prev,
-          workstationId: workstationId
-        }))
+        console.log('🔄 [handleWorkstationBindingUpdated] 检测到工位绑定状态更新，重新加载用户数据')
+        // 重新加载用户工位绑定信息，确保数据同步
+        loadUserWorkstationBinding()
         // 重新加载工位统计信息
         loadWorkstationStats()
       }
@@ -336,7 +344,7 @@ export default function Home() {
     return () => {
       window.removeEventListener('workstation-binding-updated', handleWorkstationBindingUpdated as EventListener)
     }
-  }, [currentUser, loadWorkstationStats])
+  }, [currentUser, loadWorkstationStats, loadUserWorkstationBinding])
 
   // 处理玩家碰撞事件 - 优化避免不必要重新渲染
   const handlePlayerCollision = useCallback((playerData: any) => {

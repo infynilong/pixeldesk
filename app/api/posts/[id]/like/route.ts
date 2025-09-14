@@ -18,10 +18,22 @@ export async function POST(
       )
     }
 
-    // 验证帖子存在
+    // 验证帖子存在，并获取作者信息
     const post = await prisma.post.findUnique({
       where: { id: postId },
-      select: { id: true, likeCount: true }
+      select: { 
+        id: true, 
+        likeCount: true,
+        authorId: true,
+        title: true,
+        content: true,
+        author: {
+          select: {
+            id: true,
+            name: true
+          }
+        }
+      }
     })
 
     if (!post) {
@@ -31,10 +43,10 @@ export async function POST(
       )
     }
 
-    // 验证用户存在
+    // 验证用户存在，并获取用户名
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true }
+      select: { id: true, name: true }
     })
 
     if (!user) {
@@ -86,6 +98,21 @@ export async function POST(
           where: { id: postId },
           data: { likeCount: { increment: 1 } }
         })
+
+        // 创建通知：如果点赞者不是帖子作者，为帖子作者创建点赞通知
+        if (post.authorId !== userId) {
+          await tx.notification.create({
+            data: {
+              userId: post.authorId, // 帖子作者接收通知
+              type: 'POST_LIKE',
+              title: '新的点赞',
+              message: `${user.name} 点赞了你的帖子${post.title ? `"${post.title}"` : ''}`,
+              relatedPostId: postId,
+              relatedUserId: userId // 点赞者
+            }
+          })
+          console.log(`✅ [PostLike] 已为用户 ${post.authorId} 创建点赞通知`)
+        }
       })
       
       action = 'liked'

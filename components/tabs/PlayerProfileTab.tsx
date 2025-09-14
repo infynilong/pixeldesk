@@ -64,6 +64,12 @@ export default function PlayerProfileTab({
     }
   }
 
+  const handleReplyCountUpdate = (postId: string, newCount: number) => {
+    // 这里可以选择性地触发帖子列表的刷新，或者直接更新本地状态
+    console.log(`回复计数更新：帖子 ${postId} 现在有 ${newCount} 个回复`)
+    // 目前我们依赖自然的刷新机制来更新计数
+  }
+
   // 处理滚动到底部加载更多
   const handleLoadMore = () => {
     if (pagination.hasNextPage && !isRefreshing) {
@@ -167,30 +173,18 @@ export default function PlayerProfileTab({
             <p className="text-sm text-retro-textMuted font-retro leading-tight">
               {collisionPlayer.currentStatus?.message || 'Exploring their social feed...'}
             </p>
-            {/* 用户标签 */}
-            <div className="flex items-center gap-2 pt-1">
-              <div className="px-2 py-1 bg-gradient-to-r from-retro-blue/20 to-retro-purple/20 rounded border border-retro-blue/30">
-                <span className="text-xs text-retro-blue font-bold font-pixel tracking-wide">PLAYER</span>
-              </div>
-            </div>
           </div>
           
-          {/* 刷新按钮 - 像素化设计 */}
+          {/* 刷新按钮 - 简洁设计 */}
           <button
             onClick={refreshPosts}
             disabled={isRefreshing}
-            className="group relative overflow-hidden p-3 bg-gradient-to-br from-retro-bg-dark/80 to-retro-bg-darker/80 hover:from-retro-blue/20 hover:to-retro-cyan/20 rounded-lg border-2 border-retro-border hover:border-retro-cyan/50 transition-all duration-200 disabled:opacity-50 shadow-lg"
+            className="p-2 text-retro-cyan hover:text-retro-blue hover:bg-retro-blue/10 rounded-lg transition-all duration-200 disabled:opacity-50"
             title="刷新动态"
           >
-            {/* 按钮光效 */}
-            <div className="absolute inset-0 bg-gradient-to-r from-retro-cyan/5 to-retro-blue/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            
-            {/* 刷新图标 */}
-            <div className="relative">
-              <svg className={`w-5 h-5 text-retro-cyan drop-shadow-sm ${isRefreshing ? 'animate-spin' : 'group-hover:rotate-180'} transition-transform duration-300`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-            </div>
+            <svg className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : 'hover:rotate-180'} transition-transform duration-300`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
           </button>
         </div>
       </div>
@@ -271,6 +265,7 @@ export default function PlayerProfileTab({
                     post={post}
                     currentUserId={currentUserId || ''}
                     onLike={() => handleLikePost(post.id)}
+                    onReplyCountUpdate={handleReplyCountUpdate}
                     isMobile={isMobile}
                   />
                 </div>
