@@ -10,10 +10,10 @@
 export class FocusManager {
     constructor(scene) {
         this.scene = scene;
-        this.isGameFocused = true;
+        this.isGameFocused = true;  // 默认游戏有焦点
         this.isInputFocused = false;
         this.isMouseOverUI = false;
-        this.keyboardEnabled = true;
+        this.keyboardEnabled = true;  // 默认启用键盘
         
         // 回调函数列表
         this.onFocusChangeCallbacks = [];
@@ -38,14 +38,32 @@ export class FocusManager {
         document.addEventListener('focusin', (event) => {
             const isInputElement = this.isInputElement(event.target);
             
+            console.log('🔍 Focus in event:', {
+                tagName: event.target.tagName,
+                type: event.target.type,
+                className: event.target.className,
+                id: event.target.id,
+                isInputElement: isInputElement,
+                currentInputFocused: this.isInputFocused
+            });
+            
             if (isInputElement) {
                 this.setInputFocused(true);
-                console.log('📝 Input focused, keyboard disabled for game');
+                console.log('📝 Input focused - keyboard disabled for game');
             }
         });
         
         document.addEventListener('focusout', (event) => {
             const isInputElement = this.isInputElement(event.target);
+            
+            console.log('🔍 Focus out event:', {
+                tagName: event.target.tagName,
+                type: event.target.type,
+                className: event.target.className,
+                id: event.target.id,
+                isInputElement: isInputElement,
+                currentInputFocused: this.isInputFocused
+            });
             
             if (isInputElement) {
                 // 延迟一点检查，确保焦点真的离开了输入框
@@ -53,24 +71,37 @@ export class FocusManager {
                     const activeElement = document.activeElement;
                     const stillInInput = this.isInputElement(activeElement);
                     
+                    console.log('🔍 Delayed focus check:', {
+                        activeElementTag: activeElement?.tagName,
+                        activeElementType: activeElement?.type,
+                        stillInInput: stillInInput
+                    });
+                    
                     if (!stillInInput) {
                         this.setInputFocused(false);
-                        console.log('📝 Input blurred, keyboard enabled for game');
+                        console.log('📝 Input blurred - keyboard enabled for game');
                     }
                 }, 50);
             }
         });
     }
     
-    // 检查元素是否为输入元素
+    // 检查元素是否为输入元素 - 更精确的检测
     isInputElement(element) {
         if (!element) return false;
         
-        const inputTags = ['input', 'textarea', 'select'];
         const tagName = element.tagName.toLowerCase();
         
         // 检查基本输入标签
-        if (inputTags.includes(tagName)) {
+        if (tagName === 'input' || tagName === 'textarea' || tagName === 'select') {
+            // 对于input元素，排除一些不需要文本输入的类型
+            if (tagName === 'input') {
+                const inputType = element.type.toLowerCase();
+                const nonTextInputTypes = ['button', 'submit', 'reset', 'checkbox', 'radio', 'file', 'image'];
+                if (nonTextInputTypes.includes(inputType)) {
+                    return false;
+                }
+            }
             return true;
         }
         
@@ -79,15 +110,22 @@ export class FocusManager {
             return true;
         }
         
+        // 检查是否有明确的文本输入角色
+        if (element.getAttribute('role') === 'textbox') {
+            return true;
+        }
+        
         // 检查是否在输入相关的容器内
-        const inputContainers = [
+        const inputContainerSelectors = [
+            '.form-control',
+            '.input-group',
+            '[data-input]',
             '[data-input-container]',
-            '.input-container',
-            '[role="textbox"]',
-            '[contenteditable="true"]'
+            'form input',
+            'form textarea'
         ];
         
-        for (const selector of inputContainers) {
+        for (const selector of inputContainerSelectors) {
             if (element.matches && element.matches(selector)) {
                 return true;
             }
@@ -213,11 +251,10 @@ export class FocusManager {
     
     // 更新键盘监听状态
     updateKeyboardState() {
-        // 键盘输入启用条件：
-        // 1. 游戏有焦点 AND
-        // 2. 没有输入框被聚焦 AND  
-        // 3. 鼠标不在UI元素上
-        const shouldEnable = this.isGameFocused && !this.isInputFocused && !this.isMouseOverUI;
+        // 简化的键盘输入启用条件：
+        // 只有当输入框明确被聚焦时才禁用键盘输入
+        // 这样可以避免过度限制游戏操作
+        const shouldEnable = !this.isInputFocused;
         
         if (this.keyboardEnabled !== shouldEnable) {
             this.keyboardEnabled = shouldEnable;
@@ -226,9 +263,10 @@ export class FocusManager {
             this.updatePhaserKeyboardCapture(shouldEnable);
             
             console.log(`⌨️ Keyboard input ${shouldEnable ? 'ENABLED' : 'DISABLED'} for game`);
-            console.log(`   - Game focused: ${this.isGameFocused}`);
             console.log(`   - Input focused: ${this.isInputFocused}`);
-            console.log(`   - Mouse over UI: ${this.isMouseOverUI}`);
+            if (this.isInputFocused) {
+                console.log(`   - Active element: ${document.activeElement?.tagName || 'unknown'}`);
+            }
         }
     }
     

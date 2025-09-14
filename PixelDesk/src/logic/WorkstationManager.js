@@ -1,15 +1,29 @@
 import { Player } from '../entities/Player.js';
+import { WorkstationBindingCache, AdaptiveDebounce } from '../cache/WorkstationBindingCache.js';
 
 export class WorkstationManager {
     constructor(scene) {
         this.scene = scene;
         this.workstations = new Map(); // 存储工位信息：id -> workstation对象
         this.userBindings = new Map();  // 存储用户绑定：workstationId -> userId
+        
+        // 视口优化相关属性
+        this.bindingCache = null;           // 工位绑定缓存实例
+        this.adaptiveDebounce = null;       // 自适应防抖实例
+        this.currentViewport = null;        // 当前视口信息
+        this.viewportUpdateDebounce = null; // 视口更新防抖定时器
+        this.isViewportOptimizationEnabled = false; // 视口优化开关
+        
         this.config = {
             occupiedTint: 0x888888,    // 已占用工位的颜色 (灰色，避免反色)
             highlightTint: 0xffff00,   // 高亮颜色
             highlightDuration: 500,    // 高亮持续时间
-            debugBounds: false         // 是否显示调试边界
+            debugBounds: false,        // 是否显示调试边界
+            
+            // 视口优化配置
+            viewportBuffer: 100,       // 视口缓冲区大小(像素)
+            minMoveDistance: 50,       // 最小移动距离才触发更新
+            debounceDelay: 500         // 防抖延迟(毫秒)
         };
     }
 
@@ -501,8 +515,14 @@ export class WorkstationManager {
     }
     
     async syncWorkstationBindings() {
+        // 如果启用了视口优化，使用优化的同步方法
+        if (this.isViewportOptimizationEnabled) {
+            console.log('🚀 使用视口优化同步方法');
+            return await this.syncVisibleWorkstationBindings();
+        }
+        
         // 差异化同步工位绑定状态：只更新有变化的工位，避免界面闪烁
-        console.log('开始差异化同步工位绑定状态...');
+        console.log('⚠️ 使用传统全量同步方法 - 建议启用视口优化');
         
         // 从服务器获取所有绑定
         const allBindings = await this.loadAllWorkstationBindings();
@@ -1373,7 +1393,417 @@ export class WorkstationManager {
         });
     }
     
+    // ===== 视口优化系统 =====
+    
+    /**
+     * 启用视口优化功能
+     */
+    enableViewportOptimization() {
+        if (this.isViewportOptimizationEnabled) {
+            console.log('🔄 视口优化已经启用');
+            return;
+        }
+        
+        // 初始化缓存和防抖
+        this.bindingCache = new WorkstationBindingCache({
+            itemExpiry: 30000,     // 30秒缓存
+            regionExpiry: 60000,   // 60秒区域缓存
+            maxItems: 2000,        // 适应大地图
+            maxRegions: 50,
+            gridSize: 500          // 500像素网格
+        });
+        
+        this.adaptiveDebounce = new AdaptiveDebounce(
+            this.config.debounceDelay,  // 基础延迟
+            2000                        // 最大延迟
+        );
+        
+        // 设置视口监听
+        this.setupViewportListeners();
+        
+        // 定期清理缓存
+        this.cacheCleanupInterval = setInterval(() => {
+            if (this.bindingCache) {
+                this.bindingCache.cleanup();
+            }
+        }, 60000); // 每分钟清理一次
+        
+        // 替换原有的同步方法
+        this.originalSyncMethod = this.syncWorkstationBindings;
+        this.syncWorkstationBindings = this.syncVisibleWorkstationBindings.bind(this);
+        
+        this.isViewportOptimizationEnabled = true;
+        console.log('🚀 工位视口优化已启用');
+    }
+    
+    /**
+     * 禁用视口优化功能
+     */
+    disableViewportOptimization() {
+        if (!this.isViewportOptimizationEnabled) return;
+        
+        // 清理防抖定时器
+        if (this.viewportUpdateDebounce) {
+            clearTimeout(this.viewportUpdateDebounce);
+            this.viewportUpdateDebounce = null;
+        }
+        
+        // 清理缓存清理定时器
+        if (this.cacheCleanupInterval) {
+            clearInterval(this.cacheCleanupInterval);
+            this.cacheCleanupInterval = null;
+        }
+        
+        // 恢复原有的同步方法
+        if (this.originalSyncMethod) {
+            this.syncWorkstationBindings = this.originalSyncMethod;
+        }
+        
+        // 清理缓存
+        if (this.bindingCache) {
+            this.bindingCache.clear();
+            this.bindingCache = null;
+        }
+        
+        this.adaptiveDebounce = null;
+        this.currentViewport = null;
+        this.isViewportOptimizationEnabled = false;
+        
+        console.log('🛑 工位视口优化已禁用');
+    }
+    
+    /**
+     * 设置视口变化监听器
+     */
+    setupViewportListeners() {
+        if (!this.scene.cameras?.main) {
+            console.warn('⚠️ 相机不可用，跳过视口监听设置');
+            return;
+        }
+        
+        const camera = this.scene.cameras.main;
+        
+        // 监听相机移动
+        camera.on('cameramove', () => {
+            this.onViewportChange('move');
+        });
+        
+        // 监听相机缩放
+        camera.on('camerazoom', () => {
+            this.onViewportChange('zoom');
+        });
+        
+        // 监听场景resize事件
+        this.scene.scale.on('resize', () => {
+            this.onViewportChange('resize');
+        });
+        
+        console.log('👀 视口变化监听器已设置');
+    }
+    
+    /**
+     * 处理视口变化事件
+     */
+    onViewportChange(trigger) {
+        if (!this.isViewportOptimizationEnabled) return;
+        
+        // 记录移动事件用于自适应防抖
+        if (this.adaptiveDebounce) {
+            this.adaptiveDebounce.recordMove();
+        }
+        
+        // 清除之前的防抖定时器
+        if (this.viewportUpdateDebounce) {
+            clearTimeout(this.viewportUpdateDebounce);
+        }
+        
+        // 获取最优防抖延迟
+        const delay = this.adaptiveDebounce ? 
+            this.adaptiveDebounce.getOptimalDelay() : 
+            this.config.debounceDelay;
+        
+        // 设置防抖更新
+        this.viewportUpdateDebounce = setTimeout(() => {
+            this.updateVisibleWorkstations(trigger);
+        }, delay);
+    }
+    
+    /**
+     * 更新可视范围内的工位绑定
+     */
+    async updateVisibleWorkstations(trigger) {
+        if (!this.isViewportOptimizationEnabled) return;
+        
+        const newViewport = this.getCurrentViewport();
+        
+        // 检查是否需要更新
+        if (!this.shouldUpdateViewport(newViewport, trigger)) {
+            console.log(`🚫 跳过视口更新: ${trigger}, 移动距离不足`);
+            return;
+        }
+        
+        console.log(`🔄 视口变化触发工位更新: ${trigger}, 范围: ${JSON.stringify(newViewport)}`);
+        
+        // 执行优化的同步
+        await this.syncVisibleWorkstationBindings();
+        
+        // 更新当前视口
+        this.currentViewport = newViewport;
+    }
+    
+    /**
+     * 获取当前视口信息
+     */
+    getCurrentViewport() {
+        if (!this.scene.cameras?.main) {
+            console.warn('⚠️ 相机不可用');
+            return { x: 0, y: 0, width: 800, height: 600, zoom: 1 };
+        }
+        
+        const camera = this.scene.cameras.main;
+        const buffer = this.config.viewportBuffer;
+        
+        return {
+            x: Math.floor(camera.scrollX - buffer),
+            y: Math.floor(camera.scrollY - buffer),
+            width: Math.ceil(camera.width + buffer * 2),
+            height: Math.ceil(camera.height + buffer * 2),
+            zoom: camera.zoom
+        };
+    }
+    
+    /**
+     * 判断是否需要更新视口
+     */
+    shouldUpdateViewport(newViewport, trigger) {
+        if (!this.currentViewport) return true;
+        
+        // 缩放和窗口变化总是更新
+        if (trigger === 'zoom' || trigger === 'resize') return true;
+        
+        // 移动距离检查
+        const dx = Math.abs(newViewport.x - this.currentViewport.x);
+        const dy = Math.abs(newViewport.y - this.currentViewport.y);
+        const moveDistance = Math.sqrt(dx * dx + dy * dy);
+        
+        return moveDistance >= this.config.minMoveDistance;
+    }
+    
+    /**
+     * 获取视口范围内的工位ID列表
+     */
+    getWorkstationsInViewport(viewport) {
+        return this.findWorkstationsInArea(
+            viewport.x,
+            viewport.y,
+            viewport.width,
+            viewport.height
+        ).map(w => w.id);
+    }
+    
+    /**
+     * 基于视口的优化同步方法
+     */
+    async syncVisibleWorkstationBindings() {
+        if (!this.isViewportOptimizationEnabled || !this.bindingCache) {
+            // 回退到原有方法
+            console.log('🔄 回退到原有同步方法');
+            return await this.originalSyncMethod?.call(this) || this.loadAllWorkstationBindings();
+        }
+        
+        const viewport = this.getCurrentViewport();
+        
+        // 检查区域缓存
+        if (this.bindingCache.isRegionCached(viewport)) {
+            console.log('💾 使用缓存的区域数据，跳过网络请求');
+            return;
+        }
+        
+        // 获取可视范围内的工位ID
+        const visibleIds = this.getWorkstationsInViewport(viewport);
+        if (visibleIds.length === 0) {
+            console.log('👁️ 当前视口内没有工位');
+            return;
+        }
+        
+        // 检查缓存命中情况
+        const { cached, uncached } = this.bindingCache.getCachedBindings(visibleIds);
+        
+        console.log(`📊 视口同步统计: 总计 ${visibleIds.length} 个工位, ${Object.keys(cached).length} 个缓存命中, ${uncached.length} 个需要请求`);
+        
+        // 只请求未缓存的工位
+        if (uncached.length > 0) {
+            const newBindings = await this.loadWorkstationBindingsByIds(uncached);
+            this.bindingCache.cacheBindings(newBindings);
+        }
+        
+        // 缓存这个区域的查询
+        this.bindingCache.cacheRegion(viewport, visibleIds);
+        
+        // 应用所有绑定状态
+        this.applyVisibleBindings(visibleIds);
+        
+        // 清理不可见区域的渲染元素
+        this.cleanupInvisibleBindings(visibleIds);
+    }
+    
+    /**
+     * 请求指定工位的绑定信息
+     */
+    async loadWorkstationBindingsByIds(workstationIds) {
+        try {
+            console.log(`🌐 请求 ${workstationIds.length} 个工位的绑定信息`);
+            
+            const response = await fetch('/api/workstations/visible-bindings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    workstationIds,
+                    viewport: this.getCurrentViewport()
+                })
+            });
+
+            const result = await response.json();
+            
+            if (result.success) {
+                console.log(`✅ 成功获取 ${result.data.length} 个工位绑定, 查询耗时: ${result.stats.queryTime}ms`);
+                return result.data;
+            } else {
+                console.error('❌ 获取工位绑定失败:', result.error);
+                return [];
+            }
+        } catch (error) {
+            console.error('❌ 请求工位绑定时出错:', error);
+            return [];
+        }
+    }
+    
+    /**
+     * 应用可视范围内的工位绑定状态
+     */
+    applyVisibleBindings(visibleWorkstationIds) {
+        visibleWorkstationIds.forEach(workstationId => {
+            const workstation = this.workstations.get(workstationId);
+            if (!workstation) return;
+            
+            const cachedBinding = this.bindingCache.getCachedBinding(workstationId);
+            
+            if (cachedBinding) {
+                this.applyBindingToWorkstation(workstation, cachedBinding);
+            } else {
+                this.ensureWorkstationUnbound(workstation);
+            }
+        });
+    }
+    
+    /**
+     * 应用绑定状态到工位
+     */
+    applyBindingToWorkstation(workstation, binding) {
+        // 应用绑定状态（不调用完整的绑定方法，避免API调用）
+        workstation.isOccupied = true;
+        workstation.userId = binding.userId;
+        workstation.userInfo = {
+            name: binding.user?.name,
+            avatar: binding.user?.avatar,
+            points: binding.user?.points
+        };
+        workstation.boundAt = binding.boundAt;
+        
+        this.userBindings.set(parseInt(workstation.id), binding.userId);
+        
+        // 更新视觉效果
+        if (workstation.sprite) {
+            workstation.sprite.setTint(this.config.occupiedTint);
+        }
+        
+        // 管理图标
+        this.removeInteractionIcon(workstation);
+        this.addOccupiedIcon(workstation);
+        
+        // 添加角色显示
+        this.addCharacterToWorkstation(workstation, binding.userId, workstation.userInfo);
+    }
+    
+    /**
+     * 确保工位显示为未绑定状态
+     */
+    ensureWorkstationUnbound(workstation) {
+        if (!workstation.isOccupied) return; // 已经是未绑定状态
+        
+        workstation.isOccupied = false;
+        workstation.userId = null;
+        workstation.userInfo = null;
+        this.userBindings.delete(parseInt(workstation.id));
+        
+        // 恢复视觉效果
+        if (workstation.sprite) {
+            workstation.sprite.clearTint();
+        }
+        
+        this.removeOccupiedIcon(workstation);
+        this.removeCharacterFromWorkstation(workstation);
+        this.addInteractionIcon(workstation);
+    }
+    
+    /**
+     * 清理不可见区域的渲染元素
+     */
+    cleanupInvisibleBindings(visibleWorkstationIds) {
+        const visibleSet = new Set(visibleWorkstationIds);
+        let cleanedCount = 0;
+        
+        this.workstations.forEach((workstation, id) => {
+            if (!visibleSet.has(id)) {
+                // 移除不可见工位的渲染元素，节省性能
+                this.removeCharacterFromWorkstation(workstation);
+                this.removeInteractionIcon(workstation);
+                this.removeOccupiedIcon(workstation);
+                cleanedCount++;
+            }
+        });
+        
+        if (cleanedCount > 0) {
+            console.log(`🧹 清理了 ${cleanedCount} 个不可见工位的渲染元素`);
+        }
+    }
+    
+    /**
+     * 获取视口优化统计信息
+     */
+    getViewportStats() {
+        if (!this.isViewportOptimizationEnabled) {
+            return { enabled: false };
+        }
+        
+        const viewport = this.getCurrentViewport();
+        const visibleIds = this.getWorkstationsInViewport(viewport);
+        
+        return {
+            enabled: true,
+            viewport,
+            workstations: {
+                total: this.workstations.size,
+                visible: visibleIds.length,
+                efficiency: ((visibleIds.length / this.workstations.size) * 100).toFixed(1) + '%'
+            },
+            cache: this.bindingCache ? this.bindingCache.getStats() : null,
+            debounce: this.adaptiveDebounce ? this.adaptiveDebounce.getStats() : null
+        };
+    }
+    
+    /**
+     * 手动工位绑定变更时的缓存失效
+     */
+    invalidateWorkstationBinding(workstationId) {
+        if (this.bindingCache) {
+            this.bindingCache.invalidateWorkstation(workstationId);
+        }
+    }
+    
     destroy() {
+        // 清理视口优化相关资源
+        this.disableViewportOptimization();
         // 清理所有事件监听器和交互图标
         this.workstations.forEach(workstation => {
             if (workstation.sprite) {

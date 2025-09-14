@@ -38,6 +38,8 @@ export class Start extends Phaser.Scene {
   }
 
   create() {
+    console.log('DEBUG: Start.create() method called - Phaser is running');
+    
     // 保存场景引用到全局变量，供Next.js调用
     if (typeof window !== "undefined") {
       window.saveGameScene = this.saveGameScene.bind(this)
@@ -47,6 +49,11 @@ export class Start extends Phaser.Scene {
 
       // 添加获取工位统计的全局函数
       window.getGameWorkstationStats = this.getWorkstationStats.bind(this)
+      
+      // 添加获取视口优化统计的全局函数
+      window.getViewportOptimizationStats = () => {
+        return this.workstationManager ? this.workstationManager.getViewportStats() : { enabled: false }
+      }
 
       // 快速回到工位功能
       window.teleportToWorkstation = async () => {
@@ -99,6 +106,199 @@ export class Start extends Phaser.Scene {
       window.forceCollisionTest = this.forceCollisionTest.bind(this)
       window.getPlayerInfo = this.getPlayerInfo.bind(this)
 
+      // 添加FocusManager调试函数
+      window.debugFocusManager = () => {
+        if (this.focusManager) {
+          this.focusManager.debugFocusState()
+          return this.focusManager.getFocusState()
+        }
+        return { error: 'FocusManager not initialized' }
+      }
+      window.forceEnableKeyboard = () => {
+        if (this.focusManager) {
+          this.focusManager.forceEnableKeyboard()
+          return { success: true, message: 'Keyboard forcibly enabled' }
+        }
+        return { error: 'FocusManager not initialized' }
+      }
+
+      // 添加简单的键盘控制接口
+      window.disableGameKeyboard = () => {
+        console.log('🔒 游戏键盘输入已禁用');
+        this.keyboardInputEnabled = false;
+        
+        // 彻底停用Phaser的键盘处理
+        if (this.input && this.input.keyboard) {
+          // 移除所有键盘监听
+          this.input.keyboard.removeAllKeys();
+          this.cursors = null;
+          this.wasdKeys = null;
+          
+          // 停用键盘管理器
+          this.input.keyboard.enabled = false;
+          
+          // 清除任何现有的键盘事件捕获
+          if (this.input.keyboard.capture && this.input.keyboard.capture.length > 0) {
+            this.input.keyboard.capture = [];
+          }
+          
+          // 移除canvas上的键盘事件监听
+          const canvas = this.game.canvas;
+          if (canvas) {
+            // 移除tabindex，让canvas不能获得焦点
+            canvas.removeAttribute('tabindex');
+            // 如果canvas当前有焦点，移除焦点
+            if (document.activeElement === canvas) {
+              canvas.blur();
+            }
+            
+            // 临时添加事件监听器阻止键盘事件传播到Phaser
+            this.keyboardBlockHandler = (event) => {
+              // 检查事件是否来自输入元素
+              const isFromInput = event.target.tagName.toLowerCase() === 'input' || 
+                                 event.target.tagName.toLowerCase() === 'textarea' ||
+                                 event.target.contentEditable === 'true';
+              
+              if (isFromInput) {
+                // 如果来自输入元素，不阻止事件，让输入正常工作
+                return;
+              }
+              
+              // 对于其他情况，阻止事件传播到Phaser
+              event.stopPropagation();
+            };
+            
+            // 在捕获阶段添加监听器，优先级更高
+            document.addEventListener('keydown', this.keyboardBlockHandler, true);
+            document.addEventListener('keyup', this.keyboardBlockHandler, true);
+            document.addEventListener('keypress', this.keyboardBlockHandler, true);
+          }
+          
+          // 完全禁用Phaser的keyboard插件
+          if (this.input.keyboard.manager) {
+            this.input.keyboard.manager.enabled = false;
+          }
+          
+          console.log('🔒 Phaser键盘完全禁用 - Canvas焦点已移除，DOM事件已拦截');
+        }
+        
+        return { success: true, enabled: false };
+      }
+      
+      window.enableGameKeyboard = () => {
+        console.log('🔓 游戏键盘输入已启用');
+        this.keyboardInputEnabled = true;
+        
+        // 重新启用Phaser的键盘处理
+        if (this.input && this.input.keyboard) {
+          // 移除临时的键盘事件拦截器
+          if (this.keyboardBlockHandler) {
+            document.removeEventListener('keydown', this.keyboardBlockHandler, true);
+            document.removeEventListener('keyup', this.keyboardBlockHandler, true);
+            document.removeEventListener('keypress', this.keyboardBlockHandler, true);
+            this.keyboardBlockHandler = null;
+            console.log('🔓 已移除键盘事件拦截器');
+          }
+          
+          // 重新启用键盘管理器
+          this.input.keyboard.enabled = true;
+          
+          // 重新启用Phaser的keyboard插件
+          if (this.input.keyboard.manager) {
+            this.input.keyboard.manager.enabled = true;
+          }
+          
+          // 恢复canvas的tabindex，让它可以获得焦点
+          const canvas = this.game.canvas;
+          if (canvas) {
+            canvas.setAttribute('tabindex', '0');
+          }
+          
+          // 重新创建键盘监听
+          this.cursors = this.input.keyboard.createCursorKeys();
+          this.wasdKeys = this.input.keyboard.addKeys('W,S,A,D');
+          
+          console.log('🔓 Phaser键盘完全恢复 - Canvas焦点已恢复，DOM事件拦截已移除');
+        }
+        
+        return { success: true, enabled: true };
+      }
+      
+      window.isGameKeyboardEnabled = () => {
+        return { enabled: this.keyboardInputEnabled !== false };
+      }
+
+      // 添加基础的游戏状态测试函数
+      window.testGameRunning = () => {
+        console.log('=== GAME STATUS TEST ===');
+        console.log('Scene exists:', !!this);
+        console.log('Player exists:', !!this.player);
+        console.log('Player enableMovement:', this.player?.enableMovement);
+        console.log('Player body exists:', !!this.player?.body);
+        console.log('Input keyboard exists:', !!this.input?.keyboard);
+        console.log('Scene is active:', this.scene?.isActive());
+        
+        // 强制设置玩家移动为true
+        if (this.player) {
+          this.player.enableMovement = true;
+          console.log('Forced player enableMovement to true');
+        }
+        
+        return {
+          sceneExists: !!this,
+          playerExists: !!this.player,
+          playerEnableMovement: this.player?.enableMovement,
+          playerBodyExists: !!this.player?.body,
+          keyboardExists: !!this.input?.keyboard,
+          sceneActive: this.scene?.isActive()
+        };
+      }
+
+      // 添加恢复玩家移动的全局函数
+      window.enablePlayerMovement = () => {
+        console.log('🎮 恢复玩家移动');
+        
+        // 清除工位绑定状态标志
+        this.isInWorkstationBinding = false;
+        
+        // 清除自动恢复定时器
+        if (this.playerMovementRestoreTimer) {
+          this.time.removeEvent(this.playerMovementRestoreTimer);
+          this.playerMovementRestoreTimer = null;
+          console.log('🎮 已清除自动恢复定时器');
+        }
+        
+        if (this.player && typeof this.player.enableMovement === "function") {
+          this.player.enableMovement();
+          console.log('🎮 玩家移动已恢复');
+          return { success: true, enabled: true };
+        } else if (this.player) {
+          // 如果没有enableMovement方法，直接设置属性
+          this.player.enableMovement = true;
+          console.log('🎮 玩家移动已恢复（通过属性设置）');
+          return { success: true, enabled: true };
+        }
+        console.warn('🎮 无法恢复玩家移动 - 玩家对象不存在');
+        return { success: false, error: '玩家对象不存在' };
+      }
+
+      // 添加禁用玩家移动的全局函数
+      window.disablePlayerMovement = () => {
+        console.log('🎮 禁用玩家移动');
+        if (this.player && typeof this.player.disableMovement === "function") {
+          this.player.disableMovement();
+          console.log('🎮 玩家移动已禁用');
+          return { success: true, enabled: false };
+        } else if (this.player) {
+          // 如果没有disableMovement方法，直接设置属性
+          this.player.enableMovement = false;
+          console.log('🎮 玩家移动已禁用（通过属性设置）');
+          return { success: true, enabled: false };
+        }
+        console.warn('🎮 无法禁用玩家移动 - 玩家对象不存在');
+        return { success: false, error: '玩家对象不存在' };
+      }
+
       // 触发Phaser游戏初始化完成事件
       window.dispatchEvent(new Event("phaser-game-ready"))
     }
@@ -110,8 +310,18 @@ export class Start extends Phaser.Scene {
     this.collisionDebounceTime = 100 // 防抖时间（毫秒）
     this.lastCollisionCheck = 0
     
-    // Initialize performance optimization systems
-    this.initializeOptimizationSystems()
+    console.log('🎯 碰撞检测系统已初始化:', {
+      sensitivity: this.collisionSensitivity,
+      currentCollisionsSize: this.currentCollisions.size,
+      historyLength: this.collisionHistory.length
+    })
+    
+    // Initialize performance optimization systems - 临时禁用以修复移动问题
+    // this.initializeOptimizationSystems()
+    
+    // 初始化简单的键盘输入控制
+    this.keyboardInputEnabled = true // 默认启用
+    console.log('⌨️ 简化键盘输入控制已初始化')
 
     // 获取用户数据（从场景参数或本地存储）
     const sceneData = this.scene.settings.data || {}
@@ -159,6 +369,11 @@ export class Start extends Phaser.Scene {
 
     // 初始化工位管理器
     this.workstationManager = new WorkstationManager(this)
+    
+    // 🚀 启用视口优化功能 
+    this.workstationManager.enableViewportOptimization()
+    console.log('🚀 视口优化已启用 - 将只请求可视范围工位')
+    
     // 初始化洗手间管理器
     this.washroomManager = new WashroomManager(this)
     // 初始化工位绑定UI
@@ -208,8 +423,12 @@ export class Start extends Phaser.Scene {
       this.workstationManager.clearAllBindings()
       this.workstationManager.printStatistics()
 
-      // 从服务器同步工位绑定信息
-      await this.workstationManager.syncWorkstationBindings()
+      // 从服务器同步工位绑定信息 - 重新启用，但添加错误处理
+      try {
+        await this.workstationManager.syncWorkstationBindings()
+      } catch (error) {
+        console.error('同步工位绑定失败，但游戏继续运行:', error)
+      }
 
       // 高亮当前用户的工位
       if (this.currentUser) {
@@ -219,7 +438,7 @@ export class Start extends Phaser.Scene {
       // 检查过期工位
       this.checkExpiredWorkstations()
 
-      // 设置定时同步工位状态（每30秒）
+      // 设置定时同步工位状态（每30秒）- 重新启用但添加错误处理
       this.setupWorkstationSync()
 
       // 更新UI显示用户数据（积分和工位绑定状态）
@@ -248,6 +467,23 @@ export class Start extends Phaser.Scene {
         this.player.enableMovement()
         console.log("Start.js: 游戏初始化完成，调用enableMovement()方法")
       }
+      
+      // 添加定期检查和恢复玩家移动的机制，防止被意外禁用
+      this.movementCheckTimer = this.time.addEvent({
+        delay: 2000, // 每2秒检查一次
+        callback: () => {
+          if (this.player && !this.player.enableMovement && !this.isInWorkstationBinding) {
+            console.log("🎮 检测到玩家移动被意外禁用，自动恢复");
+            if (typeof this.player.enableMovement === "function") {
+              this.player.enableMovement();
+            } else {
+              this.player.enableMovement = true;
+            }
+          }
+        },
+        callbackScope: this,
+        loop: true
+      })
     })
 
     // 发送用户数据到UI
@@ -258,9 +494,8 @@ export class Start extends Phaser.Scene {
     // 只处理需要每帧更新的核心逻辑
     this.handlePlayerMovement()
 
-    // 检查T键按下，快速回到工位（仅在游戏有焦点时）
-    if (this.focusManager && this.focusManager.shouldHandleKeyboard() && 
-        Phaser.Input.Keyboard.JustDown(this.teleportKey)) {
+    // 检查T键按下，快速回到工位（临时禁用FocusManager检查）
+    if (this.teleportKey && Phaser.Input.Keyboard.JustDown(this.teleportKey)) {
       this.handleTeleportKeyPress()
     }
 
@@ -445,30 +680,38 @@ export class Start extends Phaser.Scene {
 
   // 简化玩家移动处理逻辑
   handlePlayerMovement() {
-    if (!this.player || !this.player.body) return
+    if (!this.player || !this.player.body) {
+      console.log('DEBUG: Player or player.body is null:', !!this.player, !!this.player?.body);
+      return;
+    }
 
-    // 检查是否应该处理键盘输入（解决与Next.js输入框的冲突）
-    if (this.focusManager && !this.focusManager.shouldHandleKeyboard()) {
-      // 当输入框有焦点或鼠标在UI元素上时，停止角色移动
+    // 检查玩家enableMovement状态
+    if (!this.player.enableMovement) {
+      // console.log('DEBUG: Player movement is disabled, enableMovement =', this.player.enableMovement);
+      return;
+    }
+
+    // 检查是否应该处理键盘输入（简化版本）
+    if (this.keyboardInputEnabled === false) {
+      // 当键盘输入被禁用时，停止角色移动
       this.player.body.setVelocity(0, 0);
       return;
     }
 
-    // 手动检查键盘状态，不使用addKey避免键盘捕获
-    const keyboard = this.input.keyboard;
-    const cursors = {
-      left: { isDown: keyboard.keys[Phaser.Input.Keyboard.KeyCodes.LEFT]?.isDown || false },
-      right: { isDown: keyboard.keys[Phaser.Input.Keyboard.KeyCodes.RIGHT]?.isDown || false },
-      up: { isDown: keyboard.keys[Phaser.Input.Keyboard.KeyCodes.UP]?.isDown || false },
-      down: { isDown: keyboard.keys[Phaser.Input.Keyboard.KeyCodes.DOWN]?.isDown || false }
-    };
+    // 简化键盘检测 - 使用Phaser的基本键盘API
+    if (!this.cursors || !this.wasdKeys) {
+      // 如果键盘被禁用，不要重新创建键盘对象
+      if (this.keyboardInputEnabled === false) {
+        return;
+      }
+      
+      // 如果还没有创建键盘对象，立即创建
+      this.cursors = this.input.keyboard.createCursorKeys();
+      this.wasdKeys = this.input.keyboard.addKeys('W,S,A,D');
+    }
 
-    const wasdKeys = {
-      W: { isDown: keyboard.keys[Phaser.Input.Keyboard.KeyCodes.W]?.isDown || false },
-      A: { isDown: keyboard.keys[Phaser.Input.Keyboard.KeyCodes.A]?.isDown || false },
-      S: { isDown: keyboard.keys[Phaser.Input.Keyboard.KeyCodes.S]?.isDown || false },
-      D: { isDown: keyboard.keys[Phaser.Input.Keyboard.KeyCodes.D]?.isDown || false }
-    };
+    const cursors = this.cursors;
+    const wasdKeys = this.wasdKeys;
 
     // 将移动处理委托给Player类
     this.player.handleMovement(cursors, wasdKeys)
@@ -490,12 +733,19 @@ export class Start extends Phaser.Scene {
 
     this.events.on("user-bound", (data) => {
       // console.log('User bound event:', data);
-      // 在这里添加用户绑定后的处理逻辑
+      // 工位绑定后，让对应工位的缓存失效
+      if (this.workstationManager && data.workstationId) {
+        this.workstationManager.invalidateWorkstationBinding(data.workstationId);
+      }
     })
 
     this.events.on("user-unbound", (data) => {
       // console.log('User unbound event:', data);
-      // 在这里添加用户解绑后的处理逻辑
+      // 工位解绑后，让对应工位的缓存失效
+      if (this.workstationManager && data.workstationId) {
+        this.workstationManager.invalidateWorkstationBinding(data.workstationId);
+      }
+      
       if (this.currentUser && this.currentUser.id === data.userId) {
         // 更新用户的工位列表
         if (this.currentUser.workstations) {
@@ -1397,8 +1647,12 @@ export class Start extends Phaser.Scene {
     this.time.addEvent({
       delay: 30000, // 30秒
       callback: async () => {
-        console.log("定时同步工位状态...")
-        await this.workstationManager.syncWorkstationBindings()
+        try {
+          console.log("定时同步工位状态...")
+          await this.workstationManager.syncWorkstationBindings()
+        } catch (error) {
+          console.error('定时同步工位状态失败，跳过此次同步:', error)
+        }
       },
       callbackScope: this,
       loop: true, // 循环执行
@@ -1470,11 +1724,28 @@ export class Start extends Phaser.Scene {
     if (workstation && this.currentUser) {
       console.log("触发Next.js工位绑定弹窗")
 
+      // 设置工位绑定状态标志
+      this.isInWorkstationBinding = true
+
       // 禁用玩家移动
       if (this.player && typeof this.player.disableMovement === "function") {
         this.player.disableMovement()
         console.log("玩家移动已禁用")
       }
+
+      // 设置5秒后自动恢复玩家移动的安全机制
+      if (this.playerMovementRestoreTimer) {
+        this.time.removeEvent(this.playerMovementRestoreTimer)
+      }
+      this.playerMovementRestoreTimer = this.time.delayedCall(5000, () => {
+        console.log("🎮 安全机制：自动恢复玩家移动")
+        this.isInWorkstationBinding = false
+        if (this.player && typeof this.player.enableMovement === "function") {
+          this.player.enableMovement()
+        } else if (this.player) {
+          this.player.enableMovement = true
+        }
+      })
 
       // 调用Next.js的工位绑定回调
       if (typeof window !== "undefined" && window.onWorkstationBinding) {
@@ -1644,6 +1915,8 @@ export class Start extends Phaser.Scene {
   // 所有角色现在都通过工位绑定系统在工位旁边创建
 
   setupPlayerCollisions() {
+    console.log('🎯 设置玩家碰撞检测系统...')
+    
     // 初始化碰撞管理器
     this.collisionManager = {
       activeCollisions: new Set(),
@@ -1653,6 +1926,7 @@ export class Start extends Phaser.Scene {
     }
 
     // 设置主玩家与其他玩家的碰撞检测
+    console.log('🎯 其他玩家数量:', this.otherPlayers.size)
     this.otherPlayers.forEach((otherPlayer) => {
       this.physics.add.overlap(
         this.player,
@@ -1673,6 +1947,8 @@ export class Start extends Phaser.Scene {
 
     // 设置碰撞检测更新循环
     this.setupCollisionDetectionLoop()
+    
+    console.log('🎯 玩家碰撞检测系统设置完成')
   }
 
   // 处理玩家碰撞（带防抖机制）
@@ -1730,6 +2006,8 @@ export class Start extends Phaser.Scene {
 
   // 设置碰撞检测循环 - 优化为定时检查而不是每帧检查
   setupCollisionDetectionLoop() {
+    console.log('🎯 设置碰撞检测循环...')
+    
     // 使用定时器而不是每帧检查，大幅减少CPU使用
     this.collisionCheckTimer = this.time.addEvent({
       delay: 100, // 每100ms检查一次碰撞，比每帧(16ms)检查要高效得多
@@ -1737,6 +2015,8 @@ export class Start extends Phaser.Scene {
       callbackScope: this,
       loop: true
     })
+    
+    console.log('🎯 碰撞检测循环已设置，每100ms检查一次')
   }
 
   // 更新碰撞检测
@@ -1811,7 +2091,28 @@ export class Start extends Phaser.Scene {
       const workstations = this.workstationManager.getAllWorkstations()
 
       workstations.forEach((workstation) => {
-        if (
+        // 检查新的角色精灵结构
+        if (workstation.characterSprite && workstation.characterSprite.isOtherPlayer) {
+          const character = workstation.characterSprite
+
+          // 设置碰撞检测
+          this.physics.add.overlap(
+            this.player,
+            character,
+            (player1, player2) => {
+              // 确保是其他玩家触发了碰撞
+              if (player2.isOtherPlayer) {
+                this.handlePlayerCollision(player1, player2)
+              }
+            },
+            null,
+            this
+          )
+
+          console.log("设置工位角色碰撞检测:", character.playerData.name)
+        }
+        // 同时支持旧的结构以保持兼容性
+        else if (
           workstation.character &&
           workstation.character.player &&
           workstation.character.player.isOtherPlayer
@@ -1832,7 +2133,7 @@ export class Start extends Phaser.Scene {
             this
           )
 
-          console.log("设置工位角色碰撞检测:", character.playerData.name)
+          console.log("设置工位角色碰撞检测 (旧结构):", character.playerData.name)
         }
       })
     })

@@ -15,6 +15,19 @@ export default function CreatePostForm({ onSubmit, onCancel, isMobile = false }:
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
 
+  // 简单的键盘输入控制
+  const handleInputFocus = () => {
+    if (typeof window !== 'undefined' && (window as any).disableGameKeyboard) {
+      (window as any).disableGameKeyboard()
+    }
+  }
+
+  const handleInputBlur = () => {
+    if (typeof window !== 'undefined' && (window as any).enableGameKeyboard) {
+      (window as any).enableGameKeyboard()
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
@@ -78,6 +91,8 @@ export default function CreatePostForm({ onSubmit, onCancel, isMobile = false }:
               placeholder="Add title (optional)..."
               value={title}
               onChange={(e) => setTitle(e.target.value)}
+              onFocus={handleInputFocus}
+              onBlur={handleInputBlur}
               className="relative w-full bg-gradient-to-br from-retro-bg-dark/80 to-retro-bg-darker/80 border-2 border-retro-border focus:border-retro-blue rounded-xl px-4 py-3 text-white placeholder-retro-textMuted focus:outline-none backdrop-blur-md transition-all duration-300 font-retro text-sm focus:shadow-lg focus:shadow-retro-blue/20"
               maxLength={100}
               disabled={isSubmitting}
@@ -92,6 +107,8 @@ export default function CreatePostForm({ onSubmit, onCancel, isMobile = false }:
               placeholder="Share your thoughts..."
               value={content}
               onChange={(e) => setContent(e.target.value)}
+              onFocus={handleInputFocus}
+              onBlur={handleInputBlur}
               className="relative w-full bg-gradient-to-br from-retro-bg-dark/80 to-retro-bg-darker/80 border-2 border-retro-border focus:border-retro-purple rounded-xl px-4 py-3 text-white placeholder-retro-textMuted focus:outline-none backdrop-blur-md transition-all duration-300 font-retro text-sm resize-none focus:shadow-lg focus:shadow-retro-purple/20"
               rows={isMobile ? 3 : 4}
               maxLength={2000}

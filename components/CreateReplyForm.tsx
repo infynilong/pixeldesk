@@ -20,6 +20,19 @@ export default function CreateReplyForm({
   const [error, setError] = useState('')
   const [isInternalSubmitting, setIsInternalSubmitting] = useState(false)
 
+  // 简单的键盘输入控制
+  const handleInputFocus = () => {
+    if (typeof window !== 'undefined' && (window as any).disableGameKeyboard) {
+      (window as any).disableGameKeyboard()
+    }
+  }
+
+  const handleInputBlur = () => {
+    if (typeof window !== 'undefined' && (window as any).enableGameKeyboard) {
+      (window as any).enableGameKeyboard()
+    }
+  }
+
   const finalIsSubmitting = isSubmitting || isInternalSubmitting
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -77,6 +90,8 @@ export default function CreateReplyForm({
               placeholder="Share your thoughts..."
               value={content}
               onChange={(e) => setContent(e.target.value)}
+              onFocus={handleInputFocus}
+              onBlur={handleInputBlur}
               className="relative w-full bg-gradient-to-br from-retro-bg-dark/60 to-retro-bg-darker/60 border-2 border-retro-border focus:border-retro-blue rounded-xl px-4 py-3 text-white placeholder-retro-textMuted focus:outline-none backdrop-blur-md transition-all duration-300 font-retro text-sm resize-none focus:shadow-lg focus:shadow-retro-blue/20"
               rows={isMobile ? 2 : 3}
               maxLength={1000}
