@@ -6,6 +6,14 @@ import { EventBus, CollisionEvent } from '@/lib/eventBus'
 import { useUser } from '@/contexts/UserContext'
 import CharacterCreationModal from '@/components/CharacterCreationModal'
 import { fetchPlayerData } from '@/lib/playerSync'
+import { 
+  isFirstTimeVisitor, 
+  createTempPlayer, 
+  getTempPlayer, 
+  getTempPlayerGameData,
+  migrateTempPlayerToUser,
+  hasTempPlayer 
+} from '@/lib/tempPlayerManager'
 
 // 声明全局函数的类型
 declare global {
@@ -14,6 +22,7 @@ declare global {
     showWorkstationInfo: (workstationId: number, userId: string) => void
     showPlayerInfo: (userId: string, userInfo: any) => void
     showCharacterInfo: (userId: string, userInfo: any, position: { x: number; y: number }) => void
+    showTempPlayerAuthPrompt: (message: string) => void
     saveGameScene: (scene: any) => void
     getGameWorkstationCount: () => number
     getGameWorkstationStats: () => {
@@ -99,6 +108,12 @@ export default function Home() {
   const [playerExists, setPlayerExists] = useState<boolean | null>(null)
   const [showCharacterCreation, setShowCharacterCreation] = useState(false)
   
+  // 临时玩家状态
+  const [isTemporaryPlayer, setIsTemporaryPlayer] = useState(false)
+  const [showAuthPrompt, setShowAuthPrompt] = useState(false)
+  const [authPromptMessage, setAuthPromptMessage] = useState('')
+  const [showAuthModal, setShowAuthModal] = useState(false)
+  
   const [isMobile, setIsMobile] = useState(false)
   const [selectedPlayer, setSelectedPlayer] = useState(null)
   const [collisionPlayer, setCollisionPlayer] = useState<any>(null)
@@ -147,9 +162,17 @@ export default function Home() {
   const [deviceType, setDeviceType] = useState<'mobile' | 'tablet' | 'desktop'>('desktop')
   const [isTablet, setIsTablet] = useState(false)
 
-  // 同步认证用户数据到currentUser状态
+  // 同步认证用户数据到currentUser状态，支持临时玩家
   const syncAuthenticatedUser = useCallback(() => {
     if (user) {
+      // 用户已登录 - 处理从临时玩家到正式用户的迁移
+      const migrationResult = migrateTempPlayerToUser(user.id)
+      if (migrationResult.migrationSuccess) {
+        console.log('🔄 临时玩家已迁移到正式用户')
+      }
+      
+      setIsTemporaryPlayer(false)
+      
       // 从localStorage获取游戏相关数据（如角色、积分等）
       try {
         const gameUserData = localStorage.getItem('pixelDeskUser')
@@ -197,7 +220,29 @@ export default function Home() {
         })
       }
     } else {
-      setCurrentUser(null)
+      // 用户未登录 - 检查临时玩家或创建新的临时玩家
+      const tempPlayerData = getTempPlayerGameData()
+      
+      if (tempPlayerData) {
+        // 使用现有临时玩家
+        console.log('🎮 使用现有临时玩家:', tempPlayerData.username)
+        setCurrentUser(tempPlayerData)
+        setIsTemporaryPlayer(true)
+      } else if (isFirstTimeVisitor()) {
+        // 首次访问，创建临时玩家
+        console.log('👋 首次访问用户，创建临时玩家')
+        const newTempPlayer = createTempPlayer()
+        const tempGameData = getTempPlayerGameData()
+        
+        if (tempGameData) {
+          setCurrentUser(tempGameData)
+          setIsTemporaryPlayer(true)
+        }
+      } else {
+        // 既不是首次访问，也没有临时玩家数据
+        setCurrentUser(null)
+        setIsTemporaryPlayer(false)
+      }
     }
   }, [user])
 
@@ -294,6 +339,12 @@ export default function Home() {
           userInfo,
           position
         })
+      }
+      
+      // 设置临时玩家认证提示的全局函数
+      window.showTempPlayerAuthPrompt = (message: string) => {
+        setAuthPromptMessage(message)
+        setShowAuthPrompt(true)
       }
       
       // 监听Phaser游戏初始化完成事件
@@ -677,12 +728,15 @@ export default function Home() {
     )
   }
 
-
-  // 如果用户未登录，显示认证界面
-  if (!user) {
+  // 如果没有当前用户（既没有登录用户也没有临时玩家），直接显示游戏界面
+  // syncAuthenticatedUser会自动创建临时玩家
+  if (!currentUser) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black">
-        <AuthModal isOpen={true} onClose={() => {}} />
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-black via-gray-900 to-black">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="w-16 h-16 border-4 border-retro-purple border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-white text-lg">Preparing your gaming experience...</p>
+        </div>
       </div>
     )
   }
@@ -798,6 +852,111 @@ export default function Home() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* 认证提示弹窗 */}
+      {showAuthPrompt && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-gradient-to-br from-retro-bg-darker via-gray-900 to-retro-bg-darker border-2 border-retro-purple/30 rounded-xl p-6 w-full max-w-lg">
+            {/* 顶部装饰线 */}
+            <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-20 h-1 bg-gradient-to-r from-retro-purple to-retro-pink"></div>
+            
+            <div className="text-center mb-6">
+              <div className="w-20 h-20 bg-gradient-to-r from-retro-purple to-retro-pink rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-3xl">🚀</span>
+              </div>
+              <h3 className="text-white text-xl font-bold mb-2">解锁完整游戏体验</h3>
+              <p className="text-retro-textMuted text-sm mb-2">
+                您当前是临时玩家，正在体验基础功能
+              </p>
+              <p className="text-white text-sm">
+                {authPromptMessage}
+              </p>
+            </div>
+
+            {/* 功能对比 */}
+            <div className="mb-6 space-y-3">
+              <div className="bg-retro-bg-dark/30 rounded-lg p-3">
+                <h4 className="text-retro-purple text-sm font-semibold mb-2">注册后您将获得：</h4>
+                <div className="space-y-1 text-xs text-retro-textMuted">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-green-400">✓</span>
+                    <span>绑定专属工位</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-green-400">✓</span>
+                    <span>保存游戏进度</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-green-400">✓</span>
+                    <span>参与社交互动</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-green-400">✓</span>
+                    <span>解锁更多功能</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-between space-x-4">
+              <button
+                onClick={() => setShowAuthPrompt(false)}
+                className="text-retro-textMuted hover:text-white text-sm transition-colors"
+              >
+                稍后再说
+              </button>
+              
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => {
+                    setShowAuthPrompt(false)
+                    setShowAuthModal(true)
+                  }}
+                  className="bg-gradient-to-r from-retro-purple to-retro-pink hover:from-retro-purple/90 hover:to-retro-pink/90 text-white font-bold py-2 px-6 rounded-lg transition-all duration-200 shadow-lg hover:shadow-purple-500/25 transform hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  立即注册
+                </button>
+              </div>
+            </div>
+
+            {/* 底部提示 */}
+            <div className="mt-4 pt-4 border-t border-retro-border/30">
+              <p className="text-retro-textMuted text-xs text-center">
+                💡 注册完全免费，只需30秒即可完成
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 临时玩家状态指示器 */}
+      {isTemporaryPlayer && (
+        <div className="fixed top-4 right-4 z-40">
+          <div className="bg-gradient-to-r from-yellow-600/90 to-orange-600/90 backdrop-blur-sm rounded-lg px-4 py-2 border border-yellow-500/30">
+            <div className="flex items-center space-x-2">
+              <span className="text-white text-sm">🎮</span>
+              <span className="text-white text-sm font-medium">体验模式</span>
+              <button
+                onClick={() => {
+                  setAuthPromptMessage('注册账号即可享受完整游戏体验，包括工位绑定、进度保存等功能！')
+                  setShowAuthPrompt(true)
+                }}
+                className="text-yellow-200 hover:text-white text-xs underline transition-colors"
+              >
+                升级账号
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 临时玩家的认证模态框 */}
+      {showAuthModal && (
+        <AuthModal 
+          isOpen={showAuthModal} 
+          onClose={() => setShowAuthModal(false)}
+        />
       )}
     </div>
   )

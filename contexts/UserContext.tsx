@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { initializePlayerSync, clearPlayerFromLocalStorage } from '@/lib/playerSync'
+import { migrateTempPlayerToUser, clearTempPlayer } from '@/lib/tempPlayerManager'
 
 interface User {
   id: string
@@ -105,8 +106,17 @@ export function UserProvider({ children }: { children: ReactNode }) {
       if (response.ok && data.success) {
         // Registration successful, user is automatically logged in
         setUser(data.data)
+        
+        // 处理临时玩家迁移
+        const migrationResult = migrateTempPlayerToUser(data.data.id)
+        if (migrationResult.migrationSuccess) {
+          console.log('✅ 临时玩家数据已成功迁移到正式用户')
+        }
+        
         // Clear any existing player data from localStorage for new user
         clearPlayerFromLocalStorage()
+        clearTempPlayer() // 清理临时玩家数据
+        
         return { success: true }
       } else {
         return { success: false, error: data.error || 'Registration failed' }
