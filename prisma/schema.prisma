@@ -13,27 +13,27 @@ model User {
   createdAt                DateTime                  @default(now())
   updatedAt                DateTime                  @updatedAt
   avatar                   String?
-  email                    String?                   @unique  // 邮箱（兼容现有数据）
-  password                 String?                   // 密码字段（存储哈希后的密码，兼容现有数据）
+  email                    String?                   @unique
   gold                     Int                       @default(50)
   name                     String
-  emailVerified            Boolean                   @default(false)  // 邮箱验证状态
-  lastLogin                DateTime?                 // 最后登录时间
-  isActive                 Boolean                   @default(true)   // 账户激活状态
+  emailVerified            Boolean                   @default(false)
+  isActive                 Boolean                   @default(true)
+  lastLogin                DateTime?
+  password                 String?
   conversationParticipants ConversationParticipant[]
   sentMessages             Message[]
+  relatedNotifications     Notification[]            @relation("NotificationRelatedUser")
+  notifications            Notification[]
+  player                   Player?
+  postLikes                PostLike[]
+  postReplies              PostReply[]
+  posts                    Post[]
   statusHistory            StatusHistory[]
   timeTracking             TimeTracking[]
   onlineStatus             UserOnlineStatus?
+  sessions                 UserSession[]
   workstations             UserWorkstation[]
   workSessions             WorkSession[]
-  posts                    Post[]
-  postReplies              PostReply[]
-  postLikes                PostLike[]
-  notifications            Notification[]
-  relatedNotifications     Notification[] @relation("NotificationRelatedUser")
-  sessions                 UserSession[]
-  player                   Player?  // 用户的游戏角色（一对一关系）
 
   @@index([email])
   @@index([isActive])
@@ -73,9 +73,9 @@ model UserWorkstation {
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, workstationId])
-  @@index([workstationId])    // 新增：优化基于workstationId的IN查询
-  @@index([boundAt])          // 新增：优化过期时间查询
-  @@index([userId, boundAt])  // 新增：用户的绑定历史查询
+  @@index([workstationId])
+  @@index([boundAt])
+  @@index([userId, boundAt])
   @@map("user_workstations")
 }
 
@@ -166,24 +166,23 @@ model UserOnlineStatus {
   @@map("user_online_status")
 }
 
-// 新的社交帖子系统模型
 model Post {
-  id          String      @id @default(cuid())
-  authorId    String
-  title       String?
-  content     String
-  type        PostType    @default(TEXT)
-  imageUrl    String?
-  isPublic    Boolean     @default(true)
-  likeCount   Int         @default(0)
-  replyCount  Int         @default(0)
-  viewCount   Int         @default(0)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  author      User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  replies     PostReply[]
-  likes       PostLike[]
+  id            String         @id @default(cuid())
+  authorId      String
+  title         String?
+  content       String
+  type          PostType       @default(TEXT)
+  imageUrl      String?
+  isPublic      Boolean        @default(true)
+  likeCount     Int            @default(0)
+  replyCount    Int            @default(0)
+  viewCount     Int            @default(0)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
   notifications Notification[]
+  likes         PostLike[]
+  replies       PostReply[]
+  author        User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   @@index([createdAt])
   @@index([authorId])
@@ -198,8 +197,8 @@ model PostReply {
   content   String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
   author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@index([postId, createdAt])
   @@index([authorId])
@@ -207,12 +206,12 @@ model PostReply {
 }
 
 model PostLike {
-  id       String   @id @default(cuid())
-  postId   String
-  userId   String
-  likedAt  DateTime @default(now())
-  post     Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
-  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id      String   @id @default(cuid())
+  postId  String
+  userId  String
+  likedAt DateTime @default(now())
+  post    Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([postId, userId])
   @@index([postId])
@@ -220,72 +219,57 @@ model PostLike {
   @@map("post_likes")
 }
 
-enum PostType {
-  TEXT
-  IMAGE
-  MIXED
-}
-
 model Notification {
-  id        String           @id @default(cuid())
-  userId    String           // 接收通知的用户
-  type      NotificationType
-  title     String
-  message   String
-  isRead    Boolean          @default(false)
-  relatedPostId String?      // 相关的帖子ID（用于回复通知）
-  relatedReplyId String?     // 相关的回复ID
-  relatedUserId String?      // 触发通知的用户ID（比如回复者）
-  createdAt DateTime         @default(now())
-  updatedAt DateTime         @updatedAt
-
-  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  relatedPost Post?          @relation(fields: [relatedPostId], references: [id], onDelete: Cascade)
-  relatedUser User?          @relation("NotificationRelatedUser", fields: [relatedUserId], references: [id], onDelete: Cascade)
+  id             String           @id @default(cuid())
+  userId         String
+  type           NotificationType
+  title          String
+  message        String
+  isRead         Boolean          @default(false)
+  relatedPostId  String?
+  relatedReplyId String?
+  relatedUserId  String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  relatedPost    Post?            @relation(fields: [relatedPostId], references: [id], onDelete: Cascade)
+  relatedUser    User?            @relation("NotificationRelatedUser", fields: [relatedUserId], references: [id], onDelete: Cascade)
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, isRead])
   @@index([userId, createdAt])
   @@map("notifications")
 }
 
-enum NotificationType {
-  POST_REPLY      // 有人回复了你的帖子
-  POST_LIKE       // 有人点赞了你的帖子
-  SYSTEM          // 系统通知
-}
-
-// 游戏角色模型
 model Player {
-  id                String   @id @default(cuid())
-  userId            String   @unique        // 关联的用户ID（一对一关系）
-  playerName        String                  // 游戏内角色名
-  characterSprite   String                  // 选择的角色精灵资源名（如：Premade_Character_48x48_01）
-  gamePoints        Int      @default(50)   // 游戏内积分（独立于User.points）
-  gameGold          Int      @default(50)   // 游戏内金币（独立于User.gold）
-  currentX          Int      @default(400)  // 当前X坐标
-  currentY          Int      @default(300)  // 当前Y坐标
-  currentScene      String   @default("Start") // 当前场景
-  lastActiveAt      DateTime @default(now()) // 最后活动时间
-  playerState       Json?                   // 额外的游戏状态数据（JSON存储）
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  playerName      String
+  characterSprite String
+  gamePoints      Int      @default(50)
+  gameGold        Int      @default(50)
+  currentX        Int      @default(400)
+  currentY        Int      @default(300)
+  currentScene    String   @default("Start")
+  lastActiveAt    DateTime @default(now())
+  playerState     Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([lastActiveAt])
   @@map("players")
 }
 
-// 用户会话管理模型
 model UserSession {
   id        String   @id @default(cuid())
   userId    String
-  token     String   @unique  // JWT token或session token
-  device    String?  // 设备信息
-  ipAddress String?  // IP地址
-  userAgent String?  // 用户代理
+  token     String   @unique
+  device    String?
+  ipAddress String?
+  userAgent String?
   isActive  Boolean  @default(true)
-  expiresAt DateTime // 过期时间
+  expiresAt DateTime
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -294,4 +278,16 @@ model UserSession {
   @@index([token])
   @@index([expiresAt])
   @@map("user_sessions")
+}
+
+enum PostType {
+  TEXT
+  IMAGE
+  MIXED
+}
+
+enum NotificationType {
+  POST_REPLY
+  POST_LIKE
+  SYSTEM
 }

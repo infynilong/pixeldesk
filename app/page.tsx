@@ -239,9 +239,19 @@ export default function Home() {
           setIsTemporaryPlayer(true)
         }
       } else {
-        // 既不是首次访问，也没有临时玩家数据
-        setCurrentUser(null)
-        setIsTemporaryPlayer(false)
+        // 既不是首次访问，也没有临时玩家数据 - 创建新的临时玩家（比如用户退出登录后）
+        console.log('🔄 用户退出登录，创建新临时玩家')
+        const newTempPlayer = createTempPlayer()
+        const tempGameData = getTempPlayerGameData()
+
+        if (tempGameData) {
+          setCurrentUser(tempGameData)
+          setIsTemporaryPlayer(true)
+        } else {
+          // 如果临时玩家创建失败，设置为 null
+          setCurrentUser(null)
+          setIsTemporaryPlayer(false)
+        }
       }
     }
   }, [user])
@@ -624,17 +634,21 @@ export default function Home() {
     })
   }, [])
 
-  // 检查Player状态
+  // 检查Player状态 - 仅对正式用户检查
   useEffect(() => {
-    if (user && playerExists === null) {
+    if (user && playerExists === null && !isTemporaryPlayer) {
       fetchPlayerData().then(result => {
         setPlayerExists(result.hasPlayer)
         if (!result.hasPlayer) {
           setShowCharacterCreation(true)
         }
       })
+    } else if (isTemporaryPlayer) {
+      // 临时玩家直接设置为已有玩家，不需要创建角色
+      setPlayerExists(true)
+      setShowCharacterCreation(false)
     }
-  }, [user, playerExists])
+  }, [user, playerExists, isTemporaryPlayer])
 
   // 关闭玩家点击弹窗
   const handlePlayerClickModalClose = useCallback(() => {
@@ -741,8 +755,8 @@ export default function Home() {
     )
   }
 
-  // 如果用户已登录但没有Player，显示角色创建界面
-  if (user && playerExists === false) {
+  // 如果用户已登录但没有Player，且不是临时玩家，显示角色创建界面
+  if (user && playerExists === false && !isTemporaryPlayer) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black flex items-center justify-center">
         <CharacterCreationModal
@@ -856,7 +870,7 @@ export default function Home() {
 
       {/* 认证提示弹窗 */}
       {showAuthPrompt && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black flex items-center justify-center z-50 p-4">
           <div className="bg-gradient-to-br from-retro-bg-darker via-gray-900 to-retro-bg-darker border-2 border-retro-purple/30 rounded-xl p-6 w-full max-w-lg">
             {/* 顶部装饰线 */}
             <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-20 h-1 bg-gradient-to-r from-retro-purple to-retro-pink"></div>
@@ -932,7 +946,7 @@ export default function Home() {
 
       {/* 临时玩家状态指示器 */}
       {isTemporaryPlayer && (
-        <div className="fixed top-4 right-4 z-40">
+        <div className="fixed bottom-4 left-4 z-40">
           <div className="bg-gradient-to-r from-yellow-600/90 to-orange-600/90 backdrop-blur-sm rounded-lg px-4 py-2 border border-yellow-500/30">
             <div className="flex items-center space-x-2">
               <span className="text-white text-sm">🎮</span>

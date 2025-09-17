@@ -86,19 +86,27 @@ export class WorkstationBindingCache {
     getCachedBindings(workstationIds) {
         const cached = {};
         const uncached = [];
-        
+
+        console.log(`🔍 [getCachedBindings] 查询 ${workstationIds.length} 个工位的缓存:`, workstationIds);
+        console.log(`🗄️ [getCachedBindings] 当前缓存大小: ${this.cache.size}, 缓存键值:`, Array.from(this.cache.keys()));
+
         workstationIds.forEach(id => {
-            const binding = this.getCachedBinding(id);
+            // 确保ID为数字类型进行查询
+            const numericId = parseInt(id);
+            const binding = this.getCachedBinding(numericId);
+
+            console.log(`🔍 [getCachedBindings] 工位 ${id} (${typeof id} -> ${numericId}) 缓存结果:`, !!binding);
+
             if (binding) {
                 cached[id] = binding;
             } else {
                 uncached.push(id);
             }
         });
-        
+
         const hitRate = Object.keys(cached).length / workstationIds.length;
         console.log(`🎯 缓存命中率: ${(hitRate * 100).toFixed(1)}% (${Object.keys(cached).length}/${workstationIds.length})`);
-        
+
         return { cached, uncached };
     }
 
@@ -108,17 +116,23 @@ export class WorkstationBindingCache {
     cacheBindings(bindings) {
         const now = Date.now();
         let newCacheCount = 0;
-        
+
         bindings.forEach(binding => {
             if (binding && binding.workstationId) {
-                this.cache.set(binding.workstationId, {
+                // 确保工位ID为数字类型
+                const workstationId = parseInt(binding.workstationId);
+                this.cache.set(workstationId, {
                     data: binding,
                     timestamp: now
+                });
+                console.log(`💾 [cacheBindings] 缓存工位 ${workstationId} 绑定:`, {
+                    userId: binding.userId,
+                    userName: binding.user?.name
                 });
                 newCacheCount++;
             }
         });
-        
+
         this.limitItemCache();
         console.log(`💾 新增缓存 ${newCacheCount} 个工位绑定`);
     }

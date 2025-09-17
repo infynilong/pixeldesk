@@ -5,7 +5,6 @@ import Phaser from 'phaser'
 
 // 导入 Phaser 场景
 import { Start } from '../PixelDesk/src/scenes/Start.js'
-import { RegisterScene } from '../PixelDesk/src/scenes/RegisterScene.js'
 
 interface PhaserGameProps {
   onPlayerCollision: (playerData: any) => void
@@ -30,7 +29,6 @@ export default function PhaserGame({ onPlayerCollision, onWorkstationBinding, on
         backgroundColor: '#000000',
         pixelArt: true,
         scene: [
-          RegisterScene,
           Start
         ],
         scale: {

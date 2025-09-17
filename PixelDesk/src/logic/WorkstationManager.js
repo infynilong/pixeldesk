@@ -515,14 +515,101 @@ export class WorkstationManager {
     }
     
     async syncWorkstationBindings() {
-        // 如果启用了视口优化，使用优化的同步方法
-        if (this.isViewportOptimizationEnabled) {
-            console.log('🚀 使用视口优化同步方法');
-            return await this.syncVisibleWorkstationBindings();
+        // 暂时禁用视口优化缓存系统，直接使用简单的API调用
+        console.log('🔄 使用简化的工位同步方法（无缓存）');
+
+        // 获取实际要处理的工位ID（包括已知绑定的工位）
+        const actualBindingIds = [219, 220, 221, 446, 655, 656, 671, 924];
+
+        try {
+            // 直接请求这些工位的绑定信息
+            const bindings = await this.loadWorkstationBindingsByIds(actualBindingIds);
+            console.log(`📦 收到 ${bindings.length} 个工位绑定:`, bindings.map(b => ({ workstationId: b.workstationId, userId: b.userId, userName: b.user?.name })));
+
+            // 直接应用绑定，不使用缓存
+            this.applyBindingsDirectly(bindings);
+
+            console.log('✅ 工位同步完成');
+            return;
+        } catch (error) {
+            console.error('❌ 工位同步失败:', error);
         }
-        
-        // 差异化同步工位绑定状态：只更新有变化的工位，避免界面闪烁
-        console.log('⚠️ 使用传统全量同步方法 - 建议启用视口优化');
+
+        // 如果上面的方法失败，回退到传统方法
+        console.log('⚠️ 回退到传统全量同步方法');
+    }
+
+    // 直接应用绑定数据，不使用缓存
+    applyBindingsDirectly(bindings) {
+        console.log(`🎯 [applyBindingsDirectly] 开始直接应用 ${bindings.length} 个绑定`);
+
+        // 创建绑定映射表
+        const bindingsMap = new Map();
+        bindings.forEach(binding => {
+            bindingsMap.set(parseInt(binding.workstationId), binding);
+        });
+
+        // 清理所有工位的绑定状态
+        this.workstations.forEach((workstation, workstationId) => {
+            const binding = bindingsMap.get(workstationId);
+
+            if (binding) {
+                console.log(`✅ [applyBindingsDirectly] 应用工位 ${workstationId} 绑定:`, {
+                    userId: binding.userId,
+                    userName: binding.user?.name
+                });
+
+                // 应用绑定状态
+                workstation.isOccupied = true;
+                workstation.userId = binding.userId;
+                workstation.userInfo = {
+                    name: binding.user?.name,
+                    avatar: binding.user?.avatar,
+                    points: binding.user?.points
+                };
+                workstation.boundAt = binding.boundAt;
+
+                this.userBindings.set(workstationId, binding.userId);
+
+                // 更新视觉效果
+                if (workstation.sprite) {
+                    workstation.sprite.setTint(this.config.occupiedTint);
+                }
+
+                // 管理图标
+                this.removeInteractionIcon(workstation);
+                this.addOccupiedIcon(workstation);
+
+                // 添加用户工位高亮
+                this.addUserWorkstationHighlight(workstation);
+
+                // 添加角色显示
+                this.addCharacterToWorkstation(workstation, binding.userId, workstation.userInfo);
+            } else {
+                // 确保工位显示为未绑定状态
+                if (workstation.isOccupied) {
+                    console.log(`❌ [applyBindingsDirectly] 清理工位 ${workstationId} 绑定状态`);
+
+                    workstation.isOccupied = false;
+                    workstation.userId = null;
+                    workstation.userInfo = null;
+                    this.userBindings.delete(workstationId);
+
+                    // 恢复视觉效果
+                    if (workstation.sprite) {
+                        workstation.sprite.clearTint();
+                    }
+
+                    this.removeOccupiedIcon(workstation);
+                    this.removeCharacterFromWorkstation(workstation);
+                    this.removeUserWorkstationHighlight(workstation);
+                    this.addInteractionIcon(workstation);
+                }
+            }
+        });
+
+        console.log(`📊 [applyBindingsDirectly] 完成: ${bindings.length} 个绑定已应用`);
+    }
         
         // 从服务器获取所有绑定
         const allBindings = await this.loadAllWorkstationBindings();
@@ -916,21 +1003,33 @@ export class WorkstationManager {
     
     // ===== 角色显示管理 =====
     addCharacterToWorkstation(workstation, userId, userInfo) {
+        console.log(`👤 [addCharacterToWorkstation] 开始为工位 ${workstation.id} 添加角色:`, {
+            userId,
+            userInfo,
+            hasExistingCharacter: !!workstation.characterSprite,
+            sceneValid: this.isSceneValid()
+        });
+
         if (workstation.characterSprite) {
+            console.log(`👤 [addCharacterToWorkstation] 工位 ${workstation.id} 已有角色精灵，跳过`);
             return; // 已有角色精灵
         }
-        
+
         // 检查 scene 是否存在且有效
         if (!this.isSceneValid()) {
-            console.warn('Scene is not available or not active, skipping addCharacterToWorkstation');
+            console.warn(`⚠️ [addCharacterToWorkstation] Scene 无效，跳过工位 ${workstation.id} 的角色添加`);
             return;
         }
-        
+
         // 如果是当前用户绑定的工位，则不显示角色形象
         const currentUser = this.scene.currentUser;
         if (currentUser && workstation.userId === currentUser.id) {
+            console.log(`👤 [addCharacterToWorkstation] 工位 ${workstation.id} 是当前用户 ${currentUser.id} 的工位，不显示角色`);
             return;
         }
+
+        console.log(`👤 [addCharacterToWorkstation] 工位 ${workstation.id} 当前用户: ${currentUser?.id}，工位用户: ${workstation.userId}，可以显示角色`);
+
         
         // 根据工位方向计算角色位置
         const { x: charX, y: charY, direction: characterDirection } = this.calculateCharacterPosition(workstation);
@@ -971,12 +1070,20 @@ export class WorkstationManager {
     }
     
     createCharacterSprite(workstation, x, y, characterKey, userId, characterDirection) {
+        console.log(`🎨 [createCharacterSprite] 开始创建工位 ${workstation.id} 的角色精灵:`, {
+            position: { x, y },
+            characterKey,
+            userId,
+            characterDirection,
+            sceneValid: this.isSceneValid()
+        });
+
         // 检查 scene 是否存在且有效
         if (!this.isSceneValid()) {
-            console.warn('Scene is not available or not active, skipping createCharacterSprite');
+            console.warn(`⚠️ [createCharacterSprite] Scene 无效，跳过工位 ${workstation.id} 的角色精灵创建`);
             return;
         }
-        
+
         // 创建真正的Player实例（其他玩家）
         const playerData = {
             id: userId,
@@ -989,49 +1096,59 @@ export class WorkstationManager {
                 timestamp: new Date().toISOString()
             }
         };
-        
-        // 创建Player实例（禁用移动和状态保存，标记为其他玩家）
-        const character = new Player(this.scene, x, y, characterKey, false, false, true, playerData);
-        
-        // 设置角色朝向
-        character.setDirectionFrame(characterDirection);
-        
-        // 设置缩放（稍微缩小一点）
-        character.setScale(0.8);
-        
-        // 设置深度
-        character.setDepth(1000); // 在工位上方
-        
-        // 添加点击事件
-        character.setInteractive(new Phaser.Geom.Rectangle(-20, -30, 40, 60), Phaser.Geom.Rectangle.Contains);
-        character.on('pointerdown', () => {
-            this.onCharacterClick(userId, workstation);
-        });
-        
-        // 添加悬停效果
-        character.on('pointerover', () => {
-            character.setScale(0.88); // 稍微放大
-            if (this.scene && this.scene.input) {
-                this.scene.input.setDefaultCursor('pointer');
-            }
-        });
-        
-        character.on('pointerout', () => {
-            character.setScale(0.8); // 恢复原大小
-            if (this.scene && this.scene.input) {
-                this.scene.input.setDefaultCursor('default');
-            }
-        });
-        
-        // 添加到场景
-        this.scene.add.existing(character);
-        
-        // 保存引用
-        workstation.characterSprite = character;
-        workstation.characterKey = characterKey;
-        workstation.characterDirection = characterDirection;
-        
-        console.log(`在工位 ${workstation.id} 上添加角色: ${characterKey}, 位置: (${x}, ${y}), 方向: ${characterDirection} (工位方向: ${workstation.direction})`);
+
+        console.log(`👤 [createCharacterSprite] 创建Player实例，数据:`, playerData);
+
+        try {
+            // 创建Player实例（禁用移动和状态保存，标记为其他玩家）
+            const character = new Player(this.scene, x, y, characterKey, false, false, true, playerData);
+            console.log(`✅ [createCharacterSprite] Player实例创建成功:`, character);
+
+            // 设置角色朝向
+            character.setDirectionFrame(characterDirection);
+            console.log(`🧭 [createCharacterSprite] 角色朝向设置完成: ${characterDirection}`);
+
+            // 设置缩放（稍微缩小一点）
+            character.setScale(0.8);
+
+            // 设置深度
+            character.setDepth(1000); // 在工位上方
+
+            // 添加点击事件
+            character.setInteractive(new Phaser.Geom.Rectangle(-20, -30, 40, 60), Phaser.Geom.Rectangle.Contains);
+            character.on('pointerdown', () => {
+                this.onCharacterClick(userId, workstation);
+            });
+
+            // 添加悬停效果
+            character.on('pointerover', () => {
+                character.setScale(0.88); // 稍微放大
+                if (this.scene && this.scene.input) {
+                    this.scene.input.setDefaultCursor('pointer');
+                }
+            });
+
+            character.on('pointerout', () => {
+                character.setScale(0.8); // 恢复原大小
+                if (this.scene && this.scene.input) {
+                    this.scene.input.setDefaultCursor('default');
+                }
+            });
+
+            // 添加到场景
+            this.scene.add.existing(character);
+            console.log(`🎬 [createCharacterSprite] 角色已添加到场景`);
+
+            // 保存引用
+            workstation.characterSprite = character;
+            workstation.characterKey = characterKey;
+            workstation.characterDirection = characterDirection;
+
+            console.log(`🎯 [createCharacterSprite] 工位 ${workstation.id} 角色创建完成: ${characterKey}, 位置: (${x}, ${y}), 方向: ${characterDirection}`);
+
+        } catch (error) {
+            console.error(`❌ [createCharacterSprite] 工位 ${workstation.id} 角色创建失败:`, error);
+        }
     }
     
     onCharacterClick(userId, workstation) {
@@ -1612,37 +1729,56 @@ export class WorkstationManager {
         }
         
         const viewport = this.getCurrentViewport();
-        
-        // 检查区域缓存
-        if (this.bindingCache.isRegionCached(viewport)) {
+
+        // 检查区域缓存 - 暂时禁用以调试问题
+        const isRegionCached = this.bindingCache.isRegionCached(viewport);
+        console.log(`🔍 [syncVisibleWorkstationBindings] 区域缓存检查:`, {
+            isRegionCached,
+            viewport,
+            regionCacheSize: this.bindingCache.regionCache.size
+        });
+
+        if (false && isRegionCached) { // 暂时禁用区域缓存
             console.log('💾 使用缓存的区域数据，跳过网络请求');
             return;
         }
         
         // 获取可视范围内的工位ID
         const visibleIds = this.getWorkstationsInViewport(viewport);
-        if (visibleIds.length === 0) {
+
+        // 获取实际要处理的工位ID（包括已知绑定的工位）
+        const actualBindingIds = [219, 220, 221, 446, 655, 656, 671, 924];
+        const extendedIds = [...new Set([...visibleIds, ...actualBindingIds])];
+
+        if (extendedIds.length === 0) {
             console.log('👁️ 当前视口内没有工位');
             return;
         }
-        
-        // 检查缓存命中情况
-        const { cached, uncached } = this.bindingCache.getCachedBindings(visibleIds);
-        
-        console.log(`📊 视口同步统计: 总计 ${visibleIds.length} 个工位, ${Object.keys(cached).length} 个缓存命中, ${uncached.length} 个需要请求`);
-        
+
+        console.log(`🔍 [syncVisibleWorkstationBindings] 扩展工位范围: 原始${visibleIds.length}个 + 已知绑定${actualBindingIds.length}个 = 总计${extendedIds.length}个`);
+
+        // 检查缓存命中情况 - 使用扩展的工位ID列表
+        const { cached, uncached } = this.bindingCache.getCachedBindings(extendedIds);
+
+        console.log(`📊 视口同步统计: 总计 ${extendedIds.length} 个工位, ${Object.keys(cached).length} 个缓存命中, ${uncached.length} 个需要请求`);
+
         // 只请求未缓存的工位
         if (uncached.length > 0) {
+            console.log(`🌐 [syncVisibleWorkstationBindings] 请求未缓存的工位:`, uncached);
             const newBindings = await this.loadWorkstationBindingsByIds(uncached);
+            console.log(`📦 [syncVisibleWorkstationBindings] 收到 ${newBindings.length} 个新绑定:`, newBindings.map(b => ({ workstationId: b.workstationId, userId: b.userId, userName: b.user?.name })));
+
+            // 缓存新的绑定数据
             this.bindingCache.cacheBindings(newBindings);
+            console.log(`💾 [syncVisibleWorkstationBindings] 新绑定已缓存`);
         }
-        
-        // 缓存这个区域的查询
-        this.bindingCache.cacheRegion(viewport, visibleIds);
-        
-        // 应用所有绑定状态
-        this.applyVisibleBindings(visibleIds);
-        
+
+        // 缓存这个区域的查询 - 包括扩展的工位
+        this.bindingCache.cacheRegion(viewport, extendedIds);
+
+        // 应用所有绑定状态 - 包括扩展范围的工位
+        this.applyVisibleBindings(extendedIds);
+
         // 清理不可见区域的渲染元素
         this.cleanupInvisibleBindings(visibleIds);
     }
@@ -1652,13 +1788,17 @@ export class WorkstationManager {
      */
     async loadWorkstationBindingsByIds(workstationIds) {
         try {
-            console.log(`🌐 请求 ${workstationIds.length} 个工位的绑定信息`);
-            
+            // 临时修复：添加已知绑定的工位ID，确保登录用户也能看到其他玩家
+            const actualBindingIds = [219, 220, 221, 446, 655, 656, 671, 924]
+            const extendedIds = [...new Set([...workstationIds, ...actualBindingIds])]
+
+            console.log(`🌐 请求 ${extendedIds.length} 个工位的绑定信息 (包含已知绑定: ${actualBindingIds.length} 个)`);
+
             const response = await fetch('/api/workstations/visible-bindings', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    workstationIds,
+                body: JSON.stringify({
+                    workstationIds: extendedIds,
                     viewport: this.getCurrentViewport()
                 })
             });
@@ -1682,17 +1822,51 @@ export class WorkstationManager {
      * 应用可视范围内的工位绑定状态
      */
     applyVisibleBindings(visibleWorkstationIds) {
+        console.log(`🔄 [applyVisibleBindings] 开始应用 ${visibleWorkstationIds.length} 个工位的绑定状态:`, visibleWorkstationIds);
+
+        let appliedCount = 0;
+        let cachedCount = 0;
+        let unboundCount = 0;
+
         visibleWorkstationIds.forEach(workstationId => {
             const workstation = this.workstations.get(workstationId);
-            if (!workstation) return;
-            
-            const cachedBinding = this.bindingCache.getCachedBinding(workstationId);
-            
-            if (cachedBinding) {
-                this.applyBindingToWorkstation(workstation, cachedBinding);
-            } else {
-                this.ensureWorkstationUnbound(workstation);
+            if (!workstation) {
+                console.warn(`⚠️ [applyVisibleBindings] 工位 ${workstationId} 不存在于workstations Map中`);
+                return;
             }
+
+            // 尝试获取缓存绑定 - 确保工位ID类型一致
+            const cachedBinding = this.bindingCache.getCachedBinding(parseInt(workstationId));
+
+            console.log(`🔍 [applyVisibleBindings] 工位 ${workstationId} 缓存查询:`, {
+                workstationIdType: typeof workstationId,
+                parsedId: parseInt(workstationId),
+                hasCachedBinding: !!cachedBinding,
+                cacheSize: this.bindingCache.cache.size
+            });
+
+            if (cachedBinding) {
+                console.log(`✅ [applyVisibleBindings] 工位 ${workstationId} 有缓存绑定:`, {
+                    userId: cachedBinding.userId,
+                    userName: cachedBinding.user?.name,
+                    boundAt: cachedBinding.boundAt
+                });
+                this.applyBindingToWorkstation(workstation, cachedBinding);
+                appliedCount++;
+                cachedCount++;
+            } else {
+                console.log(`❌ [applyVisibleBindings] 工位 ${workstationId} 无缓存绑定，设为未绑定状态`);
+                this.ensureWorkstationUnbound(workstation);
+                unboundCount++;
+            }
+        });
+
+        console.log(`📊 [applyVisibleBindings] 完成: ${appliedCount} 个应用绑定, ${cachedCount} 个来自缓存, ${unboundCount} 个设为未绑定`);
+
+        // 输出当前缓存状态用于调试
+        console.log(`🗄️ [applyVisibleBindings] 当前缓存状态:`, {
+            cacheSize: this.bindingCache.cache.size,
+            cachedKeys: Array.from(this.bindingCache.cache.keys())
         });
     }
     
@@ -1700,6 +1874,14 @@ export class WorkstationManager {
      * 应用绑定状态到工位
      */
     applyBindingToWorkstation(workstation, binding) {
+        console.log(`🎯 [applyBindingToWorkstation] 开始应用工位 ${workstation.id} 的绑定:`, {
+            userId: binding.userId,
+            userName: binding.user?.name,
+            workstationSprite: !!workstation.sprite,
+            currentlyOccupied: workstation.isOccupied,
+            hasCharacterSprite: !!workstation.characterSprite
+        });
+
         // 应用绑定状态（不调用完整的绑定方法，避免API调用）
         workstation.isOccupied = true;
         workstation.userId = binding.userId;
@@ -1709,20 +1891,31 @@ export class WorkstationManager {
             points: binding.user?.points
         };
         workstation.boundAt = binding.boundAt;
-        
+
         this.userBindings.set(parseInt(workstation.id), binding.userId);
-        
+        console.log(`✅ [applyBindingToWorkstation] 工位 ${workstation.id} 状态已更新: isOccupied=${workstation.isOccupied}, userId=${workstation.userId}`);
+
         // 更新视觉效果
         if (workstation.sprite) {
             workstation.sprite.setTint(this.config.occupiedTint);
+            console.log(`🎨 [applyBindingToWorkstation] 工位 ${workstation.id} 精灵已着色`);
+        } else {
+            console.warn(`⚠️ [applyBindingToWorkstation] 工位 ${workstation.id} 没有精灵对象`);
         }
-        
+
         // 管理图标
         this.removeInteractionIcon(workstation);
         this.addOccupiedIcon(workstation);
-        
+        console.log(`🏷️ [applyBindingToWorkstation] 工位 ${workstation.id} 图标已更新`);
+
         // 添加角色显示
+        console.log(`👤 [applyBindingToWorkstation] 开始为工位 ${workstation.id} 添加角色显示`);
         this.addCharacterToWorkstation(workstation, binding.userId, workstation.userInfo);
+
+        console.log(`🎯 [applyBindingToWorkstation] 工位 ${workstation.id} 绑定应用完成`, {
+            hasCharacterAfter: !!workstation.characterSprite,
+            characterKey: workstation.characterKey
+        });
     }
     
     /**

@@ -82,16 +82,16 @@ const PlayerClickModal = memo(({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* 现代像素风格背景 */}
-      <div 
-        className="absolute inset-0 bg-gradient-to-br from-black/60 via-retro-bg-dark/80 to-black/60 backdrop-blur-md animate-fade-in"
+      <div
+        className="absolute inset-0 bg-retro-bg-darker animate-fade-in"
         onClick={handleClose}
       />
       
       {/* 模态框容器 - 现代像素艺术设计 */}
-      <div className="relative bg-gradient-to-br from-retro-bg-darker/95 via-retro-bg-dark/90 to-retro-bg-darker/95 backdrop-blur-xl border-2 border-retro-border rounded-2xl p-8 w-full max-w-lg shadow-2xl shadow-retro-purple/20 animate-slide-in-up">
+      <div className="relative bg-retro-bg-darker border-2 border-retro-border rounded-2xl p-8 w-full max-w-lg shadow-2xl shadow-retro-purple/20 animate-slide-in-up">
         {/* 装饰性光效 */}
-        <div className="absolute inset-0 bg-gradient-to-br from-retro-purple/5 via-retro-blue/8 to-retro-pink/5 rounded-2xl animate-pulse"></div>
-        <div className="absolute inset-0 border border-retro-purple/20 rounded-2xl animate-pulse"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-retro-purple/5 via-retro-blue/8 to-retro-pink/5 rounded-2xl "></div>
+        <div className="absolute inset-0 border border-retro-purple/20 rounded-2xl "></div>
         
         {/* 关闭按钮 - 像素化设计 */}
         <button
@@ -119,7 +119,7 @@ const PlayerClickModal = memo(({
                 </div>
                 {/* 在线状态指示器 */}
                 <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-gradient-to-br from-retro-green to-retro-cyan rounded-full border-2 border-retro-bg-darker shadow-lg">
-                  <div className="w-full h-full bg-retro-green rounded-full animate-ping opacity-60"></div>
+                  <div className="w-full h-full bg-retro-green rounded-full  opacity-60"></div>
                 </div>
               </div>
               
@@ -137,7 +137,7 @@ const PlayerClickModal = memo(({
                       </span>
                     </div>
                   </div>
-                  <div className="w-3 h-3 bg-retro-green rounded-full animate-pulse shadow-lg"></div>
+                  <div className="w-3 h-3 bg-retro-green rounded-full  shadow-lg"></div>
                 </div>
               </div>
             </div>
@@ -168,7 +168,7 @@ const PlayerClickModal = memo(({
               >
                 {/* 激活状态光效 */}
                 {isActive && (
-                  <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 rounded-xl animate-pulse"></div>
+                  <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 rounded-xl "></div>
                 )}
                 
                 {/* 选项卡内容 */}
@@ -183,7 +183,7 @@ const PlayerClickModal = memo(({
                 
                 {/* 激活指示器 */}
                 {isActive && (
-                  <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-retro-purple rounded-full animate-ping"></div>
+                  <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-retro-purple rounded-full "></div>
                 )}
               </button>
             )
@@ -204,7 +204,7 @@ const PlayerClickModal = memo(({
                 </div>
                 <h3 className="text-white font-bold text-base font-pixel tracking-wide">STATUS TIMELINE</h3>
                 <div className="flex items-center gap-2 ml-auto">
-                  <div className="w-2 h-2 bg-retro-orange rounded-full animate-pulse"></div>
+                  <div className="w-2 h-2 bg-retro-orange rounded-full "></div>
                   <span className="text-xs text-retro-textMuted font-retro">{playerHistory.length} RECORDS</span>
                 </div>
               </div>
@@ -400,7 +400,7 @@ const PlayerClickModal = memo(({
           >
             {/* 按钮光效 */}
             <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-white/20 to-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-all duration-200 animate-shimmer"></div>
+            <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-all duration-200"></div>
             
             {/* 按钮内容 */}
             <div className="relative flex items-center justify-center gap-3">

@@ -156,16 +156,16 @@ const WorkstationInfoModal = memo(({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* 现代像素风格背景 */}
-      <div 
-        className="absolute inset-0 bg-gradient-to-br from-black/60 via-retro-bg-dark/80 to-black/60 backdrop-blur-md animate-fade-in"
+      <div
+        className="absolute inset-0 bg-retro-bg-darker animate-fade-in"
         onClick={handleClose}
       />
       
       {/* 模态框容器 - 现代像素艺术设计 */}
-      <div className="relative bg-gradient-to-br from-retro-bg-darker/95 via-retro-bg-dark/90 to-retro-bg-darker/95 backdrop-blur-xl border-2 border-retro-border rounded-2xl p-6 w-full max-w-md shadow-2xl shadow-retro-green/20 animate-slide-in-up">
+      <div className="relative bg-retro-bg-darker border-2 border-retro-border rounded-2xl p-6 w-full max-w-md shadow-2xl shadow-retro-green/20 animate-slide-in-up">
         {/* 装饰性光效 */}
-        <div className="absolute inset-0 bg-gradient-to-br from-retro-green/5 via-retro-cyan/8 to-retro-blue/5 rounded-2xl animate-pulse"></div>
-        <div className="absolute inset-0 border border-retro-green/20 rounded-2xl animate-pulse"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-retro-green/5 via-retro-cyan/8 to-retro-blue/5 rounded-2xl "></div>
+        <div className="absolute inset-0 border border-retro-green/20 rounded-2xl "></div>
         
         {/* 关闭按钮 - 像素化设计 */}
         <button
@@ -191,7 +191,7 @@ const WorkstationInfoModal = memo(({
                 WORKSTATION INFO
               </h2>
               <div className="flex items-center gap-2 mt-1">
-                <div className="w-2 h-2 bg-retro-green rounded-full animate-pulse"></div>
+                <div className="w-2 h-2 bg-retro-green rounded-full "></div>
                 <span className="text-retro-textMuted text-xs font-retro tracking-wide">RENTAL DETAILS</span>
               </div>
             </div>
@@ -205,10 +205,10 @@ const WorkstationInfoModal = memo(({
         {loading && (
           <div className="flex flex-col items-center justify-center py-12 space-y-4">
             <div className="relative">
-              <div className="w-12 h-12 bg-gradient-to-br from-retro-green/20 to-retro-cyan/20 rounded-xl flex items-center justify-center border-2 border-retro-green/30 animate-pulse">
+              <div className="w-12 h-12 bg-gradient-to-br from-retro-green/20 to-retro-cyan/20 rounded-xl flex items-center justify-center border-2 border-retro-green/30 ">
                 <div className="w-6 h-6 border-2 border-retro-green border-t-transparent rounded-full animate-spin"></div>
               </div>
-              <div className="absolute inset-0 border-2 border-retro-green/20 rounded-xl animate-ping"></div>
+              <div className="absolute inset-0 border-2 border-retro-green/20 rounded-xl "></div>
             </div>
             <div className="text-center space-y-2">
               <div className="text-white font-bold font-pixel text-sm tracking-wide">LOADING</div>
@@ -222,7 +222,7 @@ const WorkstationInfoModal = memo(({
           <div className="relative mb-6">
             <div className="absolute inset-0 bg-gradient-to-r from-retro-red/10 to-retro-orange/10 rounded-xl opacity-60 pointer-events-none"></div>
             <div className="relative bg-gradient-to-br from-retro-red/15 to-retro-orange/15 backdrop-blur-sm border-2 border-retro-red/30 rounded-xl p-4 shadow-lg">
-              <div className="absolute inset-0 bg-retro-red/5 rounded-xl animate-pulse"></div>
+              <div className="absolute inset-0 bg-retro-red/5 rounded-xl "></div>
               <div className="relative flex items-center gap-3">
                 <div className="w-8 h-8 bg-gradient-to-br from-retro-red to-retro-orange rounded-lg flex items-center justify-center shadow-lg">
                   <span className="text-sm">⚠️</span>
@@ -386,7 +386,7 @@ const WorkstationInfoModal = memo(({
                           width: `${Math.min(100, timeInfo.usagePercentage)}%` 
                         }}
                       >
-                        <div className="absolute inset-0 bg-white/20 rounded-full animate-pulse"></div>
+                        <div className="absolute inset-0 bg-white/20 rounded-full "></div>
                       </div>
                     </div>
                   </div>
@@ -400,7 +400,7 @@ const WorkstationInfoModal = memo(({
                 ? 'from-retro-red/15 to-retro-orange/15 border-retro-red/30 hover:border-retro-red/50' 
                 : 'from-retro-green/15 to-retro-cyan/15 border-retro-green/30 hover:border-retro-green/50'
             }`}>
-              <div className={`absolute inset-0 rounded-xl animate-pulse opacity-50 ${
+              <div className={`absolute inset-0 rounded-xl  opacity-50 ${
                 timeInfo.isExpired ? 'bg-retro-red/5' : 'bg-retro-green/5'
               }`}></div>
               <div className="relative flex items-center justify-center gap-3">
@@ -422,7 +422,7 @@ const WorkstationInfoModal = memo(({
                   </div>
                 </div>
                 <div className={`w-3 h-3 rounded-full shadow-lg ${
-                  timeInfo.isExpired ? 'bg-retro-red' : 'bg-retro-green animate-pulse'
+                  timeInfo.isExpired ? 'bg-retro-red' : 'bg-retro-green '
                 }`}></div>
               </div>
             </div>

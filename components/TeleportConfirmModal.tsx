@@ -37,23 +37,23 @@ export default function TeleportConfirmModal({
   if (!isVisible) return null
 
   return (
-    <div className="fixed inset-0 bg-gradient-to-br from-black/60 via-retro-bg-dark/80 to-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fade-in">
-      <div className="relative bg-gradient-to-br from-retro-bg-darker/95 via-retro-bg-dark/90 to-retro-bg-darker/95 backdrop-blur-xl border-2 border-retro-border rounded-2xl p-8 w-full max-w-md shadow-2xl shadow-retro-purple/20 animate-slide-in-up">
+    <div className="fixed inset-0 bg-retro-bg-darker flex items-center justify-center z-50 p-4 animate-fade-in">
+      <div className="relative bg-retro-bg-darker border-2 border-retro-border rounded-2xl p-8 w-full max-w-md shadow-2xl shadow-retro-purple/20 animate-slide-in-up">
         {/* 装饰性光效 */}
-        <div className="absolute inset-0 bg-gradient-to-br from-retro-purple/5 via-retro-pink/8 to-retro-blue/5 rounded-2xl animate-pulse"></div>
-        <div className="absolute inset-0 border border-retro-purple/20 rounded-2xl animate-pulse"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-retro-purple/5 via-retro-pink/8 to-retro-blue/5 rounded-2xl "></div>
+        <div className="absolute inset-0 border border-retro-purple/20 rounded-2xl "></div>
         
         {/* 传送确认内容 - 现代像素艺术风格 */}
         <div className="relative text-center mb-8">
           {/* 传送图标 */}
           <div className="relative mb-6">
-            <div className="w-20 h-20 bg-gradient-to-br from-retro-purple via-retro-pink to-retro-blue rounded-xl flex items-center justify-center mx-auto shadow-xl border-2 border-white/20 animate-pixel-glow">
+            <div className="w-20 h-20 bg-gradient-to-br from-retro-purple via-retro-pink to-retro-blue rounded-xl flex items-center justify-center mx-auto shadow-xl border-2 border-white/20">
               <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-white/5 rounded-xl"></div>
               <span className="relative text-4xl drop-shadow-lg">🚀</span>
             </div>
             {/* 脉冲环装饰 */}
             <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-24 h-24 border-2 border-retro-purple/30 rounded-xl animate-ping"></div>
+              <div className="w-24 h-24 border-2 border-retro-purple/30 rounded-xl "></div>
             </div>
           </div>
           
@@ -166,7 +166,7 @@ export default function TeleportConfirmModal({
           <div className="relative mt-6 animate-slide-in-up">
             <div className="absolute inset-0 bg-gradient-to-r from-retro-red/10 to-retro-orange/10 rounded-xl opacity-60 pointer-events-none"></div>
             <div className="relative bg-gradient-to-br from-retro-red/15 to-retro-orange/15 backdrop-blur-sm border-2 border-retro-red/30 rounded-xl p-4 shadow-lg">
-              <div className="absolute inset-0 bg-retro-red/5 rounded-xl animate-pulse"></div>
+              <div className="absolute inset-0 bg-retro-red/5 rounded-xl "></div>
               <div className="relative flex items-center justify-center gap-3">
                 <div className="w-8 h-8 bg-gradient-to-br from-retro-red to-retro-orange rounded-lg flex items-center justify-center shadow-lg">
                   <span className="text-lg">⚠️</span>

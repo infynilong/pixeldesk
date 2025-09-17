@@ -128,13 +128,13 @@ export default function CharacterDisplayModal({
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
       {/* 现代像素风格背景 */}
-      <div className="absolute inset-0 bg-gradient-to-br from-black/60 via-retro-bg-dark/80 to-black/60 backdrop-blur-md animate-fade-in" onClick={onClose}></div>
+      <div className="absolute inset-0 bg-retro-bg-darker animate-fade-in" onClick={onClose}></div>
       
       {/* 模态框内容 - 现代像素艺术设计 */}
-      <div className="relative bg-gradient-to-br from-retro-bg-darker/95 via-retro-bg-dark/90 to-retro-bg-darker/95 backdrop-blur-xl border-2 border-retro-border rounded-2xl p-8 max-w-lg w-full shadow-2xl shadow-retro-purple/20 animate-slide-in-up">
+      <div className="relative bg-retro-bg-darker border-2 border-retro-border rounded-2xl p-8 max-w-lg w-full shadow-2xl shadow-retro-purple/20 animate-slide-in-up">
         {/* 装饰性光效 */}
-        <div className="absolute inset-0 bg-gradient-to-br from-retro-purple/5 via-retro-blue/8 to-retro-pink/5 rounded-2xl animate-pulse"></div>
-        <div className="absolute inset-0 border border-retro-purple/20 rounded-2xl animate-pulse"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-retro-purple/5 via-retro-blue/8 to-retro-pink/5 rounded-2xl "></div>
+        <div className="absolute inset-0 border border-retro-purple/20 rounded-2xl "></div>
         
         {/* 关闭按钮 - 像素化设计 */}
         <button 
@@ -164,7 +164,7 @@ export default function CharacterDisplayModal({
               >
                 {/* 激活状态光效 */}
                 {isActive && (
-                  <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 rounded-xl animate-pulse"></div>
+                  <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 rounded-xl "></div>
                 )}
                 
                 {/* 选项卡内容 */}
@@ -179,7 +179,7 @@ export default function CharacterDisplayModal({
                 
                 {/* 激活指示器 */}
                 {isActive && (
-                  <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-retro-purple rounded-full animate-ping"></div>
+                  <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-retro-purple rounded-full "></div>
                 )}
               </button>
             )
@@ -193,7 +193,7 @@ export default function CharacterDisplayModal({
             
             {/* 角色头像和信息 - 现代像素艺术卡片 */}
             <div className="relative group">
-              <div className="absolute inset-0 bg-gradient-to-r from-retro-purple/10 to-retro-blue/10 rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-300 animate-pulse"></div>
+              <div className="absolute inset-0 bg-gradient-to-r from-retro-purple/10 to-retro-blue/10 rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-300 "></div>
               <div className="relative bg-gradient-to-br from-retro-bg-dark/50 to-retro-bg-darker/50 backdrop-blur-sm border-2 border-retro-border/50 rounded-xl p-5 shadow-lg hover:border-retro-purple/40 transition-all duration-300">
                 <div className="flex items-center space-x-5">
                   {/* 像素化头像容器 */}
@@ -212,7 +212,7 @@ export default function CharacterDisplayModal({
                     </div>
                     {/* 在线状态指示器 */}
                     <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-gradient-to-br from-retro-green to-retro-cyan rounded-full border-2 border-retro-bg-darker shadow-lg">
-                      <div className="w-full h-full bg-retro-green rounded-full animate-ping opacity-60"></div>
+                      <div className="w-full h-full bg-retro-green rounded-full  opacity-60"></div>
                     </div>
                   </div>
                   
@@ -229,7 +229,7 @@ export default function CharacterDisplayModal({
                       </div>
                       {userInfoState.points && (
                         <div className="flex items-center gap-2 px-2 py-1 bg-gradient-to-r from-retro-yellow/20 to-retro-orange/20 rounded border border-retro-yellow/30">
-                          <span className="text-sm animate-bounce">💎</span>
+                          <span className="text-sm">💎</span>
                           <span className="text-retro-yellow text-xs font-bold font-pixel">
                             {userInfoState.points}
                           </span>
@@ -258,7 +258,7 @@ export default function CharacterDisplayModal({
                         <span className="text-white text-base font-bold font-pixel tracking-wide drop-shadow-sm">
                           {userInfoState.currentStatus.status || '当前状态'}
                         </span>
-                        <div className="w-2 h-2 bg-retro-green rounded-full animate-pulse"></div>
+                        <div className="w-2 h-2 bg-retro-green rounded-full "></div>
                       </div>
                       <p className="text-retro-text text-sm font-retro leading-relaxed">
                         {userInfoState.currentStatus.message || '正在工作中...'}
@@ -366,7 +366,7 @@ export default function CharacterDisplayModal({
                 </div>
                 <h4 className="text-white font-bold text-base font-pixel tracking-wide">CHAT LOG</h4>
                 <div className="flex items-center gap-2 ml-auto">
-                  <div className="w-2 h-2 bg-retro-green rounded-full animate-pulse"></div>
+                  <div className="w-2 h-2 bg-retro-green rounded-full "></div>
                   <span className="text-xs text-retro-textMuted font-retro">ACTIVE</span>
                 </div>
               </div>
@@ -494,7 +494,7 @@ export default function CharacterDisplayModal({
                 <h4 className="text-white font-bold text-base font-pixel tracking-wide">STATUS TIMELINE</h4>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-retro-orange rounded-full animate-pulse"></div>
+                <div className="w-2 h-2 bg-retro-orange rounded-full "></div>
                 <span className="text-xs text-retro-textMuted font-retro tracking-wide">
                   {realStatusHistory.length + (userInfoState.currentStatus ? 1 : 0)} RECORDS
                 </span>
@@ -525,7 +525,7 @@ export default function CharacterDisplayModal({
                           <span className="text-white text-base font-bold font-pixel tracking-wide drop-shadow-sm">
                             {userInfoState.currentStatus.status || '当前状态'}
                           </span>
-                          <div className="w-2 h-2 bg-retro-green rounded-full animate-pulse"></div>
+                          <div className="w-2 h-2 bg-retro-green rounded-full "></div>
                         </div>
                         <p className="text-retro-text text-sm font-retro leading-relaxed pl-2 border-l-2 border-retro-green/40">
                           {userInfoState.currentStatus.message || '正在工作中...'}
@@ -548,10 +548,10 @@ export default function CharacterDisplayModal({
               {isLoading ? (
                 <div className="flex flex-col items-center justify-center py-12 space-y-4">
                   <div className="relative">
-                    <div className="w-12 h-12 bg-gradient-to-br from-retro-purple/20 to-retro-pink/20 rounded-xl flex items-center justify-center border-2 border-retro-purple/30 animate-pulse">
+                    <div className="w-12 h-12 bg-gradient-to-br from-retro-purple/20 to-retro-pink/20 rounded-xl flex items-center justify-center border-2 border-retro-purple/30 ">
                       <div className="w-6 h-6 border-2 border-retro-purple border-t-transparent rounded-full animate-spin"></div>
                     </div>
-                    <div className="absolute inset-0 border-2 border-retro-purple/20 rounded-xl animate-ping"></div>
+                    <div className="absolute inset-0 border-2 border-retro-purple/20 rounded-xl "></div>
                   </div>
                   <div className="text-center space-y-2">
                     <div className="text-white font-bold font-pixel text-sm tracking-wide">LOADING</div>
@@ -609,7 +609,7 @@ export default function CharacterDisplayModal({
                       <span className="text-4xl opacity-60 relative z-10">📝</span>
                     </div>
                     {/* 装饰性脉冲环 */}
-                    <div className="absolute inset-0 border-2 border-retro-textMuted/20 rounded-xl animate-ping"></div>
+                    <div className="absolute inset-0 border-2 border-retro-textMuted/20 rounded-xl "></div>
                   </div>
                   
                   {/* 空状态文本 */}
@@ -624,9 +624,9 @@ export default function CharacterDisplayModal({
                   
                   {/* 装饰性元素 */}
                   <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 bg-retro-textMuted/40 rounded-sm animate-pulse"></div>
+                    <div className="w-2 h-2 bg-retro-textMuted/40 rounded-sm "></div>
                     <div className="w-3 h-1 bg-retro-border/40 rounded-sm"></div>
-                    <div className="w-2 h-2 bg-retro-textMuted/40 rounded-sm animate-pulse"></div>
+                    <div className="w-2 h-2 bg-retro-textMuted/40 rounded-sm "></div>
                   </div>
                 </div>
               )}
