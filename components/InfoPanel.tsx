@@ -34,7 +34,7 @@ export default function InfoPanel({
     {
       id: 'status-info',
       label: 'Profile',
-      icon: '📊',
+      icon: '🎮',
       component: (props: any) => (
         <StatusInfoTab
           {...props}
@@ -50,21 +50,21 @@ export default function InfoPanel({
     {
       id: 'my-posts',
       label: 'Posts',
-      icon: '📝',
+      icon: '🚀',
       component: MyPostsTab,
       priority: 1.5
     },
     {
       id: 'notifications',
       label: 'Inbox',
-      icon: '📮',
+      icon: '💎',
       component: NotificationsTab,
       priority: 1.8
     },
     {
       id: 'player-interaction',
       label: 'Social',
-      icon: '💬',
+      icon: '⭐',
       component: PlayerInteractionTab,
       autoSwitch: true,
       priority: 2
