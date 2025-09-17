@@ -25,7 +25,7 @@ export async function verifyAuthFromRequest(request: NextRequest): Promise<AuthR
   try {
     // Get token from cookies
     const token = request.cookies.get('auth-token')?.value
-    
+
     if (!token) {
       return { success: false, error: 'No authentication token provided' }
     }
@@ -52,7 +52,7 @@ export async function verifyAuthFromRequest(request: NextRequest): Promise<AuthR
 
     // Get user information
     const user = await prisma.user.findUnique({
-      where: { 
+      where: {
         id: payload.userId,
         isActive: true
       }
@@ -77,6 +77,55 @@ export async function verifyAuthFromRequest(request: NextRequest): Promise<AuthR
   } catch (error) {
     console.error('Authentication verification failed:', error)
     return { success: false, error: 'Authentication verification failed' }
+  }
+}
+
+/**
+ * Simplified user verification for basic info retrieval (like avatar display)
+ * Skips session validation to avoid connection pool timeout issues
+ */
+export async function getBasicUserFromRequest(request: NextRequest): Promise<AuthResult> {
+  try {
+    // Get token from cookies
+    const token = request.cookies.get('auth-token')?.value
+
+    if (!token) {
+      return { success: false, error: 'No authentication token provided' }
+    }
+
+    // Verify JWT token only
+    const payload = verifyToken(token)
+    if (!payload?.userId) {
+      return { success: false, error: 'Invalid authentication token' }
+    }
+
+    // Get user information directly without session validation
+    const user = await prisma.user.findUnique({
+      where: {
+        id: payload.userId,
+        isActive: true
+      }
+    })
+
+    if (!user) {
+      return { success: false, error: 'User not found' }
+    }
+
+    // Return user info without password
+    const userData: AuthenticatedUser = {
+      id: user.id,
+      name: user.name,
+      email: user.email!,
+      avatar: user.avatar || undefined,
+      points: user.points,
+      gold: user.gold,
+      emailVerified: user.emailVerified
+    }
+
+    return { success: true, user: userData }
+  } catch (error) {
+    console.error('Basic user verification failed:', error)
+    return { success: false, error: 'User verification failed' }
   }
 }
 

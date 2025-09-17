@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { verifyToken, hashPassword, isValidPassword, isValidUsername } from '@/lib/auth'
+import { getBasicUserFromRequest } from '@/lib/serverAuth'
 
 export async function PUT(request: NextRequest) {
   try {
@@ -150,55 +151,32 @@ export async function PUT(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    // 获取并验证token
-    const token = request.cookies.get('auth-token')?.value
-    
-    if (!token) {
+    // 使用简化的用户验证方法，避免会话验证导致的连接池超时
+    const authResult = await getBasicUserFromRequest(request)
+
+    if (!authResult.success || !authResult.user) {
       return NextResponse.json({
         success: false,
-        error: 'Authentication required'
+        error: authResult.error || 'Authentication failed'
       }, { status: 401 })
     }
-    
-    const payload = verifyToken(token)
-    if (!payload?.userId) {
-      return NextResponse.json({
-        success: false,
-        error: 'Invalid authentication token'
-      }, { status: 401 })
-    }
-    
-    // 获取用户信息
-    const user = await prisma.user.findUnique({
-      where: { id: payload.userId }
-    })
-    
-    if (!user) {
-      return NextResponse.json({
-        success: false,
-        error: 'User not found'
-      }, { status: 404 })
-    }
-    
-    // 返回用户信息（不包含密码）
+
+    // 返回用户信息
     const userResponse = {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      avatar: user.avatar,
-      points: user.points,
-      gold: user.gold,
-      emailVerified: user.emailVerified,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
-      lastLogin: user.lastLogin
+      id: authResult.user.id,
+      name: authResult.user.name,
+      email: authResult.user.email,
+      avatar: authResult.user.avatar,
+      points: authResult.user.points,
+      gold: authResult.user.gold,
+      emailVerified: authResult.user.emailVerified
     }
-    
+
     return NextResponse.json({
       success: true,
       data: userResponse
     })
-    
+
   } catch (error) {
     console.error('Get user settings error:', error)
     return NextResponse.json({
