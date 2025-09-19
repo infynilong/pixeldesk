@@ -45,13 +45,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Insufficient points' }, { status: 400 })
     }
 
-    // 检查工位是否已被绑定
-    const existingBinding = await prisma.userWorkstation.findFirst({
+    // 检查用户是否已经绑定了其他工位（一个用户只能绑定一个工位）
+    const userExistingBinding = await prisma.userWorkstation.findFirst({
+      where: { userId }
+    })
+
+    if (userExistingBinding) {
+      return NextResponse.json({
+        error: 'User already has a workstation binding',
+        currentWorkstationId: userExistingBinding.workstationId
+      }, { status: 400 })
+    }
+
+    // 检查工位是否已被其他用户绑定
+    const workstationExistingBinding = await prisma.userWorkstation.findFirst({
       where: { workstationId: workstationIdNum }
     })
 
-    if (existingBinding) {
-      return NextResponse.json({ error: 'Workstation already bound' }, { status: 400 })
+    if (workstationExistingBinding) {
+      return NextResponse.json({ error: 'Workstation already bound by another user' }, { status: 400 })
     }
 
     // 执行绑定

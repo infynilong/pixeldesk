@@ -261,18 +261,30 @@ export default function Home() {
     try {
       // 使用认证系统的用户数据
       if (user?.id) {
-        const response = await fetch(`/api/workstations/user-bindings?userId=${user.id}`)
+        // 先清理多重绑定，确保一致性
+        const response = await fetch(`/api/workstations/user-bindings?userId=${user.id}&cleanup=true`)
         if (response.ok) {
           const data = await response.json()
           if (data.success) {
             if (data.data.length > 0) {
-              // 获取最新的绑定记录
-              const latestBinding = data.data[0]
+              // 获取唯一的绑定记录
+              const binding = data.data[0]
+              const workstationId = String(binding.workstationId) // 确保转换为字符串类型
+
               setCurrentUser((prev: any) => ({
                 ...prev,
-                workstationId: latestBinding.workstationId
+                workstationId: workstationId
               }))
-              console.log('✅ [loadUserWorkstationBinding] 工位绑定已加载:', latestBinding.workstationId)
+
+              console.log('✅ [loadUserWorkstationBinding] 工位绑定已加载:', {
+                workstationId: workstationId,
+                type: typeof workstationId,
+                cleaned: data.cleaned || 0
+              })
+
+              if (data.cleaned > 0) {
+                console.log(`🧹 [loadUserWorkstationBinding] 已清理 ${data.cleaned} 个重复绑定`)
+              }
             } else {
               // 没有绑定记录，确保清除工位ID
               setCurrentUser((prev: any) => ({
@@ -281,13 +293,20 @@ export default function Home() {
               }))
               console.log('⚠️ [loadUserWorkstationBinding] 用户未绑定工位')
             }
+          } else {
+            console.error('❌ [loadUserWorkstationBinding] API请求失败:', data.error)
           }
+        } else {
+          console.error('❌ [loadUserWorkstationBinding] HTTP请求失败:', response.status)
         }
+      } else {
+        console.log('ℹ️ [loadUserWorkstationBinding] 无有效用户ID，跳过加载')
       }
     } catch (error) {
-      console.warn('Failed to load user workstation binding:', error)
+      console.warn('❌ [loadUserWorkstationBinding] 加载失败:', error)
     }
   }, [user?.id])
+
 
   // 检测移动设备和加载用户数据 - 优化resize处理
   useEffect(() => {
@@ -382,11 +401,8 @@ export default function Home() {
   // 监听认证用户变化，同步currentUser状态
   useEffect(() => {
     syncAuthenticatedUser()
-    // 如果用户已登录，加载工位绑定信息
-    if (user) {
-      loadUserWorkstationBinding()
-    }
-  }, [user, loadUserWorkstationBinding])
+    // 工位绑定信息将在用户数据同步后自动加载
+  }, [user])
 
   // 监听积分更新事件
   useEffect(() => {
@@ -459,24 +475,34 @@ export default function Home() {
   useEffect(() => {
     const handleWorkstationBindingUpdated = (event: CustomEvent) => {
       const { userId, workstationId } = event.detail
-      
-      // 如果是当前用户的工位绑定状态更新，重新加载用户工位绑定信息
-      if (currentUser && currentUser.id === userId) {
-        console.log('🔄 [handleWorkstationBindingUpdated] 检测到工位绑定状态更新，重新加载用户数据')
-        // 重新加载用户工位绑定信息，确保数据同步
-        loadUserWorkstationBinding()
+
+      console.log('🔄 [handleWorkstationBindingUpdated] 工位绑定状态更新事件触发:', { userId, workstationId })
+      console.log('🔍 [handleWorkstationBindingUpdated] 当前用户状态:', {
+        currentUserId: currentUser?.id,
+        userAuthId: user?.id,
+        eventUserId: userId
+      })
+
+      // 修复：无条件重新加载工位绑定信息，确保状态同步
+      // 这解决了临时用户转正式用户时ID不匹配的问题
+      if (user?.id || currentUser?.id) {
+        console.log('🔄 [handleWorkstationBindingUpdated] 重新加载用户工位绑定信息')
+        // 直接更新currentUser的workstationId，立即反映绑定状态
+        setCurrentUser((prev: any) => ({
+          ...prev,
+          workstationId: String(workstationId)
+        }))
         // 重新加载工位统计信息
         loadWorkstationStats()
       }
-      console.log('工位绑定状态更新:', userId, workstationId)
     }
 
     window.addEventListener('workstation-binding-updated', handleWorkstationBindingUpdated as EventListener)
-    
+
     return () => {
       window.removeEventListener('workstation-binding-updated', handleWorkstationBindingUpdated as EventListener)
     }
-  }, [currentUser, loadWorkstationStats, loadUserWorkstationBinding])
+  }, [currentUser, user, loadWorkstationStats])
 
   // 处理玩家碰撞事件 - 优化避免不必要重新渲染
   const handlePlayerCollision = useCallback((playerData: any) => {
