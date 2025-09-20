@@ -729,14 +729,6 @@ export default function Home() {
 
   // 优化：使用 memo 避免 PostStatus 不必要重新渲染，但需要包含workstationId依赖
   const memoizedPostStatus = useMemo(() => {
-    console.log('🎯 [app/page] 创建memoizedPostStatus，currentUser数据:', {
-      id: currentUser?.id,
-      name: currentUser?.name,
-      points: currentUser?.points,
-      workstationId: currentUser?.workstationId,
-      workstationIdType: typeof currentUser?.workstationId
-    })
-
     return (
       <PostStatus
         onStatusUpdate={handleStatusUpdate}

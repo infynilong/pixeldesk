@@ -738,7 +738,6 @@ export class Start extends Phaser.Scene {
   // 简化玩家移动处理逻辑
   handlePlayerMovement() {
     if (!this.player || !this.player.body) {
-      console.log('DEBUG: Player or player.body is null:', !!this.player, !!this.player?.body);
       return;
     }
 
@@ -1794,12 +1793,15 @@ export class Start extends Phaser.Scene {
 
       // 触发工位绑定状态更新事件给React组件（确保状态同步）
       if (typeof window !== "undefined") {
-        console.log('🔄 [sendUserDataToUI] 触发工位绑定状态更新事件:', {
-          userId: this.currentUser.id,
-          workstationId: workstationId,
-          hasWorkstationId: !!workstationId,
-          eventWillBeFired: !!workstationId // 只有在有workstationId时才触发事件
-        })
+        // 只在开发环境下输出调试信息
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🔄 [sendUserDataToUI] 触发工位绑定状态更新事件:', {
+            userId: this.currentUser.id,
+            workstationId: workstationId,
+            hasWorkstationId: !!workstationId,
+            eventWillBeFired: !!workstationId
+          })
+        }
 
         // 只有在Phaser端有工位数据时才触发事件，避免覆盖React端的正确数据
         if (workstationId) {
@@ -1813,7 +1815,7 @@ export class Start extends Phaser.Scene {
             }
           }))
         } else {
-          console.log('🔄 [sendUserDataToUI] 跳过事件触发，因为Phaser端没有工位数据，避免覆盖React端正确数据')
+          // 跳过事件触发，避免覆盖React端正确数据
         }
       }
 

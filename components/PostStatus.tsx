@@ -33,7 +33,6 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
 
   // 初始化时加载状态历史，添加防抖避免重复调用
   useEffect(() => {
-    console.log('PostStatus mounted with userId:', userId)
     if (userId) {
       // 防抖延迟加载状态历史
       const timer = setTimeout(() => {
@@ -46,21 +45,18 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
 
   // 加载状态历史 - 临时禁用API调用以修复性能问题
   const loadStatusHistory = useCallback(async () => {
-    console.log('🚫 [PostStatus] API调用已禁用以修复性能问题，使用本地缓存')
     if (userId) {
       // 直接使用本地缓存，禁用API调用
       const history = statusHistoryManager.getStatusHistory(userId)
-      console.log('LocalStorage history loaded:', history.length, 'items')
       setStatusHistory(history)
     }
   }, [userId])
 
   // 优化：避免不必要的重新渲染
   const memoizedHandleSubmit = useCallback(async () => {
-    console.log('HandleSubmit called with userId:', userId)
     const status = statusOptions.find(s => s.id === selectedStatus)
     if (!status) return
-    
+
     const fullStatus = {
       type: selectedStatus,
       status: status.label,
@@ -68,26 +64,21 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
       message: customMessage || `正在${status.label}`,
       timestamp: new Date().toISOString()
     }
-    
-    // 保存状态历史记录到数据库和本地缓存
-    console.log('Saving status with userId:', userId, 'status:', fullStatus)
-    
+
     if (!userId) {
       console.error('Cannot save status: userId is null or undefined')
       return
     }
-    
+
     try {
       // 临时禁用API保存以修复性能问题
-      console.log('🚫 [PostStatus] 状态保存API调用已临时禁用以修复性能问题')
-      console.log('Status would be saved:', { userId, status: fullStatus.status, type: fullStatus.type })
+      // Status saving is temporarily disabled for performance
     } catch (error) {
       console.error('Error in disabled status save:', error)
     }
     
     // 时间跟踪：根据状态类型开始或结束活动
     try {
-      console.log('Calling time tracking API for status:', selectedStatus)
       const timeTrackingResponse = await fetch('/api/time-tracking', {
         method: 'POST',
         headers: {
@@ -101,11 +92,8 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
           notes: customMessage
         })
       })
-      
-      if (timeTrackingResponse.ok) {
-        const result = await timeTrackingResponse.json()
-        console.log('Time tracking started:', result)
-      } else {
+
+      if (!timeTrackingResponse.ok) {
         console.error('Failed to start time tracking:', timeTrackingResponse.status)
       }
     } catch (error) {
@@ -147,10 +135,7 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
         })
       })
       
-      if (postResponse.ok) {
-        const postResult = await postResponse.json()
-        console.log('✅ [PostStatus] 状态同步帖子创建成功:', postResult)
-      } else {
+      if (!postResponse.ok) {
         console.error('❌ [PostStatus] 状态同步帖子创建失败:', postResponse.status)
       }
     } catch (error) {
