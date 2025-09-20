@@ -111,17 +111,15 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
       (window as any).updateMyStatus(fullStatus)
     }
     
-    // 更新 React 组件状态（异步执行，避免阻塞UI）
-    requestAnimationFrame(() => {
-      onStatusUpdate(fullStatus)
-    })
+    // 更新 React 组件状态（直接同步调用，避免requestAnimationFrame开销）
+    onStatusUpdate(fullStatus)
     
     // 同步生成社交帖子
     try {
       const statusEmoji = statusOptions.find(s => s.id === selectedStatus)?.emoji || '📝'
       const postContent = customMessage || `${statusEmoji} ${statusOptions.find(s => s.id === selectedStatus)?.label || selectedStatus}`
       
-      console.log('🎯 [PostStatus] 同步生成社交帖子:', { postContent, userId })
+      // console.log('🎯 [PostStatus] 同步生成社交帖子:', { postContent, userId })
       
       const postResponse = await fetch(`/api/posts?userId=${userId}`, {
         method: 'POST',

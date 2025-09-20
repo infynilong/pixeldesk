@@ -325,7 +325,7 @@ export default function Home() {
       
       // 监听工位统计数据更新事件
       window.addEventListener('workstation-stats-updated', (event: any) => {
-        console.log('Workstation stats updated:', event.detail)
+        // console.log('Workstation stats updated:', event.detail)
         setWorkstationStats(event.detail)
       })
     }
@@ -347,14 +347,14 @@ export default function Home() {
     if (user?.id) {
       // 直接调用改进的工位绑定加载函数
       const loadBinding = async () => {
-        console.log('🔍 [inline-loadBinding] 开始加载用户工位绑定:', user.id)
+        // console.log('🔍 [inline-loadBinding] 开始加载用户工位绑定:', user.id)
 
         // 首先尝试从localStorage获取缓存的绑定信息
         const cachedBinding = localStorage.getItem(`workstation_binding_${user.id}`)
         if (cachedBinding) {
           try {
             const binding = JSON.parse(cachedBinding)
-            console.log('💾 [inline-loadBinding] 使用缓存的绑定信息:', binding)
+            // console.log('💾 [inline-loadBinding] 使用缓存的绑定信息:', binding)
             setCurrentUser((prev: any) => ({
               ...prev,
               workstationId: String(binding.workstationId)
@@ -369,7 +369,7 @@ export default function Home() {
 
           if (response.ok) {
             const data = await response.json()
-            console.log('📡 [inline-loadBinding] API响应:', data)
+            // console.log('📡 [inline-loadBinding] API响应:', data)
 
             if (data.success && data.data.length > 0) {
               const binding = data.data[0]
@@ -388,7 +388,7 @@ export default function Home() {
                 timestamp: Date.now()
               }))
 
-              console.log('✅ [inline-loadBinding] 工位绑定已加载:', workstationId)
+              // console.log('✅ [inline-loadBinding] 工位绑定已加载:', workstationId)
 
             } else if (data.success && data.data.length === 0) {
               setCurrentUser((prev: any) => ({
@@ -396,7 +396,7 @@ export default function Home() {
                 workstationId: null
               }))
               localStorage.removeItem(`workstation_binding_${user.id}`)
-              console.log('⚠️ [inline-loadBinding] 用户未绑定工位')
+              // console.log('⚠️ [inline-loadBinding] 用户未绑定工位')
 
             } else if (!data.success && data.code?.startsWith('DB_')) {
               console.warn('⚠️ [inline-loadBinding] 数据库连接问题，使用缓存数据:', data.error)
@@ -424,27 +424,30 @@ export default function Home() {
     }
   }, [user])
 
-  // 监听积分更新事件
+  // 监听积分更新事件 - 优化：使用useRef避免频繁重建监听器
+  const currentUserRef = useRef(currentUser)
+  currentUserRef.current = currentUser
+
   useEffect(() => {
     const handleUserPointsUpdated = (event: CustomEvent) => {
       const { userId, points } = event.detail
-      
-      // 如果是当前用户的积分更新，更新本地状态
-      if (currentUser && currentUser.id === userId) {
+
+      // 使用ref访问最新的currentUser，避免闭包陈旧值问题
+      if (currentUserRef.current && currentUserRef.current.id === userId) {
         setCurrentUser((prev: any) => ({
           ...prev,
           points: points
         }))
       }
-      console.log('用户积分更新:', userId, points)
+      // console.log('用户积分更新:', userId, points)
     }
 
     window.addEventListener('user-points-updated', handleUserPointsUpdated as EventListener)
-    
+
     return () => {
       window.removeEventListener('user-points-updated', handleUserPointsUpdated as EventListener)
     }
-  }, [currentUser])
+  }, []) // 移除currentUser依赖，避免频繁重建监听器
 
   // 加载工位统计信息 - 包装在useCallback中
   const loadWorkstationStats = useCallback(async () => {
@@ -737,7 +740,7 @@ export default function Home() {
     selectedPlayer ? memoizedSocialFeed : memoizedPostStatus
   ), [selectedPlayer, memoizedSocialFeed, memoizedPostStatus])
 
-  // Create memoized info panel content for desktop
+  // Create memoized info panel content for desktop - 优化依赖，只依赖需要的字段
   const memoizedDesktopInfoPanel = useMemo(() => (
     <InfoPanel
       selectedPlayer={selectedPlayer}
@@ -749,7 +752,7 @@ export default function Home() {
     >
       {memoizedPostStatus}
     </InfoPanel>
-  ), [selectedPlayer, collisionPlayer, currentUser, workstationStats, memoizedPostStatus, isMobile, isTablet])
+  ), [selectedPlayer, collisionPlayer, currentUser?.id, currentUser?.name, currentUser?.points, currentUser?.workstationId, workstationStats, memoizedPostStatus, isMobile, isTablet])
 
   // 如果正在加载认证状态，显示加载界面
   if (isLoading) {
@@ -805,7 +808,15 @@ export default function Home() {
   return (
     <div>
       <LayoutManager
-        gameComponent={memoizedPhaserGame}
+        gameComponent={
+          <div className="flex items-center justify-center h-full bg-gray-900 text-white">
+            <div className="text-center">
+              <h2 className="text-2xl font-bold mb-4">🧪 NextJS性能调试模式</h2>
+              <p className="text-gray-400">Phaser已禁用，专注排查NextJS性能问题</p>
+              <p className="text-sm text-gray-500 mt-2">目标：将CPU从10%降到2-5%</p>
+            </div>
+          </div>
+        }
         infoPanel={isMobile ? memoizedMobileInfoPanel : memoizedDesktopInfoPanel}
       />
       
