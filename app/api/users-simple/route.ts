@@ -33,21 +33,36 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
+    // 准备更新数据（只包含提供的字段）
+    const updateData: any = {
+      name,
+      points: points || 0,
+      gold: gold || 0,
+      updatedAt: new Date()
+    }
+
+    // 只有当email被明确提供时才更新
+    if (email !== undefined) {
+      updateData.email = email
+    }
+
+    // 只有当avatar被明确提供且是有效路径时才更新（避免角色名称覆盖真实头像）
+    if (avatar !== undefined && avatar !== null && avatar !== '') {
+      // 检查是否是真实的头像路径（包含/avatars/或以http开头）
+      if (avatar.startsWith('/avatars/') || avatar.startsWith('http') || !avatar.startsWith('Premade_Character')) {
+        updateData.avatar = avatar
+      }
+      // 如果是角色名称（Premade_Character），则不更新avatar字段，保留用户原有头像
+    }
+
     const user = await prisma.user.upsert({
       where: { id },
-      update: {
-        name,
-        email,
-        avatar,
-        points: points || 0,
-        gold: gold || 0,
-        updatedAt: new Date()
-      },
+      update: updateData,
       create: {
         id,
         name,
         email,
-        avatar,
+        avatar: avatar || null, // 创建时允许设置角色名称作为默认头像
         points: points || 0,
         gold: gold || 0
       }

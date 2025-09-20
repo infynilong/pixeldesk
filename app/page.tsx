@@ -401,7 +401,41 @@ export default function Home() {
   // 监听认证用户变化，同步currentUser状态
   useEffect(() => {
     syncAuthenticatedUser()
-    // 工位绑定信息将在用户数据同步后自动加载
+
+    // 如果用户已认证，立即加载工位绑定信息
+    if (user?.id) {
+      // 直接调用API加载工位绑定，避免useCallback依赖循环
+      const loadBinding = async () => {
+        try {
+          const response = await fetch(`/api/workstations/user-bindings?userId=${user.id}&cleanup=true`)
+          if (response.ok) {
+            const data = await response.json()
+            if (data.success) {
+              if (data.data.length > 0) {
+                const binding = data.data[0]
+                const workstationId = String(binding.workstationId)
+
+                setCurrentUser((prev: any) => ({
+                  ...prev,
+                  workstationId: workstationId
+                }))
+
+                console.log('✅ 工位绑定已加载:', workstationId)
+              } else {
+                setCurrentUser((prev: any) => ({
+                  ...prev,
+                  workstationId: null
+                }))
+                console.log('⚠️ 用户未绑定工位')
+              }
+            }
+          }
+        } catch (error) {
+          console.warn('❌ 工位绑定加载失败:', error)
+        }
+      }
+      loadBinding()
+    }
   }, [user])
 
   // 监听积分更新事件
@@ -712,19 +746,19 @@ export default function Home() {
     />
   ), [handlePlayerCollision, handleWorkstationBinding, handlePlayerClick])
 
-  // 优化：使用 memo 避免 PostStatus 不必要重新渲染，特别是避免userId频繁变化
+  // 优化：使用 memo 避免 PostStatus 不必要重新渲染，但需要包含workstationId依赖
   const memoizedPostStatus = useMemo(() => (
-    <PostStatus 
-      onStatusUpdate={handleStatusUpdate} 
-      currentStatus={myStatus} 
-      userId={currentUser?.id} 
+    <PostStatus
+      onStatusUpdate={handleStatusUpdate}
+      currentStatus={myStatus}
+      userId={currentUser?.id}
       userData={{
         username: currentUser?.username,
         points: currentUser?.points,
         workstationId: currentUser?.workstationId
       }}
     />
-  ), [handleStatusUpdate, myStatus, currentUser?.id]) // 移除频繁变化的points/workstationId/username依赖
+  ), [handleStatusUpdate, myStatus, currentUser?.id, currentUser?.workstationId]) // 必须包含workstationId依赖以确保工位状态更新
 
   // 优化：使用 memo 避免 selectedPlayer 变化导致 SocialFeed 不必要重新渲染
   const memoizedSocialFeed = useMemo(() => (
