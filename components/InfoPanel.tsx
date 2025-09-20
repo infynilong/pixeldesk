@@ -13,18 +13,16 @@ interface InfoPanelProps {
   selectedPlayer?: any
   currentUser?: any
   workstationStats?: any
-  onTeleportClick?: () => void
   collisionPlayer?: any
   isMobile?: boolean
   isTablet?: boolean
 }
 
-export default function InfoPanel({ 
-  children, 
-  selectedPlayer, 
-  currentUser, 
-  workstationStats, 
-  onTeleportClick,
+export default function InfoPanel({
+  children,
+  selectedPlayer,
+  currentUser,
+  workstationStats,
   collisionPlayer,
   isMobile = false,
   isTablet = false
@@ -40,7 +38,6 @@ export default function InfoPanel({
           {...props}
           currentUser={currentUser}
           workstationStats={workstationStats}
-          onTeleportClick={onTeleportClick}
         >
           {children}
         </StatusInfoTab>

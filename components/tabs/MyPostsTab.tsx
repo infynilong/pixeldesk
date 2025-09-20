@@ -5,6 +5,8 @@ import { useSocialPosts } from '@/lib/hooks/useSocialPosts'
 import { useCurrentUser } from '@/lib/hooks/useCurrentUser'
 import PostCard from '@/components/PostCard'
 import LoadingSpinner from '@/components/LoadingSpinner'
+import CreatePostForm from '@/components/CreatePostForm'
+import { CreatePostData } from '@/types/social'
 
 interface MyPostsTabProps {
   isActive?: boolean
@@ -29,7 +31,8 @@ export default function MyPostsTab({
     pagination,
     refreshPosts,
     loadMorePosts,
-    likePost
+    likePost,
+    createPost
   } = useSocialPosts({
     userId: currentUserId || '',
     autoFetch: isActive && !!currentUserId,
@@ -52,6 +55,22 @@ export default function MyPostsTab({
 
   const handleReplyCountUpdate = (postId: string, newCount: number) => {
     console.log(`回复计数更新：帖子 ${postId} 现在有 ${newCount} 个回复`)
+  }
+
+  // 处理创建帖子
+  const handleCreatePost = async (postData: CreatePostData) => {
+    if (!currentUserId) {
+      console.error('用户ID未获取到，无法发帖')
+      return false
+    }
+
+    const newPost = await createPost(postData)
+    if (newPost) {
+      console.log('✅ [MyPostsTab] 帖子发布成功:', newPost)
+      // 刷新帖子列表
+      refreshPosts()
+    }
+    return !!newPost
   }
 
   // 处理滚动到底部加载更多
@@ -123,6 +142,15 @@ export default function MyPostsTab({
         </div>
       </div>
 
+      {/* 发帖区域 */}
+      <div className="flex-shrink-0 border-b border-retro-border/50 bg-gradient-to-r from-retro-bg-darker/40 to-retro-bg-dark/40">
+        <CreatePostForm
+          onSubmit={handleCreatePost}
+          onCancel={() => {}} // 不需要取消功能，因为表单始终显示
+          isMobile={isMobile}
+        />
+      </div>
+
       {/* 内容区域 */}
       <div className="flex-1 overflow-hidden">
         {error && (
@@ -144,7 +172,7 @@ export default function MyPostsTab({
             </div>
             <h3 className="text-lg font-medium text-white mb-2">还没有发布帖子</h3>
             <p className="text-retro-textMuted text-sm mb-4">
-              去"社交动态"页面发布你的第一个帖子吧！
+              使用上方的输入框发布你的第一个帖子吧！
             </p>
           </div>
         ) : (

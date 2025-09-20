@@ -82,10 +82,6 @@ const CharacterDisplayModal = dynamic(() => import('@/components/CharacterDispla
   ssr: false
 })
 
-// 快速回到工位确认弹窗组件
-const TeleportConfirmModal = dynamic(() => import('@/components/TeleportConfirmModal'), {
-  ssr: false
-})
 
 // 布局管理器组件
 const LayoutManager = dynamic(() => import('@/components/LayoutManager'), {
@@ -149,11 +145,6 @@ export default function Home() {
     position: null as { x: number; y: number } | null
   })
 
-  // 快速回到工位确认弹窗状态
-  const [teleportConfirmModal, setTeleportConfirmModal] = useState({
-    isVisible: false,
-    currentPoints: currentUser?.points || 0
-  })
   
   // 错误消息状态
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -448,11 +439,6 @@ export default function Home() {
         setCurrentUser((prev: any) => ({
           ...prev,
           points: points
-        }))
-        // 同时更新teleport确认弹窗的积分显示
-        setTeleportConfirmModal(prev => ({
-          ...prev,
-          currentPoints: points
         }))
       }
       console.log('用户积分更新:', userId, points)
@@ -777,12 +763,6 @@ export default function Home() {
       collisionPlayer={collisionPlayer}
       currentUser={currentUser}
       workstationStats={workstationStats}
-      onTeleportClick={() => {
-        setTeleportConfirmModal({
-          isVisible: true,
-          currentPoints: currentUser?.points || 0
-        })
-      }}
       isMobile={isMobile}
       isTablet={isTablet}
     >
@@ -884,23 +864,6 @@ export default function Home() {
         />
       )}
 
-      {/* 快速回到工位确认弹窗 */}
-      <TeleportConfirmModal
-        isVisible={teleportConfirmModal.isVisible}
-        currentPoints={teleportConfirmModal.currentPoints}
-        onConfirm={async () => {
-          if (typeof window !== 'undefined' && window.teleportToWorkstation) {
-            const result = await window.teleportToWorkstation();
-            setTeleportConfirmModal({ isVisible: false, currentPoints: currentUser?.points || 0 });
-            
-            if (result && !result.success) {
-              // 显示错误消息
-              setErrorMessage(result.error || '传送失败');
-            }
-          }
-        }}
-        onCancel={() => setTeleportConfirmModal({ isVisible: false, currentPoints: currentUser?.points || 0 })}
-      />
 
       {/* 错误消息弹窗 */}
       {errorMessage && (

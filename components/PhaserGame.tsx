@@ -18,9 +18,9 @@ export default function PhaserGame({ onPlayerCollision, onWorkstationBinding, on
 
   useEffect(() => {
     if (typeof window !== 'undefined' && !gameRef.current) {
-      // 自定义 Phaser 配置 - 优化性能设置
+      // 自定义 Phaser 配置 - 修复WebGL framebuffer错误，改为Canvas渲染器
       const config = {
-        type: Phaser.WEBGL,
+        type: Phaser.CANVAS, // 修复: 从WEBGL改为CANVAS，避免framebuffer错误
         title: 'PixelDesk Social',
         description: '社交办公游戏',
         parent: gameContainerRef.current,
@@ -55,14 +55,12 @@ export default function PhaserGame({ onPlayerCollision, onWorkstationBinding, on
             capture: [] // 不预先捕获任何按键，避免与输入框冲突
           }
         },
-        // 添加性能优化配置
+        // Canvas渲染器优化配置（移除WebGL专用设置）
         render: {
           antialias: false, // 像素艺术不需要抗锯齿
           pixelArt: true,
-          roundPixels: true,
-          // 启用批处理以提高渲染性能
-          batchSize: 2000,
-          maxTextures: 1
+          roundPixels: true
+          // 移除WebGL专用配置：batchSize和maxTextures
         },
         // 设置较低的FPS限制以大幅节省CPU - 对于这种类型的游戏30FPS已经足够流畅
         fps: {
