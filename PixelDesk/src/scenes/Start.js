@@ -1798,19 +1798,23 @@ export class Start extends Phaser.Scene {
           userId: this.currentUser.id,
           workstationId: workstationId,
           hasWorkstationId: !!workstationId,
-          eventWillBeFired: true
+          eventWillBeFired: !!workstationId // 只有在有workstationId时才触发事件
         })
 
-        // 无论是否有workstationId都触发事件，让React重新检查状态
-        window.dispatchEvent(new CustomEvent('workstation-binding-updated', {
-          detail: {
-            userId: this.currentUser.id,
-            workstationId: workstationId,
-            timestamp: Date.now(),
-            userPoints: userPoints,
-            forceReload: true // 强制重新加载状态
-          }
-        }))
+        // 只有在Phaser端有工位数据时才触发事件，避免覆盖React端的正确数据
+        if (workstationId) {
+          window.dispatchEvent(new CustomEvent('workstation-binding-updated', {
+            detail: {
+              userId: this.currentUser.id,
+              workstationId: workstationId,
+              timestamp: Date.now(),
+              userPoints: userPoints,
+              forceReload: true // 强制重新加载状态
+            }
+          }))
+        } else {
+          console.log('🔄 [sendUserDataToUI] 跳过事件触发，因为Phaser端没有工位数据，避免覆盖React端正确数据')
+        }
       }
 
       // 触发工位统计更新事件给Next.js

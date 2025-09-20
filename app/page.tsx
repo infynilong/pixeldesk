@@ -161,9 +161,9 @@ export default function Home() {
       if (migrationResult.migrationSuccess) {
         console.log('🔄 临时玩家已迁移到正式用户')
       }
-      
+
       setIsTemporaryPlayer(false)
-      
+
       // 从localStorage获取游戏相关数据（如角色、积分等）
       try {
         const gameUserData = localStorage.getItem('pixelDeskUser')
@@ -185,7 +185,7 @@ export default function Home() {
           })
         } else {
           // 如果没有游戏数据，使用认证数据
-          setCurrentUser({
+          setCurrentUser((prev: any) => ({
             id: user.id,
             name: user.name,
             email: user.email,
@@ -193,13 +193,14 @@ export default function Home() {
             points: user.points || 50,
             gold: user.gold || 50,
             username: user.name,
+            workstationId: prev?.workstationId, // 保留现有的工位绑定
             workstations: []
-          })
+          }))
         }
       } catch (error) {
         console.warn('Failed to load game user data:', error)
         // 出错时使用认证数据作为后备
-        setCurrentUser({
+        setCurrentUser((prev: any) => ({
           id: user.id,
           name: user.name,
           email: user.email,
@@ -207,8 +208,9 @@ export default function Home() {
           points: user.points || 50,
           gold: user.gold || 50,
           username: user.name,
+          workstationId: prev?.workstationId, // 保留现有的工位绑定
           workstations: []
-        })
+        }))
       }
     } else {
       // 用户未登录 - 检查临时玩家或创建新的临时玩家
@@ -222,9 +224,9 @@ export default function Home() {
       } else if (isFirstTimeVisitor()) {
         // 首次访问，创建临时玩家
         console.log('👋 首次访问用户，创建临时玩家')
-        const newTempPlayer = createTempPlayer()
+        createTempPlayer()
         const tempGameData = getTempPlayerGameData()
-        
+
         if (tempGameData) {
           setCurrentUser(tempGameData)
           setIsTemporaryPlayer(true)
@@ -232,7 +234,7 @@ export default function Home() {
       } else {
         // 既不是首次访问，也没有临时玩家数据 - 创建新的临时玩家（比如用户退出登录后）
         console.log('🔄 用户退出登录，创建新临时玩家')
-        const newTempPlayer = createTempPlayer()
+        createTempPlayer()
         const tempGameData = getTempPlayerGameData()
 
         if (tempGameData) {
@@ -246,58 +248,6 @@ export default function Home() {
       }
     }
   }, [user])
-
-  // 加载当前用户的工位绑定信息
-  const loadUserWorkstationBinding = useCallback(async () => {
-    try {
-      // 使用认证系统的用户数据
-      if (user?.id) {
-        // 先清理多重绑定，确保一致性
-        const response = await fetch(`/api/workstations/user-bindings?userId=${user.id}&cleanup=true`)
-        if (response.ok) {
-          const data = await response.json()
-          if (data.success) {
-            if (data.data.length > 0) {
-              // 获取唯一的绑定记录
-              const binding = data.data[0]
-              const workstationId = String(binding.workstationId) // 确保转换为字符串类型
-
-              setCurrentUser((prev: any) => ({
-                ...prev,
-                workstationId: workstationId
-              }))
-
-              console.log('✅ [loadUserWorkstationBinding] 工位绑定已加载:', {
-                workstationId: workstationId,
-                type: typeof workstationId,
-                cleaned: data.cleaned || 0
-              })
-
-              if (data.cleaned > 0) {
-                console.log(`🧹 [loadUserWorkstationBinding] 已清理 ${data.cleaned} 个重复绑定`)
-              }
-            } else {
-              // 没有绑定记录，确保清除工位ID
-              setCurrentUser((prev: any) => ({
-                ...prev,
-                workstationId: null
-              }))
-              console.log('⚠️ [loadUserWorkstationBinding] 用户未绑定工位')
-            }
-          } else {
-            console.error('❌ [loadUserWorkstationBinding] API请求失败:', data.error)
-          }
-        } else {
-          console.error('❌ [loadUserWorkstationBinding] HTTP请求失败:', response.status)
-        }
-      } else {
-        console.log('ℹ️ [loadUserWorkstationBinding] 无有效用户ID，跳过加载')
-      }
-    } catch (error) {
-      console.warn('❌ [loadUserWorkstationBinding] 加载失败:', error)
-    }
-  }, [user?.id])
-
 
   // 检测移动设备和加载用户数据 - 优化resize处理
   useEffect(() => {
@@ -395,34 +345,79 @@ export default function Home() {
 
     // 如果用户已认证，立即加载工位绑定信息
     if (user?.id) {
-      // 直接调用API加载工位绑定，避免useCallback依赖循环
+      // 直接调用改进的工位绑定加载函数
       const loadBinding = async () => {
+        console.log('🔍 [inline-loadBinding] 开始加载用户工位绑定:', user.id)
+
+        // 首先尝试从localStorage获取缓存的绑定信息
+        const cachedBinding = localStorage.getItem(`workstation_binding_${user.id}`)
+        if (cachedBinding) {
+          try {
+            const binding = JSON.parse(cachedBinding)
+            console.log('💾 [inline-loadBinding] 使用缓存的绑定信息:', binding)
+            setCurrentUser((prev: any) => ({
+              ...prev,
+              workstationId: String(binding.workstationId)
+            }))
+          } catch (error) {
+            console.warn('⚠️ [inline-loadBinding] 缓存解析失败:', error)
+          }
+        }
+
         try {
           const response = await fetch(`/api/workstations/user-bindings?userId=${user.id}&cleanup=true`)
+
           if (response.ok) {
             const data = await response.json()
-            if (data.success) {
-              if (data.data.length > 0) {
-                const binding = data.data[0]
-                const workstationId = String(binding.workstationId)
+            console.log('📡 [inline-loadBinding] API响应:', data)
 
-                setCurrentUser((prev: any) => ({
-                  ...prev,
-                  workstationId: workstationId
-                }))
+            if (data.success && data.data.length > 0) {
+              const binding = data.data[0]
+              const workstationId = String(binding.workstationId)
 
-                console.log('✅ 工位绑定已加载:', workstationId)
-              } else {
+              setCurrentUser((prev: any) => ({
+                ...prev,
+                workstationId: workstationId
+              }))
+
+              // 缓存绑定信息
+              localStorage.setItem(`workstation_binding_${user.id}`, JSON.stringify({
+                workstationId: binding.workstationId,
+                boundAt: binding.boundAt,
+                expiresAt: binding.expiresAt,
+                timestamp: Date.now()
+              }))
+
+              console.log('✅ [inline-loadBinding] 工位绑定已加载:', workstationId)
+
+            } else if (data.success && data.data.length === 0) {
+              setCurrentUser((prev: any) => ({
+                ...prev,
+                workstationId: null
+              }))
+              localStorage.removeItem(`workstation_binding_${user.id}`)
+              console.log('⚠️ [inline-loadBinding] 用户未绑定工位')
+
+            } else if (!data.success && data.code?.startsWith('DB_')) {
+              console.warn('⚠️ [inline-loadBinding] 数据库连接问题，使用缓存数据:', data.error)
+              if (!cachedBinding) {
                 setCurrentUser((prev: any) => ({
                   ...prev,
                   workstationId: null
                 }))
-                console.log('⚠️ 用户未绑定工位')
               }
             }
           }
         } catch (error) {
-          console.warn('❌ 工位绑定加载失败:', error)
+          console.warn('❌ [inline-loadBinding] 工位绑定加载失败:', error)
+
+          // 网络错误时尝试使用缓存
+          if (!cachedBinding) {
+            setCurrentUser((prev: any) => ({
+              ...prev,
+              workstationId: null
+            }))
+          }
         }
       }
       loadBinding()
@@ -733,18 +728,28 @@ export default function Home() {
   ), [handlePlayerCollision, handleWorkstationBinding, handlePlayerClick])
 
   // 优化：使用 memo 避免 PostStatus 不必要重新渲染，但需要包含workstationId依赖
-  const memoizedPostStatus = useMemo(() => (
-    <PostStatus
-      onStatusUpdate={handleStatusUpdate}
-      currentStatus={myStatus}
-      userId={currentUser?.id}
-      userData={{
-        username: currentUser?.username,
-        points: currentUser?.points,
-        workstationId: currentUser?.workstationId
-      }}
-    />
-  ), [handleStatusUpdate, myStatus, currentUser?.id, currentUser?.workstationId]) // 必须包含workstationId依赖以确保工位状态更新
+  const memoizedPostStatus = useMemo(() => {
+    console.log('🎯 [app/page] 创建memoizedPostStatus，currentUser数据:', {
+      id: currentUser?.id,
+      name: currentUser?.name,
+      points: currentUser?.points,
+      workstationId: currentUser?.workstationId,
+      workstationIdType: typeof currentUser?.workstationId
+    })
+
+    return (
+      <PostStatus
+        onStatusUpdate={handleStatusUpdate}
+        currentStatus={myStatus}
+        userId={currentUser?.id}
+        userData={{
+          username: currentUser?.name,
+          points: currentUser?.points,
+          workstationId: currentUser?.workstationId
+        }}
+      />
+    )
+  }, [handleStatusUpdate, myStatus, currentUser?.id, currentUser?.name, currentUser?.points, currentUser?.workstationId]) // 包含所有相关字段依赖
 
   // 优化：使用 memo 避免 selectedPlayer 变化导致 SocialFeed 不必要重新渲染
   const memoizedSocialFeed = useMemo(() => (

@@ -14,6 +14,9 @@ export class WorkstationManager {
         this.bindingCache = null;
         this.adaptiveDebounce = null;
         this.currentViewport = null;
+
+        // 清理初始化时的userBindings，避免遗留数据问题
+        this.cleanupUserBindings();
         this.viewportUpdateDebounce = null;
         this.isViewportOptimizationEnabled = false; // 永久禁用
         
@@ -200,9 +203,11 @@ export class WorkstationManager {
         // 检查用户是否已经绑定到其他工位
         const existingWorkstation = this.getWorkstationByUser(userId);
         if (existingWorkstation) {
-            console.warn(`User ${userId} is already bound to workstation ${existingWorkstation.id}`);
+            console.warn(`🚫 [bindUserToWorkstation] 用户 ${userId} 已绑定到工位 ${existingWorkstation.id}`);
+            console.warn(`🔍 [bindUserToWorkstation] 当前userBindings状态:`, Array.from(this.userBindings.entries()));
             return { success: false, error: 'User already bound to another workstation' };
         }
+        console.log(`✅ [bindUserToWorkstation] 用户 ${userId} 没有现有绑定，可以绑定到工位 ${workstationId}`);
 
         // 计算过期时间（30天后）
         const now = new Date();
@@ -216,7 +221,7 @@ export class WorkstationManager {
         workstation.expiresAt = expiresAt.toISOString();
         workstation.remainingDays = 30;
         
-        this.userBindings.set(workstationId, userId);
+        this.userBindings.set(String(workstationId), userId);
 
         // 更新视觉效果
         if (workstation.sprite) {
@@ -258,7 +263,7 @@ export class WorkstationManager {
             workstation.isOccupied = false;
             workstation.userId = null;
             workstation.userInfo = null;
-            this.userBindings.delete(workstationId);
+            this.userBindings.delete(String(workstationId));
             
             // 恢复视觉效果
             if (workstation.sprite) {
@@ -336,7 +341,7 @@ export class WorkstationManager {
         workstation.userId = null;
         workstation.userInfo = null;
         workstation.unboundAt = Date.now();
-        this.userBindings.delete(workstationId);
+        this.userBindings.delete(String(workstationId));
 
         // 不再使用localStorage缓存，避免缓存问题
 
@@ -593,7 +598,7 @@ export class WorkstationManager {
                 };
                 workstation.boundAt = binding.boundAt;
 
-                this.userBindings.set(workstationId, binding.userId);
+                this.userBindings.set(String(workstationId), binding.userId);
 
                 // 更新视觉效果
                 if (workstation.sprite) {
@@ -617,7 +622,7 @@ export class WorkstationManager {
                     workstation.isOccupied = false;
                     workstation.userId = null;
                     workstation.userInfo = null;
-                    this.userBindings.delete(workstationId);
+                    this.userBindings.delete(String(workstationId));
 
                     // 恢复视觉效果
                     if (workstation.sprite) {
@@ -828,6 +833,20 @@ export class WorkstationManager {
 
             if (result.success) {
                 console.log(`用户 ${userId} 积分已更新到服务器: ${pointsChange > 0 ? '+' : ''}${pointsChange}, 新积分: ${result.data.points}`);
+
+                // 触发积分更新事件，通知前端UI更新
+                if (typeof window !== 'undefined') {
+                    const event = new CustomEvent('user-points-updated', {
+                        detail: {
+                            userId: userId,
+                            points: result.data.points,
+                            change: pointsChange
+                        }
+                    });
+                    window.dispatchEvent(event);
+                    console.log(`已触发积分更新事件: 用户 ${userId}, 新积分: ${result.data.points}`);
+                }
+
                 return { success: true, newPoints: result.data.points };
             } else {
                 console.error('更新用户积分失败:', result.error);
@@ -1396,10 +1415,27 @@ export class WorkstationManager {
     
     // ===== 快速回到工位功能 =====
     async teleportToWorkstation(userId, player) {
-        const workstation = this.getWorkstationByUser(userId);
-        if (!workstation) {
-            console.warn(`用户 ${userId} 没有绑定的工位`);
-            return { success: false, error: '您还没有绑定工位' };
+        // 直接从API查询用户的工位绑定，不依赖内存缓存
+        let workstation;
+        try {
+            const response = await fetch(`/api/workstations/user-bindings?userId=${userId}`);
+            const result = await response.json();
+
+            if (!result.success || result.data.length === 0) {
+                console.warn(`用户 ${userId} 没有绑定的工位`);
+                return { success: false, error: '您还没有绑定工位' };
+            }
+
+            const binding = result.data[0];
+            workstation = this.workstations.get(parseInt(binding.workstationId));
+
+            if (!workstation) {
+                console.warn(`找不到工位 ${binding.workstationId}`);
+                return { success: false, error: '工位不存在' };
+            }
+        } catch (error) {
+            console.error('查询工位绑定失败:', error);
+            return { success: false, error: '查询工位失败' };
         }
 
         console.log(`找到用户 ${userId} 的绑定工位: ID ${workstation.id}, 位置 (${workstation.position.x}, ${workstation.position.y})`);
@@ -1529,7 +1565,7 @@ export class WorkstationManager {
                     workstation.isOccupied = false;
                     workstation.userId = null;
                     workstation.userInfo = null;
-                    this.userBindings.delete(workstationId);
+                    this.userBindings.delete(String(workstationId));
 
                     // 清理视觉效果
                     if (workstation.sprite) {
@@ -1644,7 +1680,7 @@ export class WorkstationManager {
         workstation.remainingDays = binding.remainingDays || 30;
         workstation.isExpiringSoon = binding.isExpiringSoon || false;
 
-        this.userBindings.set(parseInt(workstation.id), binding.userId);
+        this.userBindings.set(String(workstation.id), binding.userId);
         console.log(`✅ [applyBindingToWorkstation] 工位 ${workstation.id} 状态已更新: isOccupied=${workstation.isOccupied}, userId=${workstation.userId}, remainingDays=${workstation.remainingDays}`);
 
         // 更新视觉效果
@@ -1684,7 +1720,7 @@ export class WorkstationManager {
         workstation.isOccupied = false;
         workstation.userId = null;
         workstation.userInfo = null;
-        this.userBindings.delete(parseInt(workstation.id));
+        this.userBindings.delete(String(workstation.id));
         
         // 恢复视觉效果
         if (workstation.sprite) {
@@ -1717,5 +1753,12 @@ export class WorkstationManager {
         this.workstations.clear();
         this.userBindings.clear();
         console.log('WorkstationManager destroyed');
+    }
+
+    // 清理userBindings中的无效数据
+    cleanupUserBindings() {
+        console.log(`🧹 [cleanupUserBindings] 清理初始化时的userBindings，当前条目数: ${this.userBindings.size}`);
+        this.userBindings.clear();
+        console.log(`✅ [cleanupUserBindings] userBindings已清空，避免遗留数据问题`);
     }
 }

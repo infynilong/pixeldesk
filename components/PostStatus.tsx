@@ -30,17 +30,16 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
   const [isExpanded, setIsExpanded] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
   const [statusHistory, setStatusHistory] = useState<any[]>([])
-  const [isLoadingHistory, setIsLoadingHistory] = useState(false)
 
   // 初始化时加载状态历史，添加防抖避免重复调用
   useEffect(() => {
     console.log('PostStatus mounted with userId:', userId)
-    if (userId && !isLoadingHistory) { // 添加isLoadingHistory检查避免重复请求
+    if (userId) {
       // 防抖延迟加载状态历史
       const timer = setTimeout(() => {
         loadStatusHistory()
       }, 100) // 100ms防抖
-      
+
       return () => clearTimeout(timer)
     }
   }, [userId]) // 移除loadStatusHistory依赖避免循环
@@ -187,16 +186,17 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
   const memoizedHandleToggleHistory = useCallback(() => {
     setShowHistory(!showHistory)
   }, [showHistory])
-  
+
   return (
     <div className="space-y-3 font-pixel">
       {/* 用户信息卡片 - 现代像素艺术风格 */}
+
       {userData && (
         <div className="group relative overflow-hidden">
           {/* 背景光效 */}
           <div className="absolute inset-0 bg-gradient-135 from-retro-blue/10 via-retro-purple/15 to-retro-pink/10 opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-retro-cyan/5 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-700 animate-shimmer"></div>
-          
+
           {/* 主卡片 - 紧凑版 */}
           <div className="relative bg-gradient-to-br from-retro-bg-darker/95 via-retro-bg-darker/90 to-retro-bg-dark/95 backdrop-blur-md border-2 border-retro-border rounded-lg p-3 shadow-xl hover:shadow-2xl transition-all duration-300 hover:border-retro-blue/50">
             {/* 用户头像和基本信息 - 紧凑布局 */}
@@ -206,7 +206,7 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
                 <div className="relative">
                   <div className="w-10 h-10 bg-gradient-to-br from-retro-blue via-retro-purple to-retro-pink rounded-lg flex items-center justify-center shadow-lg border-2 border-white/20">
                     <span className="text-sm font-bold text-white font-pixel">
-                      {userData.username?.charAt(0).toUpperCase() || 'U'}
+                      {userData.username?.charAt(0).toUpperCase() || "U"}
                     </span>
                   </div>
                   {/* 小型在线状态指示器 */}
@@ -218,10 +218,10 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
                 {/* 紧凑用户信息 */}
                 <div>
                   <div className="text-white font-bold text-sm font-pixel">
-                    {userData.username || '玩家'}
+                    {userData.username || "玩家"}
                   </div>
                   <div className="text-retro-textMuted text-xs font-retro">
-                    {userId?.slice(-6).toUpperCase() || 'UNKNOWN'}
+                    {userId?.slice(-6).toUpperCase() || "UNKNOWN"}
                   </div>
                 </div>
               </div>
@@ -240,7 +240,9 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
                   <div className="w-4 h-4 bg-gradient-to-br from-retro-orange to-retro-yellow rounded flex items-center justify-center">
                     <span className="text-xs">🏢</span>
                   </div>
-                  <span className="text-retro-text text-xs font-retro">工位</span>
+                  <span className="text-retro-text text-xs font-retro">
+                    工位
+                  </span>
                 </div>
                 <div className="flex items-center gap-2">
                   {userData.workstationId ? (
@@ -254,12 +256,15 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
                       {/* 快速回到工位按钮 */}
                       <button
                         onClick={() => {
-                          if (typeof window !== 'undefined' && window.teleportToWorkstation) {
+                          if (
+                            typeof window !== "undefined" &&
+                            window.teleportToWorkstation
+                          ) {
                             window.teleportToWorkstation().then((result) => {
                               if (result && !result.success) {
-                                console.error('传送失败:', result.error);
+                                console.error("传送失败:", result.error)
                               }
-                            });
+                            })
                           }
                         }}
                         className="group relative overflow-hidden bg-gradient-to-r from-retro-blue/80 to-retro-cyan/80 hover:from-retro-blue hover:to-retro-cyan text-white font-bold px-2 py-1 rounded text-xs transition-all duration-200 transform hover:scale-[1.05] active:scale-[0.95] shadow-sm hover:shadow-md border border-white/20 hover:border-white/40"
@@ -267,7 +272,9 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
                       >
                         <div className="flex items-center gap-1">
                           <span className="text-xs">⚡</span>
-                          <span className="font-pixel text-xs tracking-wide">GO</span>
+                          <span className="font-pixel text-xs tracking-wide">
+                            GO
+                          </span>
                           <div className="text-xs opacity-75">💎1</div>
                         </div>
                       </button>
@@ -286,7 +293,6 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
           </div>
         </div>
       )}
-
 
       {/* 当前状态显示 - 紧凑版 */}
       {currentStatus && (
@@ -331,9 +337,9 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
         >
           {/* 按钮内容 - 紧凑版 */}
           <div className="relative flex items-center justify-center gap-2">
-            <span className="text-sm">{isExpanded ? '✕' : '📝'}</span>
+            <span className="text-sm">{isExpanded ? "✕" : "📝"}</span>
             <span className="font-pixel text-xs tracking-wide">
-              {isExpanded ? 'CANCEL' : 'UPDATE'}
+              {isExpanded ? "CANCEL" : "UPDATE"}
             </span>
           </div>
         </button>
@@ -348,7 +354,7 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
             <div className="relative flex items-center justify-center gap-2">
               <span className="text-sm">📊</span>
               <span className="font-retro text-xs tracking-wide">
-                {showHistory ? 'HIDE' : 'HISTORY'}
+                {showHistory ? "HIDE" : "HISTORY"}
               </span>
               {/* 小型计数器 */}
               <span className="text-xs bg-retro-purple/50 text-white px-1.5 py-0.5 rounded-full font-pixel">
@@ -365,11 +371,11 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
           className="space-y-2 bg-gradient-to-br from-retro-bg-darker/95 via-retro-bg-dark/90 to-retro-bg-darker/95 backdrop-blur-lg border-2 border-retro-border rounded-lg p-3 shadow-2xl animate-slide-in-up"
           onClick={(e) => {
             // 阻止点击事件冒泡到Phaser游戏
-            e.stopPropagation();
+            e.stopPropagation()
           }}
           onKeyDown={(e) => {
             // 阻止键盘事件冒泡到Phaser游戏
-            e.stopPropagation();
+            e.stopPropagation()
           }}
         >
           {/* 超紧凑面板标题 */}
@@ -384,7 +390,9 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
 
           {/* 状态类型选择 - 超紧凑网格 */}
           <div className="space-y-2">
-            <label className="block text-xs font-bold text-white font-pixel tracking-wide">SELECT MODE</label>
+            <label className="block text-xs font-bold text-white font-pixel tracking-wide">
+              SELECT MODE
+            </label>
             <div className="grid grid-cols-3 gap-1.5">
               {statusOptions.map((status) => (
                 <button
@@ -393,7 +401,7 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
                   className={`group relative overflow-hidden p-2 rounded-lg border transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] ${
                     selectedStatus === status.id
                       ? `border-white/40 bg-gradient-to-br ${status.color} text-white shadow-lg`
-                      : 'border-retro-border bg-gradient-to-br from-retro-bg-dark/50 to-retro-bg-darker/50 hover:border-retro-purple/50 shadow-md'
+                      : "border-retro-border bg-gradient-to-br from-retro-bg-dark/50 to-retro-bg-darker/50 hover:border-retro-purple/50 shadow-md"
                   }`}
                 >
                   {/* 选择状态的光效 */}
@@ -431,15 +439,15 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
                 onChange={memoizedHandleMessageChange}
                 onKeyDown={(e) => {
                   // 阻止键盘事件冒泡到Phaser游戏
-                  e.stopPropagation();
+                  e.stopPropagation()
                 }}
                 onKeyUp={(e) => {
                   // 阻止键盘事件冒泡到Phaser游戏
-                  e.stopPropagation();
+                  e.stopPropagation()
                 }}
                 onClick={(e) => {
                   // 阻止点击事件冒泡
-                  e.stopPropagation();
+                  e.stopPropagation()
                 }}
                 placeholder="Share what you're doing..."
                 className="relative w-full p-2 bg-gradient-to-br from-retro-bg-dark/80 to-retro-bg-darker/80 border border-retro-border rounded-lg resize-none focus:outline-none focus:border-retro-purple focus:shadow-lg focus:shadow-retro-purple/25 text-white placeholder-retro-textMuted backdrop-blur-md transition-all duration-300 font-retro text-sm leading-relaxed"
@@ -480,9 +488,7 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
                 <div className="w-4 h-4 bg-retro-red/20 rounded flex items-center justify-center group-hover:bg-retro-red/30 transition-all duration-200">
                   <span className="text-xs">✕</span>
                 </div>
-                <span className="font-pixel text-xs tracking-wide">
-                  CANCEL
-                </span>
+                <span className="font-pixel text-xs tracking-wide">CANCEL</span>
               </div>
             </button>
           </div>
@@ -518,18 +524,29 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
                   <span className="text-2xl">📝</span>
                 </div>
                 <div className="space-y-1">
-                  <div className="text-white font-bold font-pixel text-sm">NO RECORDS</div>
-                  <div className="text-retro-textMuted text-xs font-retro">Start sharing your status!</div>
+                  <div className="text-white font-bold font-pixel text-sm">
+                    NO RECORDS
+                  </div>
+                  <div className="text-retro-textMuted text-xs font-retro">
+                    Start sharing your status!
+                  </div>
                 </div>
               </div>
             ) : (
               statusHistory.map((history, index) => (
-                <div key={history.id || index} className="group relative overflow-hidden bg-gradient-to-r from-retro-bg-dark/60 to-retro-bg-darker/60 rounded-lg p-2.5 border border-retro-border/50 hover:border-retro-cyan/50 transition-all duration-300 hover:shadow-lg backdrop-blur-sm">
+                <div
+                  key={history.id || index}
+                  className="group relative overflow-hidden bg-gradient-to-r from-retro-bg-dark/60 to-retro-bg-darker/60 rounded-lg p-2.5 border border-retro-border/50 hover:border-retro-cyan/50 transition-all duration-300 hover:shadow-lg backdrop-blur-sm"
+                >
                   {/* 记录内容 */}
                   <div className="relative space-y-2">
                     {/* 状态标签和时间 */}
                     <div className="flex items-center justify-between">
-                      <div className={`flex items-center gap-1.5 px-2 py-1 rounded bg-gradient-to-r ${getStatusBadge(history.type)} border border-white/20 shadow-sm`}>
+                      <div
+                        className={`flex items-center gap-1.5 px-2 py-1 rounded bg-gradient-to-r ${getStatusBadge(
+                          history.type
+                        )} border border-white/20 shadow-sm`}
+                      >
                         <span className="text-xs">{history.emoji}</span>
                         <span className="text-white text-xs font-bold font-pixel tracking-wide">
                           {history.status}
@@ -560,9 +577,14 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
                     <span className="text-xs">📅</span>
                   </div>
                   <div className="text-lg font-bold text-white font-pixel">
-                    {statusHistoryManager.getStatusHistoryStats(userId).todayCount}
+                    {
+                      statusHistoryManager.getStatusHistoryStats(userId)
+                        .todayCount
+                    }
                   </div>
-                  <div className="text-xs text-retro-textMuted font-retro tracking-wide">TODAY</div>
+                  <div className="text-xs text-retro-textMuted font-retro tracking-wide">
+                    TODAY
+                  </div>
                 </div>
 
                 {/* 总记录数 */}
@@ -573,7 +595,9 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
                   <div className="text-lg font-bold text-white font-pixel">
                     {statusHistory.length}
                   </div>
-                  <div className="text-xs text-retro-textMuted font-retro tracking-wide">TOTAL</div>
+                  <div className="text-xs text-retro-textMuted font-retro tracking-wide">
+                    TOTAL
+                  </div>
                 </div>
 
                 {/* 最常用状态 */}
@@ -582,13 +606,26 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
                     <span className="text-xs">⭐</span>
                   </div>
                   <div className="text-lg font-bold text-white font-pixel">
-                    {statusHistoryManager.getStatusHistoryStats(userId).mostUsedStatus === 'working' ? '💼' :
-                     statusHistoryManager.getStatusHistoryStats(userId).mostUsedStatus === 'break' ? '☕' :
-                     statusHistoryManager.getStatusHistoryStats(userId).mostUsedStatus === 'reading' ? '📚' :
-                     statusHistoryManager.getStatusHistoryStats(userId).mostUsedStatus === 'meeting' ? '👥' :
-                     statusHistoryManager.getStatusHistoryStats(userId).mostUsedStatus === 'lunch' ? '🍽️' : '🚻'}
+                    {statusHistoryManager.getStatusHistoryStats(userId)
+                      .mostUsedStatus === "working"
+                      ? "💼"
+                      : statusHistoryManager.getStatusHistoryStats(userId)
+                          .mostUsedStatus === "break"
+                      ? "☕"
+                      : statusHistoryManager.getStatusHistoryStats(userId)
+                          .mostUsedStatus === "reading"
+                      ? "📚"
+                      : statusHistoryManager.getStatusHistoryStats(userId)
+                          .mostUsedStatus === "meeting"
+                      ? "👥"
+                      : statusHistoryManager.getStatusHistoryStats(userId)
+                          .mostUsedStatus === "lunch"
+                      ? "🍽️"
+                      : "🚻"}
                   </div>
-                  <div className="text-xs text-retro-textMuted font-retro tracking-wide">POPULAR</div>
+                  <div className="text-xs text-retro-textMuted font-retro tracking-wide">
+                    POPULAR
+                  </div>
                 </div>
               </div>
             </div>
