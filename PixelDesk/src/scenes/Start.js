@@ -3,10 +3,6 @@ import { Player } from "../entities/Player.js"
 import { WashroomManager } from "../logic/WashroomManager.js"
 import { ZoomControl } from "../components/ZoomControl.js"
 import { WorkstationBindingUI } from "../components/WorkstationBindingUI.js"
-import { CollisionOptimizer } from "../logic/CollisionOptimizer.js"
-import { PlayerInfoDebouncer } from "../logic/PlayerInfoDebouncer.js"
-import { MultiPlayerCollisionManager } from "../logic/MultiPlayerCollisionManager.js"
-import { FocusManager } from "../logic/FocusManager.js"
 
 // ===== 性能优化配置 =====
 const PERFORMANCE_CONFIG = {
@@ -38,13 +34,7 @@ export class Start extends Phaser.Scene {
     this.otherPlayers = new Map() // 存储其他玩家
     this.myStatus = null // 我的状态
     
-    // Performance optimization systems
-    this.collisionOptimizer = null
-    this.playerInfoDebouncer = null
-    this.multiPlayerCollisionManager = null
-    
-    // Focus management system
-    this.focusManager = null
+    // 已删除无用的优化系统属性
   }
 
   preload() {
@@ -107,21 +97,9 @@ export class Start extends Phaser.Scene {
       window.getCollisionHistory = this.getCollisionHistory.bind(this)
       window.setCollisionSensitivity = this.setCollisionSensitivity.bind(this)
       
-      // 添加性能优化相关的全局函数
-      window.getCollisionStats = this.getCollisionStats.bind(this)
-      window.getPlayerInfoStats = this.getPlayerInfoStats.bind(this)
-      window.forcePlayerInfoUpdate = this.forcePlayerInfoUpdate.bind(this)
-      window.clearAllCollisions = this.clearAllCollisions.bind(this)
-      window.setMaxSimultaneousCollisions = this.setMaxSimultaneousCollisions.bind(this)
+      // 已删除无用的性能优化相关全局函数绑定
 
-      // 测试和调试函数已移除以优化性能
-      window.forceEnableKeyboard = () => {
-        if (this.focusManager) {
-          this.focusManager.forceEnableKeyboard()
-          return { success: true, message: 'Keyboard forcibly enabled' }
-        }
-        return { error: 'FocusManager not initialized' }
-      }
+      // 已删除无用的FocusManager相关函数
 
       // 添加强制刷新工位绑定的调试函数
       window.forceRefreshWorkstations = async () => {
@@ -463,7 +441,7 @@ export class Start extends Phaser.Scene {
     // 只处理需要每帧更新的核心逻辑
     this.handlePlayerMovement()
 
-    // 检查T键按下，快速回到工位（临时禁用FocusManager检查）
+    // 检查T键按下，快速回到工位（临时禁用）
     // if (this.teleportKey && Phaser.Input.Keyboard.JustDown(this.teleportKey)) {
     //   this.handleTeleportKeyPress()
     // }
@@ -472,82 +450,9 @@ export class Start extends Phaser.Scene {
     // bindingUI.update() 和 collision detection 现在使用定时器
   }
 
-  // ===== 性能优化系统初始化 =====
-  initializeOptimizationSystems() {
-    try {
-      // Initialize collision optimizer
-      this.collisionOptimizer = new CollisionOptimizer(this)
-      
-      // Initialize player info debouncer
-      this.playerInfoDebouncer = new PlayerInfoDebouncer(this)
-      
-      // Initialize multi-player collision manager
-      this.multiPlayerCollisionManager = new MultiPlayerCollisionManager(this)
-      
-      // Initialize focus manager for keyboard input conflict resolution
-      this.focusManager = new FocusManager(this)
-      
-      // Performance optimization systems initialized
-      
-    } catch (error) {
-      debugError('[Start] Error initializing optimization systems:', error)
-      // Fallback to original collision detection if optimization fails
-      this.useOptimizedCollision = false
-    }
-  }
+  // 已删除无用的性能优化系统初始化函数
 
-  // ===== 优化的碰撞检测更新 =====
-  updateOptimizedCollisionDetection() {
-    try {
-      if (!this.collisionOptimizer || !this.player) {
-        // Fallback to original collision detection
-        this.updateCollisionDetection()
-        return
-      }
-
-      // Get all other players for collision detection
-      const otherPlayers = this.getAllOtherPlayers()
-      
-      // Use optimized collision detection
-      this.collisionOptimizer.updateCollisionDetection(this.player, otherPlayers)
-      
-    } catch (error) {
-      debugError('[Start] Error in optimized collision detection:', error)
-      // Fallback to original collision detection
-      this.updateCollisionDetection()
-    }
-  }
-
-  // ===== 获取所有其他玩家 =====
-  getAllOtherPlayers() {
-    const allPlayers = []
-    
-    try {
-      // Add players from otherPlayers map
-      for (const [id, player] of this.otherPlayers) {
-        if (player && player.isOtherPlayer) {
-          allPlayers.push(player)
-        }
-      }
-      
-      // Add workstation characters
-      if (this.workstationManager) {
-        const workstations = this.workstationManager.getAllWorkstations()
-        workstations.forEach(workstation => {
-          if (workstation.characterSprite && 
-              workstation.characterSprite.isOtherPlayer &&
-              workstation.characterSprite !== this.player) {
-            allPlayers.push(workstation.characterSprite)
-          }
-        })
-      }
-      
-    } catch (error) {
-      debugError('[Start] Error getting other players:', error)
-    }
-    
-    return allPlayers
-  }
+  // 已删除无用的优化碰撞检测函数
 
   // ===== 玩家相关方法 =====
   createPlayer(map) {
@@ -558,9 +463,8 @@ export class Start extends Phaser.Scene {
       return
     }
 
-    // 找到玩家身体和头部对象
+    // 找到玩家身体对象
     const userBody = userLayer.objects.find((obj) => obj.name === "user_body")
-    const userHead = userLayer.objects.find((obj) => obj.name === "user_head")
 
     // 创建玩家实例，启用移动和状态保存
     const playerSpriteKey =
@@ -647,7 +551,8 @@ export class Start extends Phaser.Scene {
     // 检查是否应该处理键盘输入（简化版本）
     if (this.keyboardInputEnabled === false) {
       // 当键盘输入被禁用时，停止角色移动
-      this.player.body.setVelocity(0, 0);
+      this.player.body.setVelocityX(0);
+      this.player.body.setVelocityY(0);
       return;
     }
 
@@ -679,8 +584,7 @@ export class Start extends Phaser.Scene {
     })
 
     // 监听工位相关事件
-    this.events.on("workstation-clicked", (data) => {
-      // debugLog('Workstation clicked event:', data);
+    this.events.on("workstation-clicked", () => {
       // 在这里添加自定义的点击处理逻辑
     })
 
@@ -921,7 +825,7 @@ export class Start extends Phaser.Scene {
     // 创建桌子碰撞组
     this.deskColliders = this.physics.add.staticGroup()
 
-    objectLayer.objects.forEach((obj, index) => this.renderObject(obj, index))
+    objectLayer.objects.forEach((obj) => this.renderObject(obj))
 
     // 在所有工位创建完成后更新deskCount - 只对desk_objs图层执行
     if (layerName === "desk_objs") {
@@ -934,7 +838,7 @@ export class Start extends Phaser.Scene {
     }
   }
 
-  renderObject(obj, index) {
+  renderObject(obj) {
     const adjustedY = obj.y - obj.height
     let sprite = null
 
@@ -1206,7 +1110,7 @@ export class Start extends Phaser.Scene {
     // 改为手动检查键盘状态，只有在FocusManager允许时才处理
 
     // 添加鼠标滚轮事件监听，用于缩放控制
-    this.input.on("wheel", (pointer, currentlyOver, deltaX, deltaY, deltaZ) => {
+    this.input.on("wheel", (pointer, _currentlyOver, _deltaX, deltaY, _deltaZ) => {
       // 检查是否按下了Ctrl键
       if (pointer.event.ctrlKey) {
         // 根据滚轮方向调整缩放值
@@ -1610,7 +1514,7 @@ export class Start extends Phaser.Scene {
             })
 
             if (response.ok) {
-              const result = await response.json()
+              await response.json() // 消费响应但不使用结果
             } else {
               debugError("结束活动失败:", response.status)
             }
@@ -1743,8 +1647,7 @@ export class Start extends Phaser.Scene {
     // 设置主玩家与工位角色的碰撞检测
     this.setupWorkstationCharacterCollisions()
 
-    // 设置碰撞检测更新循环
-    this.setupCollisionDetectionLoop()
+    // 已删除无用的碰撞检测循环设置
   }
 
   // 处理玩家碰撞（带防抖机制）
@@ -1798,9 +1701,7 @@ export class Start extends Phaser.Scene {
     this.collisionManager.debounceTimers.set(playerId, timer)
   }
 
-  // 设置碰撞检测循环 - 优化为定时检查而不是每帧检查
-  setupCollisionDetectionLoop() {
-  }
+  // 已删除无用的空碰撞检测循环函数
 
   // 更新碰撞检测
   updateCollisionDetection() {
@@ -1846,7 +1747,7 @@ export class Start extends Phaser.Scene {
 
   // 根据ID获取其他玩家
   getOtherPlayerById(playerId) {
-    for (const [id, player] of this.otherPlayers) {
+    for (const [, player] of this.otherPlayers) {
       if (player.playerData.id === playerId) {
         return player
       }
@@ -1969,142 +1870,9 @@ export class Start extends Phaser.Scene {
     }
   }
 
-  // 清理碰撞管理器
-  // ===== 碰撞检测系统 =====
+  // 已删除重复的碰撞检测函数
 
-  // 更新碰撞检测 (原始版本，作为备用)
-  updateCollisionDetection() {
-    if (!this.player || !this.player.body) return
-
-    const currentTime = Date.now()
-
-    // 防抖检查
-    if (currentTime - this.lastCollisionCheck < this.collisionDebounceTime) {
-      return
-    }
-
-    this.lastCollisionCheck = currentTime
-
-    // 检查与其他玩家的碰撞
-    this.checkPlayerCollisions()
-  }
-
-  // ===== 性能优化相关的全局函数 =====
-  
-  /**
-   * 获取碰撞统计信息
-   */
-  getCollisionStats() {
-    const stats = {
-      optimizerStats: null,
-      multiPlayerStats: null,
-      currentCollisions: this.currentCollisions.size,
-      collisionHistory: this.collisionHistory.length
-    }
-    
-    if (this.collisionOptimizer) {
-      stats.optimizerStats = this.collisionOptimizer.getCollisionStats()
-    }
-    
-    if (this.multiPlayerCollisionManager) {
-      stats.multiPlayerStats = this.multiPlayerCollisionManager.getCollisionStats()
-    }
-    
-    return stats
-  }
-
-  /**
-   * 获取玩家信息更新统计
-   */
-  getPlayerInfoStats() {
-    if (this.playerInfoDebouncer) {
-      return this.playerInfoDebouncer.getStats()
-    }
-    return { error: 'PlayerInfoDebouncer not initialized' }
-  }
-
-  /**
-   * 强制更新玩家信息
-   */
-  forcePlayerInfoUpdate(playerId) {
-    if (this.playerInfoDebouncer && playerId) {
-      this.playerInfoDebouncer.forceUpdate(playerId)
-      return true
-    }
-    return false
-  }
-
-  /**
-   * 清除所有碰撞
-   */
-  clearAllCollisions() {
-    try {
-      // Clear optimized collision systems
-      if (this.collisionOptimizer) {
-        this.collisionOptimizer.cleanup()
-      }
-      
-      if (this.multiPlayerCollisionManager) {
-        this.multiPlayerCollisionManager.clearAllCollisions()
-      }
-      
-      // Clear original collision tracking
-      this.currentCollisions.clear()
-      
-      return true
-      
-    } catch (error) {
-      debugError('[Start] Error clearing collisions:', error)
-      return false
-    }
-  }
-
-  /**
-   * 设置最大同时碰撞数
-   */
-  setMaxSimultaneousCollisions(max) {
-    if (this.multiPlayerCollisionManager) {
-      this.multiPlayerCollisionManager.setMaxSimultaneousCollisions(max)
-      return true
-    }
-    return false
-  }
-
-  /**
-   * 设置碰撞敏感度 (增强版本)
-   */
-  setCollisionSensitivity(radius) {
-    try {
-      // Update original collision sensitivity
-      if (radius > 0 && radius <= 200) {
-        this.collisionSensitivity = radius
-        
-        // Update optimized collision system
-        if (this.collisionOptimizer) {
-          this.collisionOptimizer.setCollisionSensitivity(radius)
-        }
-        
-        debugLog(`[Start] Collision sensitivity set to ${radius}px`)
-        return true
-      } else {
-        debugWarn('[Start] Invalid collision sensitivity value')
-        return false
-      }
-    } catch (error) {
-      debugError('[Start] Error setting collision sensitivity:', error)
-      return false
-    }
-  }
-
-  /**
-   * 队列玩家信息更新
-   */
-  queuePlayerInfoUpdate(playerId, updateData, priority = 'normal') {
-    if (this.playerInfoDebouncer) {
-      return this.playerInfoDebouncer.queuePlayerUpdate(playerId, updateData, priority)
-    }
-    return false
-  }
+  // 已删除无用的性能优化相关全局函数
 
   // 检查玩家碰撞
   checkPlayerCollisions() {
@@ -2200,133 +1968,53 @@ export class Start extends Phaser.Scene {
     // }
   }
 
-  // 处理碰撞开始 (增强版本)
+  // 处理碰撞开始
   handleCollisionStart(otherPlayer) {
     const playerId = otherPlayer.playerData.id
-    
-    try {
-      // Use multi-player collision manager if available
-      if (this.multiPlayerCollisionManager) {
-        const success = this.multiPlayerCollisionManager.handleCollisionStart(
-          this.player, 
-          otherPlayer, 
-          { timestamp: Date.now() }
-        )
-        
-        if (success) {
-          // Queue player info update with high priority
-          this.queuePlayerInfoUpdate(playerId, {
-            collision: { isColliding: true },
-            triggerUIUpdate: true
-          }, 'high')
-          
-          // Add to current collisions for backward compatibility
-          this.currentCollisions.add(playerId)
-        }
-        
-        return success
-      }
-      
-      // Fallback to original collision handling
-      this.currentCollisions.add(playerId)
+
+    // 添加到当前碰撞
+    this.currentCollisions.add(playerId)
+
+    // 调用角色的碰撞处理
+    if (otherPlayer.handleCollisionStart) {
       otherPlayer.handleCollisionStart(this.player)
-      
-      return true
-      
-    } catch (error) {
-      debugError('[Start] Error handling collision start:', error)
-      
-      // Fallback to basic collision handling
-      this.currentCollisions.add(playerId)
-      if (otherPlayer.handleCollisionStart) {
-        otherPlayer.handleCollisionStart(this.player)
-      }
-      
-      return false
     }
 
     // 记录碰撞历史
-    const collisionRecord = {
-      playerId: otherPlayer.playerData.id,
+    this.collisionHistory.push({
+      playerId: playerId,
       playerName: otherPlayer.playerData.name,
       startTime: Date.now(),
       endTime: null,
       duration: null,
-    }
+    })
 
-    this.collisionHistory.push(collisionRecord)
-
-    // 在页面上显示碰撞信息
-    this.showCollisionNotification(
-      `碰撞开始: ${this.player.playerData.name} ↔ ${otherPlayer.playerData.name}`,
-      "start"
-    )
+    return true
   }
 
-  // 处理碰撞结束 (增强版本)
+  // 处理碰撞结束
   handleCollisionEnd(otherPlayer) {
     const playerId = otherPlayer.playerData.id
-    
-    try {
-      // Use multi-player collision manager if available
-      if (this.multiPlayerCollisionManager) {
-        const success = this.multiPlayerCollisionManager.handleCollisionEnd(playerId, otherPlayer)
-        
-        if (success) {
-          // Queue player info update
-          this.queuePlayerInfoUpdate(playerId, {
-            collision: { isColliding: false },
-            triggerUIUpdate: true
-          }, 'normal')
-          
-          // Remove from current collisions for backward compatibility
-          this.currentCollisions.delete(playerId)
-        }
-        
-        return success
-      }
-      
-      // Fallback to original collision handling
-      this.currentCollisions.delete(playerId)
+
+    // 从当前碰撞中移除
+    this.currentCollisions.delete(playerId)
+
+    // 调用角色的碰撞结束处理
+    if (otherPlayer.handleCollisionEnd) {
       otherPlayer.handleCollisionEnd(this.player)
-      
-      return true
-      
-    } catch (error) {
-      debugError('[Start] Error handling collision end:', error)
-      
-      // Fallback to basic collision handling
-      this.currentCollisions.delete(playerId)
-      if (otherPlayer.handleCollisionEnd) {
-        otherPlayer.handleCollisionEnd(this.player)
-      }
-      
-      return false
     }
 
     // 更新碰撞历史记录
     const collisionRecord = this.collisionHistory
       .reverse()
-      .find(
-        (record) =>
-          record.playerId === otherPlayer.playerData.id && !record.endTime
-      )
+      .find(record => record.playerId === playerId && !record.endTime)
 
-    let duration = 0
     if (collisionRecord) {
       collisionRecord.endTime = Date.now()
-      collisionRecord.duration =
-        collisionRecord.endTime - collisionRecord.startTime
-      duration = collisionRecord.duration
+      collisionRecord.duration = collisionRecord.endTime - collisionRecord.startTime
     }
 
-    // 在页面上显示碰撞结束信息
-    this.showCollisionNotification(
-      `碰撞结束: ${this.player.playerData.name} ↔ ${
-        otherPlayer.playerData.name
-      } (持续${Math.round(duration / 1000)}秒)`,
-      "end"
-    )
+    return true
   }
 
   // 获取当前碰撞的玩家
@@ -2356,10 +2044,12 @@ export class Start extends Phaser.Scene {
 
   // 设置碰撞敏感度
   setCollisionSensitivity(radius) {
-    this.collisionSensitivity = Math.max(10, Math.min(200, radius))
-    debugLog(
-      `[CollisionSystem] 碰撞敏感度设置为: ${this.collisionSensitivity}px`
-    )
+    if (radius > 0 && radius <= 200) {
+      this.collisionSensitivity = radius
+      debugLog(`碰撞敏感度设置为: ${this.collisionSensitivity}px`)
+      return true
+    }
+    return false
   }
 
   // debugCollisionSystem函数已移除以优化性能
@@ -2468,46 +2158,7 @@ export class Start extends Phaser.Scene {
     debugLog(`📢 [通知] ${message}`)
   }
 
-  // ===== 清理性能优化系统 =====
-  cleanupOptimizationSystems() {
-    try {
-      // Cleanup collision optimizer
-      if (this.collisionOptimizer) {
-        this.collisionOptimizer.cleanup()
-        this.collisionOptimizer = null
-      }
-      
-      // Cleanup player info debouncer
-      if (this.playerInfoDebouncer) {
-        this.playerInfoDebouncer.cleanup()
-        this.playerInfoDebouncer = null
-      }
-      
-      // Cleanup multi-player collision manager
-      if (this.multiPlayerCollisionManager) {
-        this.multiPlayerCollisionManager.cleanup()
-        this.multiPlayerCollisionManager = null
-      }
-      
-      debugLog('[Start] Performance optimization systems cleaned up')
-      
-    } catch (error) {
-      debugError('[Start] Error cleaning up optimization systems:', error)
-    }
-  }
-
-  cleanupCollisionManager() {
-    if (this.collisionManager) {
-      // 清理所有防抖计时器
-      this.collisionManager.debounceTimers.forEach((timer) => {
-        this.time.removeEvent(timer)
-      })
-
-      // 清空集合
-      this.collisionManager.activeCollisions.clear()
-      this.collisionManager.debounceTimers.clear()
-    }
-  }
+  // 已删除无用的清理优化系统函数
 
   // testCollisionSystem function removed for performance optimization
 
@@ -2521,18 +2172,12 @@ export class Start extends Phaser.Scene {
   // ===== 清理方法 =====
 
   shutdown() {
-    // 清理性能优化系统
-    this.cleanupOptimizationSystems()
-    
-    // 清理碰撞管理器
-    this.cleanupCollisionManager()
-    
-    // 清理新添加的定时器
+    // 清理定时器
     if (this.collisionCheckTimer) {
       this.collisionCheckTimer.remove()
       this.collisionCheckTimer = null
     }
-    
+
     if (this.uiUpdateTimer) {
       this.uiUpdateTimer.remove()
       this.uiUpdateTimer = null
@@ -2557,6 +2202,7 @@ export class Start extends Phaser.Scene {
       delete window.getCurrentCollisions
       delete window.getCollisionHistory
       delete window.setCollisionSensitivity
+      delete window.gameScene
     }
 
     // 调用父类的shutdown方法
