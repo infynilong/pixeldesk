@@ -13,7 +13,6 @@ interface InfoPanelProps {
   selectedPlayer?: any
   currentUser?: any
   workstationStats?: any
-  collisionPlayer?: any
   isMobile?: boolean
   isTablet?: boolean
 }
@@ -23,7 +22,6 @@ export default function InfoPanel({
   selectedPlayer,
   currentUser,
   workstationStats,
-  collisionPlayer,
   isMobile = false,
   isTablet = false
 }: InfoPanelProps) {
@@ -95,7 +93,6 @@ export default function InfoPanel({
       <div className="flex-1 flex flex-col">
         <TabManager
           tabs={tabs}
-          collisionPlayer={collisionPlayer}
           className="flex-1"
           isMobile={isMobile}
           isTablet={isTablet}

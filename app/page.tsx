@@ -114,7 +114,6 @@ export default function Home() {
   
   const [isMobile, setIsMobile] = useState(false)
   const [selectedPlayer, setSelectedPlayer] = useState(null)
-  const [collisionPlayer, setCollisionPlayer] = useState<any>(null)
   const [myStatus, setMyStatus] = useState<any>('')
   const [currentUser, setCurrentUser] = useState<any>(null)
   const [workstationStats, setWorkstationStats] = useState<any>(null)
@@ -496,71 +495,8 @@ export default function Home() {
     setSelectedPlayer(playerData)
   }, [])
 
-  // Set up event bus listeners for collision and click events
-  useEffect(() => {
-    const handleCollisionStart = (event: CollisionEvent) => {
-      // Social功能已重新启用 - collision处理恢复正常
-      const isSocialFunctionalityEnabled = true // Social功能重新启用
-      if (!isSocialFunctionalityEnabled) {
-        return
-      }
-
-      // Only update if it's a different player to avoid unnecessary re-renders
-      setCollisionPlayer((prevPlayer: any) => {
-        if (prevPlayer?.id === event.targetPlayer?.id) {
-          return prevPlayer
-        }
-        return event.targetPlayer
-      })
-    }
-
-    const handleCollisionEnd = (event: CollisionEvent) => {
-      // Social功能已重新启用 - collision end处理恢复正常
-      const isSocialFunctionalityEnabled = true // Social功能重新启用
-      if (!isSocialFunctionalityEnabled) {
-        return
-      }
-
-      // Only clear if it's the same player that's ending collision
-      setCollisionPlayer((prevPlayer: any) => {
-        if (prevPlayer?.id === event.targetPlayer?.id) {
-          return null
-        }
-        // If it's a different player ending collision, keep the current one
-        return prevPlayer
-      })
-    }
-
-    const handlePlayerClickEvent = (event: any) => {
-      // Social功能已重新启用 - click处理恢复正常
-      const isSocialFunctionalityEnabled = true // Social功能重新启用
-      if (!isSocialFunctionalityEnabled) {
-        return
-      }
-
-      // For click events, we set the collision player to trigger the same UI behavior
-      // Only update if it's a different player
-      setCollisionPlayer((prevPlayer: any) => {
-        if (prevPlayer?.id === event.targetPlayer?.id) {
-          return prevPlayer
-        }
-        return event.targetPlayer
-      })
-    }
-
-
-    // Subscribe to collision and click events
-    EventBus.on('player:collision:start', handleCollisionStart)
-    EventBus.on('player:collision:end', handleCollisionEnd)
-    EventBus.on('player:click', handlePlayerClickEvent)
-
-    // Cleanup on unmount
-    return () => {
-      EventBus.off('player:collision:start', handleCollisionStart)
-      EventBus.off('player:collision:end', handleCollisionEnd)
-      EventBus.off('player:click', handlePlayerClickEvent)
-    }
-  }, [])
+  // 注意：collision事件处理已移至TabManager，避免重复处理
+  // TabManager会完全负责collision检测、标签页切换和玩家信息管理
 
   // 处理状态更新 - 优化避免不必要重新渲染
   const handleStatusUpdate = useCallback((newStatus: any) => {
@@ -729,7 +665,6 @@ export default function Home() {
   const memoizedDesktopInfoPanel = useMemo(() => (
     <InfoPanel
       selectedPlayer={selectedPlayer}
-      collisionPlayer={collisionPlayer}
       currentUser={currentUser}
       workstationStats={workstationStats} // 重新启用工位统计
       isMobile={isMobile}
@@ -738,7 +673,7 @@ export default function Home() {
       {/* 重新启用状态模块 */}
       {memoizedPostStatus}
     </InfoPanel>
-  ), [selectedPlayer, collisionPlayer, currentUser?.id, currentUser?.name, currentUser?.points, currentUser?.workstationId, workstationStats, isMobile, isTablet, memoizedPostStatus]) // 重新添加状态模块依赖
+  ), [selectedPlayer, currentUser?.id, currentUser?.name, currentUser?.points, currentUser?.workstationId, workstationStats, isMobile, isTablet, memoizedPostStatus]) // collision处理移至TabManager
 
   // 如果正在加载认证状态，显示加载界面
   if (isLoading) {

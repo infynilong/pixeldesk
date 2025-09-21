@@ -24,7 +24,14 @@ export default function PlayerProfileTab({
   
   // 调试信息：确认碰撞玩家信息
   useEffect(() => {
-    // Debug logging removed for performance optimization
+    if (collisionPlayer && isActive) {
+      console.log('📱 [PlayerProfileTab] Collision player received:', {
+        playerId: collisionPlayer.id,
+        playerName: collisionPlayer.name,
+        isTabActive: isActive,
+        currentUserId
+      })
+    }
   }, [collisionPlayer, isActive, currentUserId])
   
   // 使用社交帖子hook，获取特定用户的帖子
@@ -43,6 +50,19 @@ export default function PlayerProfileTab({
     refreshInterval: isActive && !!collisionPlayer?.id ? 30000 : 0, // 30秒刷新一次，仅在有碰撞且激活时
     filterByAuthor: collisionPlayer?.id // 只显示被碰撞用户的帖子
   })
+
+  // Debug: 监控useSocialPosts的状态变化
+  useEffect(() => {
+    if (isActive && collisionPlayer?.id) {
+      console.log('🔍 [PlayerProfileTab] useSocialPosts状态:', {
+        autoFetch: isActive && !!collisionPlayer?.id && !!currentUserId,
+        filterByAuthor: collisionPlayer?.id,
+        postsCount: posts.length,
+        isLoading,
+        error
+      })
+    }
+  }, [isActive, collisionPlayer?.id, currentUserId, posts.length, isLoading, error])
 
   const handleLikePost = async (postId: string) => {
     if (!currentUserId) {

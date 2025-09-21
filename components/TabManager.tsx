@@ -19,7 +19,6 @@ export interface TabManagerProps {
   tabs: TabType[]
   activeTab?: string
   onTabChange?: (tabId: string) => void
-  collisionPlayer?: any
   className?: string
   isMobile?: boolean
   isTablet?: boolean
@@ -32,11 +31,10 @@ interface TabState {
   lastSwitchTrigger: 'collision' | 'manual' | 'auto'
 }
 
-export default function TabManager({ 
-  tabs, 
-  activeTab, 
-  onTabChange, 
-  collisionPlayer,
+export default function TabManager({
+  tabs,
+  activeTab,
+  onTabChange,
   className = '',
   isMobile = false,
   isTablet = false
@@ -138,6 +136,7 @@ export default function TabManager({
         return
       }
 
+      console.log('🎯 [TabManager] Collision detected, switching to Social tab:', event.targetPlayer)
       setCurrentCollisionPlayer(event.targetPlayer)
       setHighlightedTab(playerInteractionTab.id)
       handleTabSwitch(playerInteractionTab.id, 'collision')
@@ -151,6 +150,7 @@ export default function TabManager({
         return
       }
 
+      console.log('🔚 [TabManager] Collision ended, switching back to Profile tab:', event.targetPlayer)
       setCurrentCollisionPlayer(null)
 
       // Switch back to default tab when collision ends (only if switched by collision)
@@ -204,22 +204,7 @@ export default function TabManager({
     }
   }, [tabs, tabState.activeTabId, tabState.lastSwitchTrigger, currentCollisionPlayer])
 
-  // Legacy collision player prop support (for backward compatibility)
-  useEffect(() => {
-    if (collisionPlayer && !currentCollisionPlayer) {
-      setCurrentCollisionPlayer(collisionPlayer)
-      const playerInteractionTab = tabs.find(tab => tab.id === 'player-interaction')
-      if (playerInteractionTab) {
-        handleTabSwitch(playerInteractionTab.id, 'collision')
-      }
-    } else if (!collisionPlayer && currentCollisionPlayer) {
-      setCurrentCollisionPlayer(null)
-      const defaultTab = tabs.find(tab => tab.id === 'status-info')
-      if (defaultTab && tabState.activeTabId === 'player-interaction') {
-        handleTabSwitch(defaultTab.id, 'auto')
-      }
-    }
-  }, [collisionPlayer, currentCollisionPlayer, tabs, tabState.activeTabId])
+  // 注意：collision处理现在完全由EventBus驱动，无需外部prop支持
 
   // Update active tab when prop changes
   useEffect(() => {
@@ -269,7 +254,7 @@ export default function TabManager({
       <div className={tabLayout.tabNavigation}>
         {tabs.map((tab, index) => {
           const isActive = tab.id === tabState.activeTabId
-          const isHighlighted = tab.id === 'player-interaction' && (currentCollisionPlayer || collisionPlayer)
+          const isHighlighted = tab.id === 'player-interaction' && currentCollisionPlayer
           const isHighlightedBySwitch = highlightedTab === tab.id
           const isSwitching = switchingAnimation && isActive
           const isClickInteraction = tabState.lastSwitchTrigger === 'manual' && isActive && tab.id === 'player-interaction'
@@ -365,7 +350,7 @@ export default function TabManager({
               `}
             >
               <TabComponent
-                collisionPlayer={currentCollisionPlayer || collisionPlayer}
+                collisionPlayer={currentCollisionPlayer}
                 isActive={isTabActive}
                 isMobile={isMobile}
                 isTablet={isTablet}
