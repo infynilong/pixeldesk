@@ -62,10 +62,10 @@ export default function PhaserGame({ onPlayerCollision, onWorkstationBinding, on
           roundPixels: true
           // 移除WebGL专用配置：batchSize和maxTextures
         },
-        // 设置较低的FPS限制以大幅节省CPU - 对于这种类型的游戏30FPS已经足够流畅
+        // 设置低FPS限制以节省CPU - 测试20FPS的性能表现
         fps: {
-          target: 30, // 降低到30FPS
-          min: 20,
+          target: 20, // 调整到20FPS
+          min: 15,
           forceSetTimeOut: true // 强制使用setTimeout而不是requestAnimationFrame，更节省CPU
         }
       }
