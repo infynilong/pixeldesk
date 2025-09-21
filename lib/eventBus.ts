@@ -3,7 +3,7 @@
  * 
  * This module provides a centralized event system for communication between
  * Phaser game components and React UI components. It handles collision events,
- * tab switching, chat messages, and other game-related events.
+ * tab switching, and other game-related events.
  * 
  * @module EventBus
  */
@@ -60,131 +60,6 @@ export interface TabSwitchEvent extends BaseEvent {
   trigger: 'collision' | 'manual' | 'auto'
 }
 
-/**
- * Chat message event interface (legacy - kept for backward compatibility)
- */
-export interface ChatMessageEvent extends BaseEvent {
-  type: 'chat_message'
-  senderId: string
-  receiverId: string
-  content: string
-}
-
-/**
- * Chat conversation opened event interface
- */
-export interface ChatConversationOpenedEvent extends BaseEvent {
-  type: 'chat:conversation:opened'
-  conversationId: string
-  participant: PlayerData
-}
-
-/**
- * Chat message received event interface
- */
-export interface ChatMessageReceivedEvent extends BaseEvent {
-  type: 'chat:message:received'
-  message: {
-    id: string
-    conversationId: string
-    senderId: string
-    senderName: string
-    senderAvatar?: string
-    content: string
-    type: 'text' | 'emoji' | 'system' | 'image'
-    status: 'sending' | 'sent' | 'delivered' | 'read' | 'failed'
-    timestamp: string
-    createdAt: string
-    updatedAt: string
-  }
-  conversationId: string
-}
-
-/**
- * Chat notification new event interface
- */
-export interface ChatNotificationNewEvent extends BaseEvent {
-  type: 'chat:notification:new'
-  count: number
-  latestMessage: {
-    id: string
-    conversationId: string
-    senderId: string
-    senderName: string
-    content: string
-    timestamp: string
-  }
-}
-
-/**
- * Chat user typing event interface
- */
-export interface ChatUserTypingEvent extends BaseEvent {
-  type: 'chat:user:typing'
-  userId: string
-  conversationId: string
-  isTyping: boolean
-}
-
-/**
- * Chat user online event interface
- */
-export interface ChatUserOnlineEvent extends BaseEvent {
-  type: 'chat:user:online'
-  userId: string
-  isOnline: boolean
-}
-
-/**
- * Chat connection status event interface
- */
-export interface ChatConnectionStatusEvent extends BaseEvent {
-  type: 'chat:connection:status'
-  isConnected: boolean
-  reconnectAttempts?: number
-}
-
-/**
- * Chat message sent event interface
- */
-export interface ChatMessageSentEvent extends BaseEvent {
-  type: 'chat:message:sent'
-  message: {
-    id: string
-    conversationId: string
-    content: string
-    type: string
-    status: string
-    timestamp: string
-  }
-}
-
-/**
- * Chat message status updated event interface
- */
-export interface ChatMessageStatusUpdatedEvent extends BaseEvent {
-  type: 'chat:message:status:updated'
-  messageId: string
-  status: string
-  conversationId: string
-}
-
-/**
- * Chat conversation updated event interface
- */
-export interface ChatConversationUpdatedEvent extends BaseEvent {
-  type: 'chat:conversation:updated'
-  conversation: {
-    id: string
-    type: 'private' | 'group'
-    name?: string
-    participants: any[]
-    lastMessage?: any
-    unreadCount: number
-    updatedAt: string
-    createdAt?: string
-  }
-}
 
 /**
  * Player click event interface
@@ -224,19 +99,7 @@ export interface GameEvents {
   'player:click': PlayerClickEvent
   'player:info:updated': PlayerInfoUpdateEvent
   'tab:switch': TabSwitchEvent
-  'chat:message:send': ChatMessageEvent
   'eventbus:error': EventBusErrorEvent
-  
-  // New chat events
-  'chat:conversation:opened': ChatConversationOpenedEvent
-  'chat:message:received': ChatMessageReceivedEvent
-  'chat:notification:new': ChatNotificationNewEvent
-  'chat:user:typing': ChatUserTypingEvent
-  'chat:user:online': ChatUserOnlineEvent
-  'chat:connection:status': ChatConnectionStatusEvent
-  'chat:message:sent': ChatMessageSentEvent
-  'chat:message:status:updated': ChatMessageStatusUpdatedEvent
-  'chat:conversation:updated': ChatConversationUpdatedEvent
 }
 
 /**

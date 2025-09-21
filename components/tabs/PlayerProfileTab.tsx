@@ -24,14 +24,7 @@ export default function PlayerProfileTab({
   
   // 调试信息：确认碰撞玩家信息
   useEffect(() => {
-    if (collisionPlayer) {
-      console.log('👥 [PlayerProfileTab] 碰撞玩家:', { 
-        id: collisionPlayer.id, 
-        name: collisionPlayer.name,
-        isActive,
-        currentUserId 
-      })
-    }
+    // Debug logging removed for performance optimization
   }, [collisionPlayer, isActive, currentUserId])
   
   // 使用社交帖子hook，获取特定用户的帖子
@@ -53,20 +46,18 @@ export default function PlayerProfileTab({
 
   const handleLikePost = async (postId: string) => {
     if (!currentUserId) {
-      console.warn('用户未登录，无法点赞')
       return
     }
     
     try {
       await likePost(postId)
     } catch (error) {
-      console.error('点赞失败:', error)
+      // Error handled by hook
     }
   }
 
   const handleReplyCountUpdate = (postId: string, newCount: number) => {
     // 这里可以选择性地触发帖子列表的刷新，或者直接更新本地状态
-    console.log(`回复计数更新：帖子 ${postId} 现在有 ${newCount} 个回复`)
     // 目前我们依赖自然的刷新机制来更新计数
   }
 

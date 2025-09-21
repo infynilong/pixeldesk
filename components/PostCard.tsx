@@ -44,21 +44,14 @@ export default function PostCard({ post, currentUserId, onLike, onReplyCountUpda
 
   // 处理回复提交
   const handleReplySubmit = async (replyData: CreateReplyData) => {
-    console.log('🎯 [PostCard] 开始处理回复提交，postId:', post.id, '回复数据:', replyData)
-    console.log('🔍 [PostCard] 当前用户ID:', currentUserId)
 
     const newReply = await createReply(replyData)
-    console.log('📦 [PostCard] createReply返回结果:', newReply)
 
     if (newReply) {
       // 更新帖子的回复计数
       if (onReplyCountUpdate) {
-        console.log('📊 [PostCard] 更新回复计数，从', post.replyCount, '到', (post.replyCount || 0) + 1)
         onReplyCountUpdate(post.id, (post.replyCount || 0) + 1)
       }
-      console.log('✅ [PostCard] 回复创建成功:', newReply)
-    } else {
-      console.error('❌ [PostCard] 回复创建失败')
     }
     return !!newReply
   }

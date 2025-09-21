@@ -5,7 +5,6 @@ import dynamic from 'next/dynamic'
 import { EventBus, CollisionEvent } from '@/lib/eventBus'
 import { useUser } from '@/contexts/UserContext'
 import CharacterCreationModal from '@/components/CharacterCreationModal'
-import { fetchPlayerData } from '@/lib/playerSync'
 import { 
   isFirstTimeVisitor, 
   createTempPlayer, 
@@ -45,21 +44,23 @@ declare global {
 // 确保工位绑定管理器在应用启动时就被加载
 import '@/lib/workstationBindingManager'
 
-// 动态导入 Phaser 游戏组件，避免 SSR 问题
+// 动态导入PhaserGame组件以避免SSR问题
 const PhaserGame = dynamic(() => import('@/components/PhaserGame'), {
   ssr: false,
   loading: () => <div className="flex items-center justify-center h-full bg-gray-900">加载游戏中...</div>
 })
 
-// 动态信息组件
-const SocialFeed = dynamic(() => import('@/components/SocialFeed'), {
-  ssr: false
-})
+// 静态导入信息组件
+// const SocialFeed = dynamic(() => import('@/components/SocialFeed'), {
+//   ssr: false
+// })
+import SocialFeed from '@/components/SocialFeed'
 
-// 发布动态组件
-const PostStatus = dynamic(() => import('@/components/PostStatus'), {
-  ssr: false
-})
+// 静态导入发布动态组件
+// const PostStatus = dynamic(() => import('@/components/PostStatus'), {
+//   ssr: false
+// })
+import PostStatus from '@/components/PostStatus'
 
 // 工位绑定弹窗组件
 const WorkstationBindingModal = dynamic(() => import('@/components/WorkstationBindingModal'), {
@@ -83,15 +84,17 @@ const CharacterDisplayModal = dynamic(() => import('@/components/CharacterDispla
 })
 
 
-// 布局管理器组件
-const LayoutManager = dynamic(() => import('@/components/LayoutManager'), {
-  ssr: false
-})
+// 静态导入布局管理器组件
+// const LayoutManager = dynamic(() => import('@/components/LayoutManager'), {
+//   ssr: false
+// })
+import LayoutManager from '@/components/LayoutManager'
 
-// 信息面板组件
-const InfoPanel = dynamic(() => import('@/components/InfoPanel'), {
-  ssr: false
-})
+// 静态导入信息面板组件
+// const InfoPanel = dynamic(() => import('@/components/InfoPanel'), {
+//   ssr: false
+// })
+import InfoPanel from '@/components/InfoPanel'
 
 // 认证模态框组件
 const AuthModal = dynamic(() => import('@/components/AuthModal'), {
@@ -100,8 +103,7 @@ const AuthModal = dynamic(() => import('@/components/AuthModal'), {
 
 export default function Home() {
   // 认证相关状态
-  const { user, isLoading } = useUser()
-  const [playerExists, setPlayerExists] = useState<boolean | null>(null)
+  const { user, isLoading, playerExists, setPlayerExists } = useUser()
   const [showCharacterCreation, setShowCharacterCreation] = useState(false)
   
   // 临时玩家状态
@@ -322,7 +324,7 @@ export default function Home() {
         console.log('Phaser game is ready, loading workstation stats')
         loadWorkstationStats()
       })
-      
+
       // 监听工位统计数据更新事件
       window.addEventListener('workstation-stats-updated', (event: any) => {
         // console.log('Workstation stats updated:', event.detail)
@@ -449,40 +451,15 @@ export default function Home() {
     }
   }, []) // 移除currentUser依赖，避免频繁重建监听器
 
-  // 加载工位统计信息 - 包装在useCallback中
+  // 重新启用工位统计功能
   const loadWorkstationStats = useCallback(async () => {
     try {
-      // 首先尝试从Phaser游戏获取工位统计
-      if (typeof window !== 'undefined' && window.getGameWorkstationStats) {
-        const stats = window.getGameWorkstationStats()
-        setWorkstationStats(stats)
-        console.log('Got workstation stats from game:', stats)
-        return
-      }
-      
-      // 如果Phaser游戏还没有初始化，等待一段时间后重试
-      if (typeof window !== 'undefined') {
-        console.log('Waiting for Phaser game to initialize...')
-        setTimeout(() => {
-          if (window.getGameWorkstationStats) {
-            const stats = window.getGameWorkstationStats()
-            setWorkstationStats(stats)
-            console.log('Got workstation stats from game after delay:', stats)
-          } else {
-            // 备用方案：从API获取
-            fetch('/api/workstations/stats')
-              .then(response => response.json())
-              .then(data => {
-                if (data.success) {
-                  setWorkstationStats(data.data)
-                  console.log('Got workstation stats from API:', data.data)
-                }
-              })
-              .catch(error => {
-                console.warn('Failed to load workstation stats from API:', error)
-              })
-          }
-        }, 3000) // 等待3秒让Phaser游戏初始化
+      const response = await fetch('/api/workstations/stats')
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success) {
+          setWorkstationStats(data.data)
+        }
       }
     } catch (error) {
       console.warn('Failed to load workstation stats:', error)
@@ -553,23 +530,17 @@ export default function Home() {
       })
     }
 
-    const handleChatConversationOpened = (event: any) => {
-      // Handle chat conversation opening - this could trigger UI updates
-      // For now, we'll let the ChatManager handle the conversation display
-    }
 
-    // Subscribe to collision, click, and chat events
+    // Subscribe to collision and click events
     EventBus.on('player:collision:start', handleCollisionStart)
     EventBus.on('player:collision:end', handleCollisionEnd)
     EventBus.on('player:click', handlePlayerClickEvent)
-    EventBus.on('chat:conversation:opened', handleChatConversationOpened)
 
     // Cleanup on unmount
     return () => {
       EventBus.off('player:collision:start', handleCollisionStart)
       EventBus.off('player:collision:end', handleCollisionEnd)
       EventBus.off('player:click', handlePlayerClickEvent)
-      EventBus.off('chat:conversation:opened', handleChatConversationOpened)
     }
   }, [])
 
@@ -664,19 +635,15 @@ export default function Home() {
 
   // 检查Player状态 - 仅对正式用户检查
   useEffect(() => {
-    if (user && playerExists === null && !isTemporaryPlayer) {
-      fetchPlayerData().then(result => {
-        setPlayerExists(result.hasPlayer)
-        if (!result.hasPlayer) {
-          setShowCharacterCreation(true)
-        }
-      })
+    if (user && playerExists === false && !isTemporaryPlayer) {
+      // PlayerExists状态由UserContext管理，这里直接显示角色创建弹窗
+      setShowCharacterCreation(true)
     } else if (isTemporaryPlayer) {
       // 临时玩家直接设置为已有玩家，不需要创建角色
       setPlayerExists(true)
       setShowCharacterCreation(false)
     }
-  }, [user, playerExists, isTemporaryPlayer])
+  }, [user, playerExists, isTemporaryPlayer, setPlayerExists])
 
   // 关闭玩家点击弹窗
   const handlePlayerClickModalClose = useCallback(() => {
@@ -730,29 +697,30 @@ export default function Home() {
     )
   }, [handleStatusUpdate, myStatus, currentUser?.id, currentUser?.name, currentUser?.points, currentUser?.workstationId]) // 包含所有相关字段依赖
 
-  // 优化：使用 memo 避免 selectedPlayer 变化导致 SocialFeed 不必要重新渲染
-  const memoizedSocialFeed = useMemo(() => (
-    <SocialFeed player={selectedPlayer} />
-  ), [selectedPlayer])
+  // SocialFeed已禁用 - 性能测试
+  // const memoizedSocialFeed = useMemo(() => (
+  //   <SocialFeed player={selectedPlayer} />
+  // ), [selectedPlayer])
 
   // Create memoized info panel content for mobile
   const memoizedMobileInfoPanel = useMemo(() => (
-    selectedPlayer ? memoizedSocialFeed : memoizedPostStatus
-  ), [selectedPlayer, memoizedSocialFeed, memoizedPostStatus])
+    memoizedPostStatus
+  ), [memoizedPostStatus]) // 重新启用状态模块
 
-  // Create memoized info panel content for desktop - 优化依赖，只依赖需要的字段
+  // Create memoized info panel content for desktop - 重新启用状态和工位统计
   const memoizedDesktopInfoPanel = useMemo(() => (
     <InfoPanel
       selectedPlayer={selectedPlayer}
       collisionPlayer={collisionPlayer}
       currentUser={currentUser}
-      workstationStats={workstationStats}
+      workstationStats={workstationStats} // 重新启用工位统计
       isMobile={isMobile}
       isTablet={isTablet}
     >
+      {/* 重新启用状态模块 */}
       {memoizedPostStatus}
     </InfoPanel>
-  ), [selectedPlayer, collisionPlayer, currentUser?.id, currentUser?.name, currentUser?.points, currentUser?.workstationId, workstationStats, memoizedPostStatus, isMobile, isTablet])
+  ), [selectedPlayer, collisionPlayer, currentUser?.id, currentUser?.name, currentUser?.points, currentUser?.workstationId, workstationStats, isMobile, isTablet, memoizedPostStatus]) // 重新添加状态模块依赖
 
   // 如果正在加载认证状态，显示加载界面
   if (isLoading) {

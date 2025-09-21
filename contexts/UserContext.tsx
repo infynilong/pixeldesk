@@ -17,10 +17,12 @@ interface User {
 interface UserContextType {
   user: User | null
   isLoading: boolean
+  playerExists: boolean | null
   login: (email: string, password: string) => Promise<boolean>
   register: (name: string, email: string, password: string) => Promise<{ success: boolean; error?: string }>
   logout: () => Promise<void>
   refreshUser: () => Promise<void>
+  setPlayerExists: (exists: boolean) => void
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined)
@@ -28,6 +30,7 @@ const UserContext = createContext<UserContextType | undefined>(undefined)
 export function UserProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [playerExists, setPlayerExists] = useState<boolean | null>(null)
 
   // Check for existing session on mount
   useEffect(() => {
@@ -44,7 +47,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
           if (data.success && data.data) {
             setUser(data.data)
             // Initialize player sync for authenticated user
-            await initializePlayerSync()
+            const playerSyncResult = await initializePlayerSync()
+            setPlayerExists(playerSyncResult.hasPlayer)
           }
         } else {
           // Don't log error for expected auth failures
@@ -79,7 +83,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
         if (data.success && data.data) {
           setUser(data.data)
           // Initialize player sync after successful login
-          await initializePlayerSync()
+          const playerSyncResult = await initializePlayerSync()
+          setPlayerExists(playerSyncResult.hasPlayer)
           return true
         }
       }
@@ -139,6 +144,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     } finally {
       // Always clear user state and player data regardless of API success
       setUser(null)
+      setPlayerExists(null)
       await clearPlayerFromLocalStorage()
     }
   }
@@ -165,10 +171,12 @@ export function UserProvider({ children }: { children: ReactNode }) {
     <UserContext.Provider value={{
       user,
       isLoading,
+      playerExists,
       login,
       register,
       logout,
-      refreshUser
+      refreshUser,
+      setPlayerExists
     }}>
       {children}
     </UserContext.Provider>

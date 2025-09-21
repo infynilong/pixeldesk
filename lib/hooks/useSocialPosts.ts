@@ -58,12 +58,8 @@ export function useSocialPosts(options: UseSocialPostsOptions): UseSocialPostsRe
       })
       
       // 如果有作者过滤，添加到查询参数
-      console.log("🔍 [useSocialPosts] filterByAuthor:", filterByAuthor)
       if (filterByAuthor) {
         queryParams.append('authorId', filterByAuthor)
-        console.log('🎯 [useSocialPosts] 按作者过滤帖子:', { filterByAuthor, queryString: queryParams.toString() })
-      } else {
-        console.log('📝 [useSocialPosts] 获取所有帖子，无作者过滤')
       }
       
       const response = await fetch(`/api/posts?${queryParams.toString()}`)
@@ -185,7 +181,6 @@ export function useSocialPosts(options: UseSocialPostsOptions): UseSocialPostsRe
       if (options.filterByAuthor !== undefined) {
         // 需要过滤但filterByAuthor还是undefined，不获取
         if (filterByAuthor === undefined) {
-          console.log('🔄 [useSocialPosts] 等待filterByAuthor参数...')
           return
         }
       }
@@ -195,7 +190,6 @@ export function useSocialPosts(options: UseSocialPostsOptions): UseSocialPostsRe
 
   // 定时刷新 - 临时禁用以修复性能问题
   useEffect(() => {
-    console.log('🚫 [useSocialPosts] 定时刷新已临时禁用以修复性能问题')
     // if (!refreshInterval || !userId) return
     //
     // const interval = setInterval(() => {

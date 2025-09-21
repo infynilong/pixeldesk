@@ -128,7 +128,7 @@ export default function TabManager({
     }
   }
 
-  // Set up event bus listeners for collision, click, and chat events
+  // Set up event bus listeners for collision and click events
   useEffect(() => {
     const handleCollisionStart = (event: CollisionEvent) => {
       console.log('[TabManager] Collision start detected:', event)
@@ -187,47 +187,17 @@ export default function TabManager({
       }, 10000) // Clear after 10 seconds
     }
 
-    const handleChatConversationOpened = (event: any) => {
-      console.log('[TabManager] Chat conversation opened:', event)
-      
-      // Find chat tab and switch to it
-      const chatTab = tabs.find(tab => tab.id === 'chat')
-      if (chatTab) {
-        setHighlightedTab(chatTab.id)
-        handleTabSwitch(chatTab.id, 'manual')
-      }
-    }
 
-    const handleChatNotificationNew = (event: any) => {
-      console.log('[TabManager] New chat notification:', event)
-      
-      // Update chat tab badge if it exists
-      const chatTab = tabs.find(tab => tab.id === 'chat')
-      if (chatTab && tabState.activeTabId !== 'chat') {
-        // Highlight chat tab to indicate new message
-        setHighlightedTab(chatTab.id)
-        
-        // Clear highlight after a delay
-        setTimeout(() => {
-          setHighlightedTab(null)
-        }, 3000)
-      }
-    }
-
-    // Subscribe to collision, click, and chat events
+    // Subscribe to collision and click events
     EventBus.on('player:collision:start', handleCollisionStart)
     EventBus.on('player:collision:end', handleCollisionEnd)
     EventBus.on('player:click', handlePlayerClick)
-    EventBus.on('chat:conversation:opened', handleChatConversationOpened)
-    EventBus.on('chat:notification:new', handleChatNotificationNew)
 
     // Cleanup on unmount
     return () => {
       EventBus.off('player:collision:start', handleCollisionStart)
       EventBus.off('player:collision:end', handleCollisionEnd)
       EventBus.off('player:click', handlePlayerClick)
-      EventBus.off('chat:conversation:opened', handleChatConversationOpened)
-      EventBus.off('chat:notification:new', handleChatNotificationNew)
     }
   }, [tabs, tabState.activeTabId, tabState.lastSwitchTrigger, currentCollisionPlayer])
 
@@ -297,12 +267,10 @@ export default function TabManager({
         {tabs.map((tab, index) => {
           const isActive = tab.id === tabState.activeTabId
           const isHighlighted = tab.id === 'player-interaction' && (currentCollisionPlayer || collisionPlayer)
-          const isChatHighlighted = tab.id === 'chat' && highlightedTab === tab.id
           const isHighlightedBySwitch = highlightedTab === tab.id
           const isSwitching = switchingAnimation && isActive
           const isClickInteraction = tabState.lastSwitchTrigger === 'manual' && isActive && tab.id === 'player-interaction'
           const isCollisionInteraction = tabState.lastSwitchTrigger === 'collision' && isActive && tab.id === 'player-interaction'
-          const isChatInteraction = isActive && tab.id === 'chat'
           
           return (
             <button
@@ -315,10 +283,8 @@ export default function TabManager({
                   : 'text-retro-textMuted hover:text-white hover:bg-retro-purple/10 hover:scale-105'
                 }
                 ${isHighlighted || isHighlightedBySwitch ? 'animate-pulse bg-gradient-to-r from-retro-pink/40 to-retro-purple/40 shadow-lg shadow-retro-pink/50' : ''}
-                ${isChatHighlighted ? 'animate-pulse bg-gradient-to-r from-green-500/40 to-emerald-500/40 shadow-lg shadow-green-500/50' : ''}
                 ${isCollisionInteraction ? 'bg-gradient-to-r from-retro-pink/30 to-retro-purple/30 shadow-lg shadow-retro-pink/30' : ''}
                 ${isClickInteraction ? 'bg-gradient-to-r from-retro-blue/30 to-retro-cyan/30 shadow-lg shadow-retro-blue/30' : ''}
-                ${isChatInteraction ? 'bg-gradient-to-r from-green-500/30 to-emerald-500/30 shadow-lg shadow-green-500/30' : ''}
                 ${isSwitching ? 'animate-bounce' : ''}
                 ${index === 0 ? 'rounded-tl-lg' : ''}
                 ${index === tabs.length - 1 ? 'rounded-tr-lg' : ''}
@@ -343,7 +309,7 @@ export default function TabManager({
                 <NotificationBadge
                   count={tab.badge}
                   size={isMobile && screenSize.width < 480 ? 'sm' : 'md'}
-                  variant={tab.id === 'chat' ? 'glow' : 'pulse'}
+                  variant="pulse"
                   position="top-right"
                   animate={true}
                 />
@@ -357,13 +323,6 @@ export default function TabManager({
                 </>
               )}
               
-              {/* Chat notification indicator */}
-              {isChatHighlighted && (
-                <>
-                  <div className="absolute top-1 right-1 w-2 h-2 bg-green-400 rounded-full animate-ping"></div>
-                  <div className="absolute top-1 right-1 w-2 h-2 bg-green-400 rounded-full"></div>
-                </>
-              )}
               
               {/* Active tab glow effect */}
               {isActive && (

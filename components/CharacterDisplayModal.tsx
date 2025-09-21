@@ -37,11 +37,7 @@ export default function CharacterDisplayModal({
   onClose 
 }: CharacterDisplayProps) {
   const [characterImage, setCharacterImage] = useState<string>('/assets/characters/Premade_Character_48x48_01.png')
-  const [activeTab, setActiveTab] = useState<'info' | 'chat' | 'history'>('info')
-  const [message, setMessage] = useState('')
-  const [chatHistory, setChatHistory] = useState([
-    { id: 1, sender: 'system', message: '你开始与玩家对话', timestamp: new Date().toISOString() }
-  ])
+  const [activeTab, setActiveTab] = useState<'info' | 'history'>('info')
   const [realStatusHistory, setRealStatusHistory] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [userInfoState, setUserInfoState] = useState(userInfo)
@@ -96,34 +92,6 @@ export default function CharacterDisplayModal({
     return userInfoState.name || userInfoState.username || `玩家${userId.slice(-4)}`
   }
 
-  const handleSendMessage = () => {
-    if (message.trim()) {
-      const newMessage = {
-        id: chatHistory.length + 1,
-        sender: 'me',
-        message: message.trim(),
-        timestamp: new Date().toISOString()
-      }
-      setChatHistory([...chatHistory, newMessage])
-      setMessage('')
-    }
-  }
-
-  const handleInteraction = (type: string) => {
-    const interactionMessages = {
-      greet: '👋 你好！很高兴见到你！',
-      like: '👍 给你点个赞！',
-      follow: '➕ 关注了你！'
-    }
-    
-    const newMessage = {
-      id: chatHistory.length + 1,
-      sender: 'system',
-      message: interactionMessages[type as keyof typeof interactionMessages],
-      timestamp: new Date().toISOString()
-    }
-    setChatHistory([...chatHistory, newMessage])
-  }
 
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
@@ -147,15 +115,15 @@ export default function CharacterDisplayModal({
         
         {/* 选项卡导航 - 现代像素风格 */}
         <div className="relative flex space-x-3 mb-8 pb-4 border-b-2 border-retro-border/50">
-          {['info', 'chat', 'history'].map((tab) => {
+          {['info', 'history'].map((tab) => {
             const isActive = activeTab === tab
-            const tabLabels = { info: 'INFO', chat: 'CHAT', history: 'HISTORY' }
-            const tabIcons = { info: '👤', chat: '💬', history: '📊' }
+            const tabLabels = { info: 'INFO', history: 'HISTORY' }
+            const tabIcons = { info: '👤', history: '📊' }
             
             return (
               <button 
                 key={tab}
-                onClick={() => setActiveTab(tab as 'info' | 'chat' | 'history')}
+                onClick={() => setActiveTab(tab as 'info' | 'history')}
                 className={`group relative overflow-hidden flex items-center gap-2 px-4 py-3 rounded-xl border-2 transition-all duration-300 ${
                   isActive
                     ? 'bg-gradient-to-r from-retro-purple/30 to-retro-blue/30 text-white border-retro-purple/50 shadow-lg shadow-retro-purple/20' 
@@ -292,47 +260,6 @@ export default function CharacterDisplayModal({
               </div>
             )}
 
-            {/* 快速互动按钮 - 像素艺术按钮组 */}
-            <div className="grid grid-cols-3 gap-3">
-              <button 
-                onClick={() => handleInteraction('greet')}
-                className="group relative overflow-hidden bg-gradient-to-br from-retro-blue/20 to-retro-cyan/20 hover:from-retro-blue/30 hover:to-retro-cyan/30 text-white py-3 px-4 rounded-xl border-2 border-retro-blue/30 hover:border-retro-blue/50 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95 backdrop-blur-sm"
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-white/5 to-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                <div className="relative flex flex-col items-center gap-2">
-                  <div className="w-6 h-6 bg-white/20 rounded flex items-center justify-center">
-                    <span className="text-sm">👋</span>
-                  </div>
-                  <span className="text-xs font-bold font-pixel tracking-wide">GREET</span>
-                </div>
-              </button>
-              
-              <button 
-                onClick={() => handleInteraction('like')}
-                className="group relative overflow-hidden bg-gradient-to-br from-retro-green/20 to-retro-cyan/20 hover:from-retro-green/30 hover:to-retro-cyan/30 text-white py-3 px-4 rounded-xl border-2 border-retro-green/30 hover:border-retro-green/50 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95 backdrop-blur-sm"
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-white/5 to-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                <div className="relative flex flex-col items-center gap-2">
-                  <div className="w-6 h-6 bg-white/20 rounded flex items-center justify-center">
-                    <span className="text-sm">👍</span>
-                  </div>
-                  <span className="text-xs font-bold font-pixel tracking-wide">LIKE</span>
-                </div>
-              </button>
-              
-              <button 
-                onClick={() => handleInteraction('follow')}
-                className="group relative overflow-hidden bg-gradient-to-br from-retro-purple/20 to-retro-pink/20 hover:from-retro-purple/30 hover:to-retro-pink/30 text-white py-3 px-4 rounded-xl border-2 border-retro-purple/30 hover:border-retro-purple/50 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95 backdrop-blur-sm"
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-white/5 to-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                <div className="relative flex flex-col items-center gap-2">
-                  <div className="w-6 h-6 bg-white/20 rounded flex items-center justify-center">
-                    <span className="text-sm">➕</span>
-                  </div>
-                  <span className="text-xs font-bold font-pixel tracking-wide">FOLLOW</span>
-                </div>
-              </button>
-            </div>
 
             {/* 位置信息 - 像素化信息条 */}
             {position && (
@@ -352,133 +279,6 @@ export default function CharacterDisplayModal({
           </div>
         )}
 
-        {activeTab === 'chat' && (
-          <div className="relative space-y-5">
-            {/* 背景装饰 */}
-            <div className="absolute inset-0 bg-gradient-to-br from-retro-cyan/3 via-retro-blue/5 to-retro-purple/3 rounded-xl opacity-60 pointer-events-none"></div>
-            
-            {/* 聊天记录区域 - 像素化聊天界面 */}
-            <div className="relative">
-              {/* 聊天区域标题 */}
-              <div className="flex items-center gap-3 mb-4 pb-3 border-b border-retro-border/30">
-                <div className="w-6 h-6 bg-gradient-to-br from-retro-cyan to-retro-blue rounded-lg flex items-center justify-center shadow-lg">
-                  <span className="text-sm">💬</span>
-                </div>
-                <h4 className="text-white font-bold text-base font-pixel tracking-wide">CHAT LOG</h4>
-                <div className="flex items-center gap-2 ml-auto">
-                  <div className="w-2 h-2 bg-retro-green rounded-full "></div>
-                  <span className="text-xs text-retro-textMuted font-retro">ACTIVE</span>
-                </div>
-              </div>
-              
-              {/* 聊天消息列表 */}
-              <div className="h-56 overflow-y-auto space-y-3 pr-2 scrollbar-hide">
-                {chatHistory.map((msg) => (
-                  <div key={msg.id} className={`flex ${msg.sender === 'me' ? 'justify-end' : 'justify-start'} animate-fade-in`}>
-                    <div className={`group relative max-w-xs ${
-                      msg.sender === 'me' 
-                        ? 'bg-gradient-to-br from-retro-blue/30 to-retro-cyan/30 border-retro-blue/40' 
-                        : msg.sender === 'system'
-                        ? 'bg-gradient-to-br from-retro-textMuted/20 to-retro-border/20 border-retro-textMuted/30'
-                        : 'bg-gradient-to-br from-retro-purple/20 to-retro-pink/20 border-retro-purple/30'
-                    } backdrop-blur-sm border-2 rounded-xl p-3 shadow-lg hover:shadow-xl transition-all duration-300`}>
-                      {/* 消息气泡装饰 */}
-                      <div className="absolute inset-0 bg-gradient-to-r from-white/5 to-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl"></div>
-                      
-                      {/* 消息内容 */}
-                      <div className="relative space-y-2">
-                        <p className="text-white text-sm font-retro leading-relaxed">{msg.message}</p>
-                        <div className="flex items-center gap-2">
-                          <div className="w-1 h-1 bg-white/40 rounded-full"></div>
-                          <span className="text-xs text-white/60 font-retro tracking-wide">
-                            {new Date(msg.timestamp).toLocaleTimeString()}
-                          </span>
-                        </div>
-                      </div>
-                      
-                      {/* 发送者标识 */}
-                      {msg.sender !== 'system' && (
-                        <div className={`absolute -top-2 ${msg.sender === 'me' ? 'right-3' : 'left-3'} px-2 py-1 ${
-                          msg.sender === 'me' 
-                            ? 'bg-gradient-to-r from-retro-blue to-retro-cyan' 
-                            : 'bg-gradient-to-r from-retro-purple to-retro-pink'
-                        } rounded-full border border-white/20 shadow-lg`}>
-                          <span className="text-xs font-bold font-pixel text-white">
-                            {msg.sender === 'me' ? 'YOU' : 'THEM'}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* 消息输入区域 - 像素化输入界面 */}
-            <div className="relative">
-              {/* 输入区域标题 */}
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-5 h-5 bg-gradient-to-br from-retro-green/30 to-retro-cyan/30 rounded flex items-center justify-center">
-                  <span className="text-xs">✍️</span>
-                </div>
-                <span className="text-xs text-retro-textMuted font-pixel tracking-wide">MESSAGE INPUT</span>
-              </div>
-              
-              {/* 输入框和发送按钮 */}
-              <div className="flex gap-3">
-                {/* 像素化输入框 */}
-                <div className="flex-1 relative group">
-                  <div className="absolute inset-0 bg-gradient-to-r from-retro-cyan/10 to-retro-blue/10 rounded-xl opacity-0 group-focus-within:opacity-100 transition-all duration-300 blur-sm"></div>
-                  <input
-                    type="text"
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    onKeyDown={(e) => {
-                      e.stopPropagation();
-                      if (e.key === 'Enter') handleSendMessage();
-                    }}
-                    onKeyUp={(e) => e.stopPropagation()}
-                    onClick={(e) => e.stopPropagation()}
-                    placeholder="Type your message..."
-                    className="relative w-full bg-gradient-to-br from-retro-bg-dark/80 to-retro-bg-darker/80 border-2 border-retro-border focus:border-retro-cyan rounded-xl px-4 py-3 text-white placeholder-retro-textMuted focus:outline-none backdrop-blur-md transition-all duration-300 font-retro text-sm focus:shadow-lg focus:shadow-retro-cyan/20"
-                  />
-                  {/* 字符计数器 */}
-                  <div className="absolute bottom-1 right-2 text-xs text-retro-textMuted/60 font-retro">
-                    {message.length}/100
-                  </div>
-                </div>
-                
-                {/* 像素化发送按钮 */}
-                <button 
-                  onClick={handleSendMessage}
-                  disabled={!message.trim()}
-                  className="group relative overflow-hidden bg-gradient-to-br from-retro-green/30 to-retro-cyan/30 hover:from-retro-green/40 hover:to-retro-cyan/40 disabled:from-retro-textMuted/20 disabled:to-retro-border/20 text-white px-6 py-3 rounded-xl border-2 border-retro-green/40 hover:border-retro-green/60 disabled:border-retro-textMuted/20 transition-all duration-300 shadow-lg hover:shadow-xl disabled:shadow-none transform hover:scale-105 active:scale-95 disabled:scale-100 backdrop-blur-sm disabled:cursor-not-allowed"
-                >
-                  {/* 按钮光效 */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/20 opacity-0 group-hover:opacity-100 group-disabled:opacity-0 transition-opacity duration-300"></div>
-                  
-                  {/* 按钮内容 */}
-                  <div className="relative flex items-center gap-2">
-                    <div className="w-5 h-5 bg-white/20 rounded flex items-center justify-center group-disabled:bg-retro-textMuted/20">
-                      <span className="text-sm">{!message.trim() ? '📝' : '🚀'}</span>
-                    </div>
-                    <span className="font-pixel text-sm tracking-wide">
-                      SEND
-                    </span>
-                  </div>
-                </button>
-              </div>
-              
-              {/* 输入提示 - 像素化帮助文本 */}
-              <div className="flex items-center gap-2 mt-2">
-                <div className="w-3 h-3 bg-retro-purple/30 rounded-sm"></div>
-                <span className="text-xs text-retro-textMuted font-retro tracking-wide">
-                  Press ENTER to send, ESC to close
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
 
         {activeTab === 'history' && (
           <div className="relative space-y-5">

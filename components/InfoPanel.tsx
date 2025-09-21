@@ -3,9 +3,9 @@
 import { ReactNode } from 'react'
 import TabManager, { TabType } from './TabManager'
 import StatusInfoTab from './tabs/StatusInfoTab'
-import PlayerInteractionTab from './tabs/PlayerInteractionTab'
-import MyPostsTab from './tabs/MyPostsTab'
-import NotificationsTab from './tabs/NotificationsTab'
+import PlayerInteractionTab from './tabs/PlayerInteractionTab' // Social功能重新启用
+import MyPostsTab from './tabs/MyPostsTab' // Posts功能重新启用
+import NotificationsTab from './tabs/NotificationsTab' // Inbox功能重新启用
 import AuthenticationHeader from './AuthenticationHeader'
 
 interface InfoPanelProps {
@@ -44,6 +44,7 @@ export default function InfoPanel({
       ),
       priority: 1
     },
+    // Posts标签重新启用
     {
       id: 'my-posts',
       label: 'Posts',
@@ -51,6 +52,7 @@ export default function InfoPanel({
       component: MyPostsTab,
       priority: 1.5
     },
+    // Inbox标签重新启用
     {
       id: 'notifications',
       label: 'Inbox',
@@ -58,14 +60,15 @@ export default function InfoPanel({
       component: NotificationsTab,
       priority: 1.8
     },
-    {
-      id: 'player-interaction',
-      label: 'Social',
-      icon: '⭐',
-      component: PlayerInteractionTab,
-      autoSwitch: true,
-      priority: 2
-    }
+    // Social功能保持禁用 - 性能测试
+    // {
+    //   id: 'player-interaction',
+    //   label: 'Social',
+    //   icon: '⭐',
+    //   component: PlayerInteractionTab,
+    //   autoSwitch: true,
+    //   priority: 2
+    // }
   ]
 
   return (
