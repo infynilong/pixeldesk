@@ -499,6 +499,12 @@ export default function Home() {
   // Set up event bus listeners for collision and click events
   useEffect(() => {
     const handleCollisionStart = (event: CollisionEvent) => {
+      // Social功能已重新启用 - collision处理恢复正常
+      const isSocialFunctionalityEnabled = true // Social功能重新启用
+      if (!isSocialFunctionalityEnabled) {
+        return
+      }
+
       // Only update if it's a different player to avoid unnecessary re-renders
       setCollisionPlayer((prevPlayer: any) => {
         if (prevPlayer?.id === event.targetPlayer?.id) {
@@ -509,6 +515,12 @@ export default function Home() {
     }
 
     const handleCollisionEnd = (event: CollisionEvent) => {
+      // Social功能已重新启用 - collision end处理恢复正常
+      const isSocialFunctionalityEnabled = true // Social功能重新启用
+      if (!isSocialFunctionalityEnabled) {
+        return
+      }
+
       // Only clear if it's the same player that's ending collision
       setCollisionPlayer((prevPlayer: any) => {
         if (prevPlayer?.id === event.targetPlayer?.id) {
@@ -520,6 +532,12 @@ export default function Home() {
     }
 
     const handlePlayerClickEvent = (event: any) => {
+      // Social功能已重新启用 - click处理恢复正常
+      const isSocialFunctionalityEnabled = true // Social功能重新启用
+      if (!isSocialFunctionalityEnabled) {
+        return
+      }
+
       // For click events, we set the collision player to trigger the same UI behavior
       // Only update if it's a different player
       setCollisionPlayer((prevPlayer: any) => {
@@ -776,15 +794,7 @@ export default function Home() {
   return (
     <div>
       <LayoutManager
-        gameComponent={
-          <div className="flex items-center justify-center h-full bg-gray-900 text-white">
-            <div className="text-center">
-              <h2 className="text-2xl font-bold mb-4">🧪 NextJS性能调试模式</h2>
-              <p className="text-gray-400">Phaser已禁用，专注排查NextJS性能问题</p>
-              <p className="text-sm text-gray-500 mt-2">目标：将CPU从10%降到2-5%</p>
-            </div>
-          </div>
-        }
+        gameComponent={memoizedPhaserGame}
         infoPanel={isMobile ? memoizedMobileInfoPanel : memoizedDesktopInfoPanel}
       />
       

@@ -131,22 +131,28 @@ export default function TabManager({
   // Set up event bus listeners for collision and click events
   useEffect(() => {
     const handleCollisionStart = (event: CollisionEvent) => {
-      console.log('[TabManager] Collision start detected:', event)
-      setCurrentCollisionPlayer(event.targetPlayer)
-      
-      // Find player interaction tab and switch to it with enhanced visual feedback
+      // 性能优化：只有在player-interaction标签页可用时才处理collision
       const playerInteractionTab = tabs.find(tab => tab.id === 'player-interaction')
-      if (playerInteractionTab) {
-        // Add immediate visual feedback
-        setHighlightedTab(playerInteractionTab.id)
-        handleTabSwitch(playerInteractionTab.id, 'collision')
+      if (!playerInteractionTab) {
+        // Social标签页被禁用，跳过collision处理以节省CPU
+        return
       }
+
+      setCurrentCollisionPlayer(event.targetPlayer)
+      setHighlightedTab(playerInteractionTab.id)
+      handleTabSwitch(playerInteractionTab.id, 'collision')
     }
 
     const handleCollisionEnd = (event: CollisionEvent) => {
-      console.log('[TabManager] Collision end detected:', event)
+      // 性能优化：只有在player-interaction标签页可用时才处理collision end
+      const playerInteractionTab = tabs.find(tab => tab.id === 'player-interaction')
+      if (!playerInteractionTab) {
+        // Social标签页被禁用，跳过collision end处理以节省CPU
+        return
+      }
+
       setCurrentCollisionPlayer(null)
-      
+
       // Switch back to default tab when collision ends (only if switched by collision)
       const defaultTab = tabs.find(tab => tab.id === 'status-info')
       if (defaultTab && tabState.activeTabId === 'player-interaction' && tabState.lastSwitchTrigger === 'collision') {
@@ -155,28 +161,25 @@ export default function TabManager({
     }
 
     const handlePlayerClick = (event: any) => {
-      console.log('[TabManager] Player click detected:', event)
-      
-      // Check if there's an active collision - collision has priority over click
-      if (currentCollisionPlayer) {
-        console.log('[TabManager] Collision in progress, click event ignored (collision priority)')
+      // 性能优化：只有在player-interaction标签页可用时才处理click
+      const playerInteractionTab = tabs.find(tab => tab.id === 'player-interaction')
+      if (!playerInteractionTab) {
+        // Social标签页被禁用，跳过click处理以节省CPU
         return
       }
-      
+
+      // Check if there's an active collision - collision has priority over click
+      if (currentCollisionPlayer) {
+        return
+      }
+
       // Set the clicked player as current interaction player
       setCurrentCollisionPlayer(event.targetPlayer)
-      
-      // Find player interaction tab and switch to it
-      const playerInteractionTab = tabs.find(tab => tab.id === 'player-interaction')
-      if (playerInteractionTab) {
-        // Add visual feedback for click interaction
-        setHighlightedTab(playerInteractionTab.id)
-        handleTabSwitch(playerInteractionTab.id, 'manual')
-      }
-      
-      // Auto-clear click interaction after a delay (since there's no "click end" event)
+      setHighlightedTab(playerInteractionTab.id)
+      handleTabSwitch(playerInteractionTab.id, 'manual')
+
+      // Auto-clear click interaction after a delay
       setTimeout(() => {
-        // Only clear if no collision is active and we're still on the player interaction tab
         if (!currentCollisionPlayer && tabState.activeTabId === 'player-interaction' && tabState.lastSwitchTrigger === 'manual') {
           setCurrentCollisionPlayer(null)
           const defaultTab = tabs.find(tab => tab.id === 'status-info')
@@ -184,7 +187,7 @@ export default function TabManager({
             handleTabSwitch(defaultTab.id, 'auto')
           }
         }
-      }, 10000) // Clear after 10 seconds
+      }, 10000)
     }
 
 
@@ -338,27 +341,30 @@ export default function TabManager({
         })}
       </div>
 
-      {/* Tab Content */}
+      {/* Tab Content - 性能优化：只渲染活跃的标签页组件 */}
       <div className="flex-1 relative overflow-hidden">
         {tabs.map((tab) => {
           const isTabActive = tab.id === tabState.activeTabId;
+
+          // 性能优化：只渲染活跃的标签页，避免所有组件同时运行造成CPU消耗
+          if (!isTabActive) {
+            return null;
+          }
+
           const TabComponent = tab.component;
-          
+
           return (
-            <div 
+            <div
               key={tab.id}
               className={`
                 absolute inset-0 transition-all duration-300 ease-in-out
-                ${isTabActive
-                  ? (tabState.animationState === 'switching' 
-                      ? `transform ${tabState.switchDirection === 'right' ? 'translate-x-full scale-95' : '-translate-x-full scale-95'} opacity-0 blur-sm`
-                      : 'transform translate-x-0 scale-100 opacity-100 blur-0'
-                    )
-                  : 'transform translate-x-0 scale-100 opacity-0 pointer-events-none'
+                ${tabState.animationState === 'switching'
+                  ? `transform ${tabState.switchDirection === 'right' ? 'translate-x-full scale-95' : '-translate-x-full scale-95'} opacity-0 blur-sm`
+                  : 'transform translate-x-0 scale-100 opacity-100 blur-0'
                 }
               `}
             >
-              <TabComponent 
+              <TabComponent
                 collisionPlayer={currentCollisionPlayer || collisionPlayer}
                 isActive={isTabActive}
                 isMobile={isMobile}

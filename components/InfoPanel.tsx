@@ -60,15 +60,15 @@ export default function InfoPanel({
       component: NotificationsTab,
       priority: 1.8
     },
-    // Social功能保持禁用 - 性能测试
-    // {
-    //   id: 'player-interaction',
-    //   label: 'Social',
-    //   icon: '⭐',
-    //   component: PlayerInteractionTab,
-    //   autoSwitch: true,
-    //   priority: 2
-    // }
+    // Social功能重新启用
+    {
+      id: 'player-interaction',
+      label: 'Social',
+      icon: '⭐',
+      component: PlayerInteractionTab,
+      autoSwitch: true,
+      priority: 2
+    }
   ]
 
   return (

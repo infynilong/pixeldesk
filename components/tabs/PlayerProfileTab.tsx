@@ -86,21 +86,20 @@ export default function PlayerProfileTab({
     
     return (
       <div className={emptyStateClasses}>
-        {/* 现代像素风格背景 */}
-        <div className="absolute inset-0 bg-gradient-to-br from-retro-purple/8 via-retro-blue/10 to-retro-pink/8 animate-pulse"></div>
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-retro-cyan/3 to-transparent animate-shimmer"></div>
+        {/* 简化背景效果 - 移除CPU消耗高的动画 */}
+        <div className="absolute inset-0 bg-gradient-to-br from-retro-purple/8 via-retro-blue/10 to-retro-pink/8"></div>
         
         <div className="relative z-10 space-y-6">
           {/* 像素化等待图标 */}
           <div className="relative">
-            <div className={`${iconSize} bg-gradient-to-br from-retro-purple/30 via-retro-pink/40 to-retro-blue/30 rounded-xl flex items-center justify-center mx-auto shadow-xl border-2 border-retro-border/50 animate-pixel-glow`}>
+            <div className={`${iconSize} bg-gradient-to-br from-retro-purple/30 via-retro-pink/40 to-retro-blue/30 rounded-xl flex items-center justify-center mx-auto shadow-xl border-2 border-retro-border/50`}>
               <div className="absolute inset-1 bg-gradient-to-br from-white/10 to-white/5 rounded-lg"></div>
               <svg className={`${iconInnerSize} text-white drop-shadow-lg relative z-10`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
             </div>
-            {/* 脉冲环 */}
-            <div className="absolute inset-0 border-2 border-retro-purple/30 rounded-xl animate-ping"></div>
+            {/* 静态装饰环 - 移除动画以节省CPU */}
+            <div className="absolute inset-0 border-2 border-retro-purple/30 rounded-xl opacity-50"></div>
           </div>
           
           {/* 标题文本 */}
@@ -113,17 +112,17 @@ export default function PlayerProfileTab({
             </p>
           </div>
           
-          {/* 像素化加载指示器 */}
+          {/* 静态装饰点 - 移除bounce动画以节省CPU */}
           <div className="flex items-center justify-center space-x-3">
-            <div className="w-3 h-3 bg-gradient-to-br from-retro-purple to-retro-pink rounded-sm animate-bounce shadow-lg" style={{ animationDelay: '0ms' }}></div>
-            <div className="w-3 h-3 bg-gradient-to-br from-retro-pink to-retro-blue rounded-sm animate-bounce shadow-lg" style={{ animationDelay: '150ms' }}></div>
-            <div className="w-3 h-3 bg-gradient-to-br from-retro-blue to-retro-cyan rounded-sm animate-bounce shadow-lg" style={{ animationDelay: '300ms' }}></div>
+            <div className="w-3 h-3 bg-gradient-to-br from-retro-purple to-retro-pink rounded-sm shadow-lg"></div>
+            <div className="w-3 h-3 bg-gradient-to-br from-retro-pink to-retro-blue rounded-sm shadow-lg"></div>
+            <div className="w-3 h-3 bg-gradient-to-br from-retro-blue to-retro-cyan rounded-sm shadow-lg"></div>
           </div>
           
           {/* 操作提示 */}
           <div className="text-center">
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-retro-bg-dark/50 rounded-lg border border-retro-border/30 backdrop-blur-sm">
-              <div className="w-2 h-2 bg-retro-cyan rounded-full animate-pulse"></div>
+              <div className="w-2 h-2 bg-retro-cyan rounded-full"></div>
               <span className="text-xs text-retro-textMuted font-retro tracking-wide">
                 COLLISION DETECTION ACTIVE
               </span>
@@ -150,9 +149,9 @@ export default function PlayerProfileTab({
               isOnline={collisionPlayer.isOnline}
               lastSeen={collisionPlayer.lastSeen}
             />
-            {/* 互动标识 */}
-            <div className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-br from-retro-green to-retro-cyan rounded-full border-2 border-retro-bg-darker shadow-lg animate-pulse">
-              <div className="w-full h-full bg-retro-green rounded-full animate-ping opacity-60"></div>
+            {/* 互动标识 - 简化为静态效果 */}
+            <div className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-br from-retro-green to-retro-cyan rounded-full border-2 border-retro-bg-darker shadow-lg">
+              <div className="w-full h-full bg-retro-green rounded-full opacity-60"></div>
             </div>
           </div>
           
@@ -189,7 +188,7 @@ export default function PlayerProfileTab({
         {error && (
           <div className="p-4 m-4">
             <div className="relative bg-gradient-to-r from-retro-red/15 to-retro-orange/15 backdrop-blur-sm border-2 border-retro-red/30 rounded-lg p-4 shadow-lg">
-              <div className="absolute inset-0 bg-retro-red/5 rounded-lg animate-pulse"></div>
+              <div className="absolute inset-0 bg-retro-red/5 rounded-lg"></div>
               <div className="relative flex items-center gap-3">
                 <div className="w-8 h-8 bg-gradient-to-br from-retro-red to-retro-orange rounded-lg flex items-center justify-center shadow-lg">
                   <span className="text-sm">⚠️</span>
@@ -208,7 +207,7 @@ export default function PlayerProfileTab({
           <div className="flex flex-col items-center justify-center h-full space-y-4">
             <div className="relative">
               <LoadingSpinner />
-              <div className="absolute inset-0 border-2 border-retro-cyan/30 rounded-full animate-ping"></div>
+              <div className="absolute inset-0 border-2 border-retro-cyan/30 rounded-full opacity-30"></div>
             </div>
             <div className="text-center space-y-2">
               <div className="text-white font-bold font-pixel text-sm tracking-wide">LOADING</div>
@@ -225,8 +224,8 @@ export default function PlayerProfileTab({
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10m0 0V6a2 2 0 00-2-2H9a2 2 0 00-2 2v2m10 0v10a2 2 0 01-2 2H9a2 2 0 01-2-2V8m0 0V6a2 2 0 012-2h8a2 2 0 012 2v2" />
                 </svg>
               </div>
-              {/* 装饰性脉冲环 */}
-              <div className="absolute inset-0 border-2 border-retro-purple/20 rounded-xl animate-ping"></div>
+              {/* 装饰性边框 - 移除动画以节省CPU */}
+              <div className="absolute inset-0 border-2 border-retro-purple/20 rounded-xl opacity-50"></div>
             </div>
             
             {/* 空状态文本 */}
@@ -239,18 +238,18 @@ export default function PlayerProfileTab({
               </p>
             </div>
             
-            {/* 装饰性元素 */}
+            {/* 装饰性元素 - 移除动画以节省CPU */}
             <div className="flex items-center gap-3">
-              <div className="w-2 h-2 bg-retro-purple rounded-sm animate-pulse"></div>
+              <div className="w-2 h-2 bg-retro-purple rounded-sm"></div>
               <div className="w-3 h-1 bg-retro-pink rounded-sm"></div>
-              <div className="w-2 h-2 bg-retro-blue rounded-sm animate-pulse"></div>
+              <div className="w-2 h-2 bg-retro-blue rounded-sm"></div>
             </div>
           </div>
         ) : (
           <div className="h-full overflow-y-auto scrollbar-hide">
             <div className="space-y-4 p-4">
               {posts.map((post, index) => (
-                <div key={post.id} className="animate-fade-in" style={{ animationDelay: `${index * 100}ms` }}>
+                <div key={post.id}>
                   <PostCard
                     key={post.id}
                     post={post}
