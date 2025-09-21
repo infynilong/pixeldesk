@@ -144,27 +144,25 @@ export class Player extends Phaser.GameObjects.Container {
         }
     }
     
-    // 保存玩家状态到localStorage - 添加防抖以避免频繁写入
+    // 保存玩家状态到localStorage - 优化防抖以大幅减少CPU消耗
     saveState() {
         // 如果状态保存功能被禁用，直接返回
         if (!this.enableStateSave) {
             return;
         }
 
-        // 防抖机制：避免频繁的localStorage写入
-        if (this.saveStateTimer) {
-            clearTimeout(this.saveStateTimer);
+        // 高效防抖机制：只在没有pending timer时才创建，避免每帧clearTimeout操作
+        if (!this.saveStateTimer) {
+            this.saveStateTimer = setTimeout(() => {
+                const state = {
+                    x: this.x,
+                    y: this.y,
+                    direction: this.currentDirection
+                };
+                localStorage.setItem('playerState', JSON.stringify(state));
+                this.saveStateTimer = null;
+            }, 200); // 200ms防抖延迟
         }
-
-        this.saveStateTimer = setTimeout(() => {
-            const state = {
-                x: this.x,
-                y: this.y,
-                direction: this.currentDirection
-            };
-            localStorage.setItem('playerState', JSON.stringify(state));
-            this.saveStateTimer = null;
-        }, 200); // 200ms防抖延迟
     }
     
     // 从localStorage获取保存的玩家状态
