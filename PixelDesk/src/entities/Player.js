@@ -1,3 +1,15 @@
+// ===== 性能优化配置 =====
+const PERFORMANCE_CONFIG = {
+  // 禁用控制台日志以大幅减少CPU消耗（开发时可设为true）
+  ENABLE_DEBUG_LOGGING: false,
+  // 关键错误和警告仍然显示
+  ENABLE_ERROR_LOGGING: true
+}
+
+// 性能优化的日志系统
+const debugLog = PERFORMANCE_CONFIG.ENABLE_DEBUG_LOGGING ? console.log.bind(console) : () => {}
+const debugWarn = PERFORMANCE_CONFIG.ENABLE_ERROR_LOGGING ? console.warn.bind(console) : () => {}
+
 export class Player extends Phaser.GameObjects.Container {
     constructor(scene, x, y, spriteKey = 'characters_list_image', enableMovement = true, enableStateSave = true, isOtherPlayer = false, playerData = null) {
         // 尝试从存储中恢复位置（仅当启用状态保存时）
@@ -171,7 +183,7 @@ export class Player extends Phaser.GameObjects.Container {
             const state = localStorage.getItem('playerState');
             return state ? JSON.parse(state) : null;
         } catch (e) {
-            console.warn('Failed to parse player state from localStorage', e);
+            debugWarn('Failed to parse player state from localStorage', e);
             return null;
         }
     }
@@ -436,7 +448,7 @@ export class Player extends Phaser.GameObjects.Container {
     
     // 处理玩家点击
     handlePlayerClick(pointer) {
-        console.log('玩家被点击:', this.playerData.name);
+        debugLog('玩家被点击:', this.playerData.name);
         
         // 创建点击事件数据
         const clickEvent = {
@@ -543,7 +555,7 @@ export class Player extends Phaser.GameObjects.Container {
     clearCollisionAnimation() {
         // 检查场景是否存在且有效
         if (!this.scene || !this.scene.tweens) {
-            console.warn('Scene or tweens not available, skipping collision animation cleanup');
+            debugWarn('Scene or tweens not available, skipping collision animation cleanup');
             // 至少重置缩放
             if (this.setScale) {
                 this.setScale(1);
@@ -563,7 +575,7 @@ export class Player extends Phaser.GameObjects.Container {
                 this.collisionRing = null;
             }
         } catch (error) {
-            console.warn('Error clearing collision animation:', error);
+            debugWarn('Error clearing collision animation:', error);
             // 至少重置缩放
             if (this.setScale) {
                 this.setScale(1);
@@ -596,7 +608,7 @@ export class Player extends Phaser.GameObjects.Container {
                 window.onPlayerCollisionStart(collisionEvent);
             }
             
-            console.log('碰撞开始:', this.playerData.name, 'at', new Date(this.collisionStartTime).toLocaleTimeString());
+            debugLog('碰撞开始:', this.playerData.name, 'at', new Date(this.collisionStartTime).toLocaleTimeString());
         }
     }
     
@@ -630,7 +642,7 @@ export class Player extends Phaser.GameObjects.Container {
             // 清理碰撞动画效果
             this.clearCollisionAnimation();
             
-            console.log('碰撞结束:', this.playerData.name, '持续时间:', collisionDuration + 'ms');
+            debugLog('碰撞结束:', this.playerData.name, '持续时间:', collisionDuration + 'ms');
             this.collisionStartTime = null;
         }
     }
@@ -648,9 +660,9 @@ export class Player extends Phaser.GameObjects.Container {
     
     // 禁用玩家移动
     disableMovement() {
-        console.log('Player.disableMovement() 被调用，当前enableMovement值:', this.enableMovement);
+        debugLog('Player.disableMovement() 被调用，当前enableMovement值:', this.enableMovement);
         this.enableMovement = false;
-        console.log('Player.disableMovement() 执行完成，新的enableMovement值:', this.enableMovement);
+        debugLog('Player.disableMovement() 执行完成，新的enableMovement值:', this.enableMovement);
         // 停止当前移动
         if (this.body) {
             this.body.setVelocity(0, 0);
@@ -659,9 +671,9 @@ export class Player extends Phaser.GameObjects.Container {
     
     // 启用玩家移动
     enableMovement() {
-        console.log('Player.enableMovement() 被调用，当前enableMovement值:', this.enableMovement);
+        debugLog('Player.enableMovement() 被调用，当前enableMovement值:', this.enableMovement);
         this.enableMovement = true;
-        console.log('Player.enableMovement() 执行完成，新的enableMovement值:', this.enableMovement);
+        debugLog('Player.enableMovement() 执行完成，新的enableMovement值:', this.enableMovement);
     }
 
     // 传送玩家到指定位置
@@ -689,7 +701,7 @@ export class Player extends Phaser.GameObjects.Container {
         // 添加传送特效
         this.addTeleportEffect();
         
-        console.log(`玩家传送到位置: (${x}, ${y}), 朝向: ${direction}, 移动功能已启用`);
+        debugLog(`玩家传送到位置: (${x}, ${y}), 朝向: ${direction}, 移动功能已启用`);
         return true;
     }
 

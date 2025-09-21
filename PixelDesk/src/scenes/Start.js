@@ -8,6 +8,22 @@ import { PlayerInfoDebouncer } from "../logic/PlayerInfoDebouncer.js"
 import { MultiPlayerCollisionManager } from "../logic/MultiPlayerCollisionManager.js"
 import { FocusManager } from "../logic/FocusManager.js"
 
+// ===== 性能优化配置 =====
+const PERFORMANCE_CONFIG = {
+  // 禁用控制台日志以大幅减少CPU消耗（开发时可设为true）
+  ENABLE_DEBUG_LOGGING: false,
+  // 关键错误和警告仍然显示
+  ENABLE_ERROR_LOGGING: true,
+  // 性能监控日志
+  ENABLE_PERFORMANCE_LOGGING: false
+}
+
+// 性能优化的日志系统
+const debugLog = PERFORMANCE_CONFIG.ENABLE_DEBUG_LOGGING ? console.log.bind(console) : () => {}
+const debugWarn = PERFORMANCE_CONFIG.ENABLE_ERROR_LOGGING ? console.warn.bind(console) : () => {}
+const debugError = PERFORMANCE_CONFIG.ENABLE_ERROR_LOGGING ? console.error.bind(console) : () => {}
+const perfLog = PERFORMANCE_CONFIG.ENABLE_PERFORMANCE_LOGGING ? console.log.bind(console) : () => {}
+
 export class Start extends Phaser.Scene {
   constructor() {
     super("Start")
@@ -38,7 +54,7 @@ export class Start extends Phaser.Scene {
   }
 
   create() {
-    console.log('DEBUG: Start.create() method called - Phaser is running');
+    debugLog('DEBUG: Start.create() method called - Phaser is running');
     
     // 保存场景引用到全局变量，供Next.js调用
     if (typeof window !== "undefined") {
@@ -58,7 +74,7 @@ export class Start extends Phaser.Scene {
       // 快速回到工位功能
       window.teleportToWorkstation = async () => {
         if (!this.currentUser) {
-          console.warn("没有当前用户信息")
+          debugWarn("没有当前用户信息")
           return { success: false, error: "请先登录" }
         }
 
@@ -81,7 +97,7 @@ export class Start extends Phaser.Scene {
 
           return result
         } catch (error) {
-          console.error("传送失败:", error)
+          debugError("传送失败:", error)
           return { success: false, error: "传送失败，请重试" }
         }
       }
@@ -125,9 +141,9 @@ export class Start extends Phaser.Scene {
       // 添加强制刷新工位绑定的调试函数
       window.forceRefreshWorkstations = async () => {
         if (this.workstationManager) {
-          console.log('🔄 用户手动触发工位强制刷新...');
+          debugLog('🔄 用户手动触发工位强制刷新...');
           const result = await this.workstationManager.forceRefreshAllBindings();
-          console.log('🔄 强制刷新结果:', result);
+          debugLog('🔄 强制刷新结果:', result);
           return result;
         }
         return { error: 'WorkstationManager not initialized' };
@@ -140,11 +156,11 @@ export class Start extends Phaser.Scene {
           const allWorkstations = this.workstationManager.getAllWorkstations();
           const occupiedWorkstations = allWorkstations.filter(w => w.isOccupied);
 
-          console.log('=== 工位调试信息 ===');
-          console.log('总工位数:', stats.total);
-          console.log('已占用:', stats.occupied);
-          console.log('占用率:', stats.occupancyRate);
-          console.log('已占用工位详情:', occupiedWorkstations.map(w => ({
+          debugLog('=== 工位调试信息 ===');
+          debugLog('总工位数:', stats.total);
+          debugLog('已占用:', stats.occupied);
+          debugLog('占用率:', stats.occupancyRate);
+          debugLog('已占用工位详情:', occupiedWorkstations.map(w => ({
             id: w.id,
             userId: w.userId,
             userName: w.userInfo?.name,
@@ -168,7 +184,7 @@ export class Start extends Phaser.Scene {
 
       // 添加简单的键盘控制接口
       window.disableGameKeyboard = () => {
-        console.log('🔒 游戏键盘输入已禁用');
+        debugLog('🔒 游戏键盘输入已禁用');
         this.keyboardInputEnabled = false;
         
         // 彻底停用Phaser的键盘处理
@@ -223,14 +239,14 @@ export class Start extends Phaser.Scene {
             this.input.keyboard.manager.enabled = false;
           }
           
-          console.log('🔒 Phaser键盘完全禁用 - Canvas焦点已移除，DOM事件已拦截');
+          debugLog('🔒 Phaser键盘完全禁用 - Canvas焦点已移除，DOM事件已拦截');
         }
         
         return { success: true, enabled: false };
       }
       
       window.enableGameKeyboard = () => {
-        console.log('🔓 游戏键盘输入已启用');
+        debugLog('🔓 游戏键盘输入已启用');
         this.keyboardInputEnabled = true;
         
         // 重新启用Phaser的键盘处理
@@ -241,7 +257,7 @@ export class Start extends Phaser.Scene {
             document.removeEventListener('keyup', this.keyboardBlockHandler, true);
             document.removeEventListener('keypress', this.keyboardBlockHandler, true);
             this.keyboardBlockHandler = null;
-            console.log('🔓 已移除键盘事件拦截器');
+            debugLog('🔓 已移除键盘事件拦截器');
           }
           
           // 重新启用键盘管理器
@@ -262,7 +278,7 @@ export class Start extends Phaser.Scene {
           this.cursors = this.input.keyboard.createCursorKeys();
           this.wasdKeys = this.input.keyboard.addKeys('W,S,A,D');
           
-          console.log('🔓 Phaser键盘完全恢复 - Canvas焦点已恢复，DOM事件拦截已移除');
+          debugLog('🔓 Phaser键盘完全恢复 - Canvas焦点已恢复，DOM事件拦截已移除');
         }
         
         return { success: true, enabled: true };
@@ -274,18 +290,18 @@ export class Start extends Phaser.Scene {
 
       // 添加基础的游戏状态测试函数
       window.testGameRunning = () => {
-        console.log('=== GAME STATUS TEST ===');
-        console.log('Scene exists:', !!this);
-        console.log('Player exists:', !!this.player);
-        console.log('Player enableMovement:', this.player?.enableMovement);
-        console.log('Player body exists:', !!this.player?.body);
-        console.log('Input keyboard exists:', !!this.input?.keyboard);
-        console.log('Scene is active:', this.scene?.isActive());
+        debugLog('=== GAME STATUS TEST ===');
+        debugLog('Scene exists:', !!this);
+        debugLog('Player exists:', !!this.player);
+        debugLog('Player enableMovement:', this.player?.enableMovement);
+        debugLog('Player body exists:', !!this.player?.body);
+        debugLog('Input keyboard exists:', !!this.input?.keyboard);
+        debugLog('Scene is active:', this.scene?.isActive());
         
         // 强制设置玩家移动为true
         if (this.player) {
           this.player.enableMovement = true;
-          console.log('Forced player enableMovement to true');
+          debugLog('Forced player enableMovement to true');
         }
         
         return {
@@ -300,7 +316,7 @@ export class Start extends Phaser.Scene {
 
       // 添加恢复玩家移动的全局函数
       window.enablePlayerMovement = () => {
-        console.log('🎮 恢复玩家移动');
+        debugLog('🎮 恢复玩家移动');
         
         // 清除工位绑定状态标志
         this.isInWorkstationBinding = false;
@@ -309,37 +325,37 @@ export class Start extends Phaser.Scene {
         if (this.playerMovementRestoreTimer) {
           this.time.removeEvent(this.playerMovementRestoreTimer);
           this.playerMovementRestoreTimer = null;
-          console.log('🎮 已清除自动恢复定时器');
+          debugLog('🎮 已清除自动恢复定时器');
         }
         
         if (this.player && typeof this.player.enableMovement === "function") {
           this.player.enableMovement();
-          console.log('🎮 玩家移动已恢复');
+          debugLog('🎮 玩家移动已恢复');
           return { success: true, enabled: true };
         } else if (this.player) {
           // 如果没有enableMovement方法，直接设置属性
           this.player.enableMovement = true;
-          console.log('🎮 玩家移动已恢复（通过属性设置）');
+          debugLog('🎮 玩家移动已恢复（通过属性设置）');
           return { success: true, enabled: true };
         }
-        console.warn('🎮 无法恢复玩家移动 - 玩家对象不存在');
+        debugWarn('🎮 无法恢复玩家移动 - 玩家对象不存在');
         return { success: false, error: '玩家对象不存在' };
       }
 
       // 添加禁用玩家移动的全局函数
       window.disablePlayerMovement = () => {
-        console.log('🎮 禁用玩家移动');
+        debugLog('🎮 禁用玩家移动');
         if (this.player && typeof this.player.disableMovement === "function") {
           this.player.disableMovement();
-          console.log('🎮 玩家移动已禁用');
+          debugLog('🎮 玩家移动已禁用');
           return { success: true, enabled: false };
         } else if (this.player) {
           // 如果没有disableMovement方法，直接设置属性
           this.player.enableMovement = false;
-          console.log('🎮 玩家移动已禁用（通过属性设置）');
+          debugLog('🎮 玩家移动已禁用（通过属性设置）');
           return { success: true, enabled: false };
         }
-        console.warn('🎮 无法禁用玩家移动 - 玩家对象不存在');
+        debugWarn('🎮 无法禁用玩家移动 - 玩家对象不存在');
         return { success: false, error: '玩家对象不存在' };
       }
 
@@ -354,7 +370,7 @@ export class Start extends Phaser.Scene {
     this.collisionDebounceTime = 100 // 防抖时间（毫秒）
     this.lastCollisionCheck = 0
     
-    console.log('🎯 碰撞检测系统已初始化:', {
+    debugLog('🎯 碰撞检测系统已初始化:', {
       sensitivity: this.collisionSensitivity,
       currentCollisionsSize: this.currentCollisions.size,
       historyLength: this.collisionHistory.length
@@ -365,7 +381,7 @@ export class Start extends Phaser.Scene {
     
     // 初始化简单的键盘输入控制
     this.keyboardInputEnabled = true // 默认启用
-    console.log('⌨️ 简化键盘输入控制已初始化')
+    debugLog('⌨️ 简化键盘输入控制已初始化')
 
     // 获取用户数据（从场景参数或本地存储）
     const sceneData = this.scene.settings.data || {}
@@ -374,7 +390,7 @@ export class Start extends Phaser.Scene {
     if (!this.currentUser) {
       // 在新的认证系统下，如果没有用户数据，创建默认临时数据
       // React层面已经处理了认证和角色创建
-      console.log('⚠️ 没有找到用户数据，使用默认设置')
+      debugLog('⚠️ 没有找到用户数据，使用默认设置')
       this.currentUser = {
         id: 'temp_user',
         username: 'Guest',
@@ -393,7 +409,7 @@ export class Start extends Phaser.Scene {
       this.currentUser.points === undefined
     ) {
       this.currentUser.points = this.currentUser.gold
-      console.log(
+      debugLog(
         "同步积分字段：gold -> points, 积分值:",
         this.currentUser.points
       )
@@ -402,7 +418,7 @@ export class Start extends Phaser.Scene {
       this.currentUser.gold === undefined
     ) {
       this.currentUser.gold = this.currentUser.points
-      console.log(
+      debugLog(
         "同步积分字段：points -> gold, 积分值:",
         this.currentUser.gold
       )
@@ -423,7 +439,7 @@ export class Start extends Phaser.Scene {
     
     // 🚀 启用视口优化功能 
     this.workstationManager.enableViewportOptimization()
-    console.log('🚀 视口优化已启用 - 将只请求可视范围工位')
+    debugLog('🚀 视口优化已启用 - 将只请求可视范围工位')
     
     // 初始化洗手间管理器
     this.washroomManager = new WashroomManager(this)
@@ -479,7 +495,7 @@ export class Start extends Phaser.Scene {
       try {
         await this.workstationManager.syncWorkstationBindings()
       } catch (error) {
-        console.error('同步工位绑定失败，但游戏继续运行:', error)
+        debugError('同步工位绑定失败，但游戏继续运行:', error)
       }
 
       // 高亮当前用户的工位
@@ -497,27 +513,27 @@ export class Start extends Phaser.Scene {
       this.sendUserDataToUI()
 
       // 确保玩家移动是启用的
-      console.log(
+      debugLog(
         "Start.js: 游戏初始化 - 检查玩家移动状态，player对象:",
         !!this.player
       )
-      console.log(
+      debugLog(
         "Start.js: 游戏初始化 - enableMovement属性值:",
         this.player?.enableMovement
       )
-      console.log(
+      debugLog(
         "Start.js: 游戏初始化 - enableMovement方法类型:",
         typeof this.player?.enableMovement
       )
       if (this.player && !this.player.enableMovement) {
         this.player.enableMovement = true
-        console.log("Start.js: 游戏初始化完成，设置enableMovement属性为true")
+        debugLog("Start.js: 游戏初始化完成，设置enableMovement属性为true")
       } else if (
         this.player &&
         typeof this.player.enableMovement === "function"
       ) {
         this.player.enableMovement()
-        console.log("Start.js: 游戏初始化完成，调用enableMovement()方法")
+        debugLog("Start.js: 游戏初始化完成，调用enableMovement()方法")
       }
 
       // 保存游戏场景引用到全局变量，供工位绑定使用
@@ -528,7 +544,7 @@ export class Start extends Phaser.Scene {
         delay: 2000, // 每2秒检查一次
         callback: () => {
           if (this.player && !this.player.enableMovement && !this.isInWorkstationBinding) {
-            console.log("🎮 检测到玩家移动被意外禁用，自动恢复");
+            debugLog("🎮 检测到玩家移动被意外禁用，自动恢复");
             if (typeof this.player.enableMovement === "function") {
               this.player.enableMovement();
             } else {
@@ -576,10 +592,10 @@ export class Start extends Phaser.Scene {
       // Initialize focus manager for keyboard input conflict resolution
       this.focusManager = new FocusManager(this)
       
-      console.log('[Start] Performance optimization systems initialized')
+      debugLog('[Start] Performance optimization systems initialized')
       
     } catch (error) {
-      console.error('[Start] Error initializing optimization systems:', error)
+      debugError('[Start] Error initializing optimization systems:', error)
       // Fallback to original collision detection if optimization fails
       this.useOptimizedCollision = false
     }
@@ -601,7 +617,7 @@ export class Start extends Phaser.Scene {
       this.collisionOptimizer.updateCollisionDetection(this.player, otherPlayers)
       
     } catch (error) {
-      console.error('[Start] Error in optimized collision detection:', error)
+      debugError('[Start] Error in optimized collision detection:', error)
       // Fallback to original collision detection
       this.updateCollisionDetection()
     }
@@ -632,7 +648,7 @@ export class Start extends Phaser.Scene {
       }
       
     } catch (error) {
-      console.error('[Start] Error getting other players:', error)
+      debugError('[Start] Error getting other players:', error)
     }
     
     return allPlayers
@@ -643,7 +659,7 @@ export class Start extends Phaser.Scene {
     // 从对象层获取玩家位置
     const userLayer = map.getObjectLayer("player_objs")
     if (!userLayer) {
-      console.warn("User objects layer not found")
+      debugWarn("User objects layer not found")
       return
     }
 
@@ -682,19 +698,19 @@ export class Start extends Phaser.Scene {
 
     // 确保玩家移动是启用的
     this.time.delayedCall(50, () => {
-      console.log(
+      debugLog(
         "Start.js: 玩家创建后 - 尝试恢复玩家移动，player对象:",
         !!this.player
       )
-      console.log(
+      debugLog(
         "Start.js: 玩家创建后 - enableMovement方法类型:",
         typeof this.player?.enableMovement
       )
       if (this.player && typeof this.player.enableMovement === "function") {
         this.player.enableMovement()
-        console.log("Start.js: 玩家创建完成，移动已启用")
+        debugLog("Start.js: 玩家创建完成，移动已启用")
       } else {
-        console.error(
+        debugError(
           "Start.js: 玩家创建后 - 无法恢复玩家移动 - player对象或enableMovement方法不存在"
         )
       }
@@ -724,7 +740,7 @@ export class Start extends Phaser.Scene {
           this.player.body.width,
           this.player.body.height
         )
-        // console.log('Player collision bounds:', {
+        // debugLog('Player collision bounds:', {
         //     x: this.player.body.x,
         //     y: this.player.body.y,
         //     width: this.player.body.width,
@@ -733,7 +749,7 @@ export class Start extends Phaser.Scene {
       }
     })
 
-    // console.log('Player created at:', this.player.x, this.player.y);
+    // debugLog('Player created at:', this.player.x, this.player.y);
   }
 
   // 简化玩家移动处理逻辑
@@ -744,7 +760,7 @@ export class Start extends Phaser.Scene {
 
     // 检查玩家enableMovement状态
     if (!this.player.enableMovement) {
-      // console.log('DEBUG: Player movement is disabled, enableMovement =', this.player.enableMovement);
+      // debugLog('DEBUG: Player movement is disabled, enableMovement =', this.player.enableMovement);
       return;
     }
 
@@ -778,18 +794,18 @@ export class Start extends Phaser.Scene {
   setupWorkstationEvents() {
     // 监听工位绑定请求事件
     this.events.on("workstation-binding-request", (data) => {
-      console.log("Workstation binding request:", data)
+      debugLog("Workstation binding request:", data)
       this.showWorkstationBindingPrompt(data.workstation)
     })
 
     // 监听工位相关事件
     this.events.on("workstation-clicked", (data) => {
-      // console.log('Workstation clicked event:', data);
+      // debugLog('Workstation clicked event:', data);
       // 在这里添加自定义的点击处理逻辑
     })
 
     this.events.on("user-bound", (data) => {
-      // console.log('User bound event:', data);
+      // debugLog('User bound event:', data);
       // 工位绑定后，让对应工位的缓存失效
       if (this.workstationManager && data.workstationId) {
         this.workstationManager.invalidateWorkstationBinding(data.workstationId);
@@ -797,7 +813,7 @@ export class Start extends Phaser.Scene {
     })
 
     this.events.on("user-unbound", (data) => {
-      // console.log('User unbound event:', data);
+      // debugLog('User unbound event:', data);
       // 工位解绑后，让对应工位的缓存失效
       if (this.workstationManager && data.workstationId) {
         this.workstationManager.invalidateWorkstationBinding(data.workstationId);
@@ -1018,7 +1034,7 @@ export class Start extends Phaser.Scene {
     const objectLayer = map.getObjectLayer(layerName)
 
     if (!objectLayer) {
-      console.warn(`Object layer "${layerName}" not found`)
+      debugWarn(`Object layer "${layerName}" not found`)
       return
     }
 
@@ -1031,7 +1047,7 @@ export class Start extends Phaser.Scene {
     if (layerName === "desk_objs") {
       this.userData.deskCount =
         this.workstationManager.getWorkstationsByType("desk").length
-      console.log(`Desk count updated: ${this.userData.deskCount}`)
+      debugLog(`Desk count updated: ${this.userData.deskCount}`)
 
       // 发送更新到UI
       this.sendUserDataToUI()
@@ -1288,7 +1304,7 @@ export class Start extends Phaser.Scene {
       adjustedHeight
     )
 
-    console.log(
+    debugLog(
       `Deadzone debug created: ${adjustedWidth}x${adjustedHeight} at zoom ${zoom}`
     )
   }
@@ -1373,7 +1389,7 @@ export class Start extends Phaser.Scene {
   // ===== 全局函数方法 =====
   saveGameScene() {
     // 保存游戏场景引用的全局函数
-    console.log("Game scene saved globally")
+    debugLog("Game scene saved globally")
     if (typeof window !== "undefined") {
       window.gameScene = this
     }
@@ -1382,7 +1398,7 @@ export class Start extends Phaser.Scene {
   // 处理T键按下事件
   async handleTeleportKeyPress() {
     if (!this.currentUser) {
-      console.warn("没有当前用户信息，无法使用快速回到工位功能")
+      debugWarn("没有当前用户信息，无法使用快速回到工位功能")
       return
     }
 
@@ -1391,7 +1407,7 @@ export class Start extends Phaser.Scene {
       this.currentUser.id
     )
     if (!userWorkstation) {
-      console.warn("用户没有绑定的工位，无法使用快速回到工位功能")
+      debugWarn("用户没有绑定的工位，无法使用快速回到工位功能")
       return
     }
 
@@ -1399,9 +1415,9 @@ export class Start extends Phaser.Scene {
     if (typeof window !== "undefined" && window.teleportToWorkstation) {
       const result = await window.teleportToWorkstation()
       if (result && result.success) {
-        console.log("键盘快捷键：成功回到工位")
+        debugLog("键盘快捷键：成功回到工位")
       } else if (result && result.error) {
-        console.warn("键盘快捷键：回到工位失败:", result.error)
+        debugWarn("键盘快捷键：回到工位失败:", result.error)
       }
     }
   }
@@ -1457,7 +1473,7 @@ export class Start extends Phaser.Scene {
 
   // ===== 示例和测试方法（已移除，用于生产环境） =====
   // setupTestBindings() {
-  //     console.log('=== Setting up test bindings ===');
+  //     debugLog('=== Setting up test bindings ===');
 
   //     // 获取前几个工位进行测试绑定
   //     const availableWorkstations = this.workstationManager.getAvailableWorkstations().slice(0, 10);
@@ -1472,13 +1488,13 @@ export class Start extends Phaser.Scene {
   //         this.workstationManager.bindUserToWorkstation(workstation.id, userId, userInfo);
   //     });
 
-  //     console.log('=== Test bindings complete ===');
+  //     debugLog('=== Test bindings complete ===');
   //     this.workstationManager.printStatistics();
   // }
 
   // 在已绑定工位旁边放置随机角色（已移除，用于生产环境）
   // placeCharactersAtOccupiedWorkstations() {
-  //     console.log('=== Setting up characters at occupied workstations ===');
+  //     debugLog('=== Setting up characters at occupied workstations ===');
 
   //     // 获取所有角色图片的key
   //     const characterKeys = [
@@ -1508,11 +1524,11 @@ export class Start extends Phaser.Scene {
   //     const occupiedWorkstations = this.workstationManager.getOccupiedWorkstations();
 
   //     occupiedWorkstations.forEach((workstation, index) => {
-  //         console.log('workstation',workstation)
+  //         debugLog('workstation',workstation)
 
   //         // 跳过属于当前玩家的工位
   //         if (this.currentUser && workstation.userId === this.currentUser.id) {
-  //             console.log(`Skipping workstation ${workstation.id} - belongs to current user ${this.currentUser.id}`);
+  //             debugLog(`Skipping workstation ${workstation.id} - belongs to current user ${this.currentUser.id}`);
   //             return;
   //         }
 
@@ -1554,10 +1570,10 @@ export class Start extends Phaser.Scene {
   //             direction: characterDirection
   //         };
 
-  //         console.log(`Placed character ${randomCharacterKey} at workstation ${workstation.id} (${characterX}, ${characterY}) facing ${characterDirection} (workstation direction: ${workstation.direction})`);
+  //         debugLog(`Placed character ${randomCharacterKey} at workstation ${workstation.id} (${characterX}, ${characterY}) facing ${characterDirection} (workstation direction: ${workstation.direction})`);
   //     });
 
-  //     console.log('=== Characters placement complete ===');
+  //     debugLog('=== Characters placement complete ===');
   // }
 
   // 根据工位方向计算角色位置和朝向
@@ -1615,7 +1631,7 @@ export class Start extends Phaser.Scene {
       const userData = localStorage.getItem("pixelDeskUser")
       return userData ? JSON.parse(userData) : null
     } catch (e) {
-      console.warn("Failed to parse user data from localStorage", e)
+      debugWarn("Failed to parse user data from localStorage", e)
       return null
     }
   }
@@ -1623,7 +1639,7 @@ export class Start extends Phaser.Scene {
   async syncUserToDatabase() {
     if (!this.currentUser) return
 
-    console.log("同步用户数据到数据库:", this.currentUser)
+    debugLog("同步用户数据到数据库:", this.currentUser)
 
     try {
       const response = await fetch("/api/users", {
@@ -1642,17 +1658,17 @@ export class Start extends Phaser.Scene {
       const result = await response.json()
 
       if (result.success) {
-        console.log("用户数据同步成功:", result.data)
+        debugLog("用户数据同步成功:", result.data)
         // 更新当前用户数据为服务器返回的数据
         this.currentUser.id = result.data.id
         this.currentUser.points = result.data.points
         this.currentUser.gold = result.data.gold
         this.saveCurrentUser()
       } else {
-        console.warn("用户数据同步失败:", result.error)
+        debugWarn("用户数据同步失败:", result.error)
       }
     } catch (error) {
-      console.warn("同步用户数据到数据库失败:", error)
+      debugWarn("同步用户数据到数据库失败:", error)
     }
   }
 
@@ -1665,13 +1681,13 @@ export class Start extends Phaser.Scene {
         this.currentUser.gold = data.points // 同时更新gold字段以确保一致性
         this.saveCurrentUser()
         this.sendUserDataToUI()
-        console.log("积分更新事件处理完成，新积分:", data.points)
+        debugLog("积分更新事件处理完成，新积分:", data.points)
       }
     })
 
     // 监听工位绑定事件
     this.events.on("user-bound", (data) => {
-      console.log('🔄 [user-bound事件] 收到工位绑定事件:', {
+      debugLog('🔄 [user-bound事件] 收到工位绑定事件:', {
         workstationId: data.workstationId,
         userId: data.userId,
         userName: data.userInfo?.name,
@@ -1679,14 +1695,14 @@ export class Start extends Phaser.Scene {
         characterCreated: data.characterCreated,
         workstationHasCharacter: !!data.workstation?.characterSprite
       })
-      console.log('🔍 [user-bound事件] 当前用户对比:', {
+      debugLog('🔍 [user-bound事件] 当前用户对比:', {
         currentUserId: this.currentUser?.id,
         eventUserId: data.userId,
         isMatch: this.currentUser && this.currentUser.id === data.userId
       })
 
       if (this.currentUser && this.currentUser.id === data.userId) {
-        console.log('✅ [user-bound事件] 匹配到当前用户，开始更新状态')
+        debugLog('✅ [user-bound事件] 匹配到当前用户，开始更新状态')
 
         // 更新用户的工位列表
         if (!this.currentUser.workstations) {
@@ -1703,25 +1719,25 @@ export class Start extends Phaser.Scene {
 
         this.currentUser.workstations.push(workstationInfo)
         this.saveCurrentUser()
-        console.log('💾 [user-bound事件] 用户数据已保存到localStorage')
+        debugLog('💾 [user-bound事件] 用户数据已保存到localStorage')
 
         // 立即更新UI显示工位ID
-        console.log('🔄 [user-bound事件] 立即调用sendUserDataToUI')
+        debugLog('🔄 [user-bound事件] 立即调用sendUserDataToUI')
         this.sendUserDataToUI()
 
         // 延迟调用确保工位管理器状态同步完成
         setTimeout(() => {
-          console.log('🔄 [user-bound事件] 延迟调用sendUserDataToUI确保状态同步')
+          debugLog('🔄 [user-bound事件] 延迟调用sendUserDataToUI确保状态同步')
           this.sendUserDataToUI()
         }, 100)
 
         // 再次延迟调用确保React状态更新
         setTimeout(() => {
-          console.log('🔄 [user-bound事件] 最终调用sendUserDataToUI确保React状态更新')
+          debugLog('🔄 [user-bound事件] 最终调用sendUserDataToUI确保React状态更新')
           this.sendUserDataToUI()
         }, 500)
       } else {
-        console.log('⚠️ [user-bound事件] 不匹配当前用户，跳过状态更新')
+        debugLog('⚠️ [user-bound事件] 不匹配当前用户，跳过状态更新')
       }
     })
   }
@@ -1742,14 +1758,14 @@ export class Start extends Phaser.Scene {
     //     try {
     //       await this.workstationManager.syncWorkstationBindings()
     //     } catch (error) {
-    //       console.error('定时同步工位状态失败，跳过此次同步:', error)
+    //       debugError('定时同步工位状态失败，跳过此次同步:', error)
     //     }
     //   },
     //   callbackScope: this,
     //   loop: true,
     // })
 
-    console.log("工位状态定时同步已设置（每30秒）")
+    debugLog("工位状态定时同步已设置（每30秒）")
   }
 
   sendUserDataToUI() {
@@ -1764,18 +1780,18 @@ export class Start extends Phaser.Scene {
       const userPoints = this.currentUser.points || this.currentUser.gold || 0
 
       // 调试信息
-      console.log("=== 工位绑定调试信息 ===")
-      console.log("当前用户ID:", this.currentUser.id)
-      console.log("当前用户名:", this.currentUser.username)
-      console.log("用户积分:", userPoints)
-      console.log("找到的工位:", userWorkstation)
-      console.log("工位ID:", workstationId)
-      console.log("工位总数:", this.userData.deskCount)
-      console.log(
+      debugLog("=== 工位绑定调试信息 ===")
+      debugLog("当前用户ID:", this.currentUser.id)
+      debugLog("当前用户名:", this.currentUser.username)
+      debugLog("用户积分:", userPoints)
+      debugLog("找到的工位:", userWorkstation)
+      debugLog("工位ID:", workstationId)
+      debugLog("工位总数:", this.userData.deskCount)
+      debugLog(
         "所有用户绑定:",
         Array.from(this.workstationManager.userBindings.entries())
       )
-      console.log(
+      debugLog(
         "所有工位状态:",
         this.workstationManager.getAllWorkstations().map((ws) => ({
           id: ws.id,
@@ -1796,7 +1812,7 @@ export class Start extends Phaser.Scene {
       if (typeof window !== "undefined") {
         // 只在开发环境下输出调试信息
         if (process.env.NODE_ENV === 'development') {
-          console.log('🔄 [sendUserDataToUI] 触发工位绑定状态更新事件:', {
+          debugLog('🔄 [sendUserDataToUI] 触发工位绑定状态更新事件:', {
             userId: this.currentUser.id,
             workstationId: workstationId,
             hasWorkstationId: !!workstationId,
@@ -1841,7 +1857,7 @@ export class Start extends Phaser.Scene {
   // ===== 工位交互方法 =====
   showWorkstationBindingPrompt(workstation) {
     if (workstation && this.currentUser) {
-      console.log("触发Next.js工位绑定弹窗")
+      debugLog("触发Next.js工位绑定弹窗")
 
       // 设置工位绑定状态标志
       this.isInWorkstationBinding = true
@@ -1849,7 +1865,7 @@ export class Start extends Phaser.Scene {
       // 禁用玩家移动
       if (this.player && typeof this.player.disableMovement === "function") {
         this.player.disableMovement()
-        console.log("玩家移动已禁用")
+        debugLog("玩家移动已禁用")
       }
 
       // 设置5秒后自动恢复玩家移动的安全机制
@@ -1857,7 +1873,7 @@ export class Start extends Phaser.Scene {
         this.time.removeEvent(this.playerMovementRestoreTimer)
       }
       this.playerMovementRestoreTimer = this.time.delayedCall(5000, () => {
-        console.log("🎮 安全机制：自动恢复玩家移动")
+        debugLog("🎮 安全机制：自动恢复玩家移动")
         this.isInWorkstationBinding = false
         if (this.player && typeof this.player.enableMovement === "function") {
           this.player.enableMovement()
@@ -1879,7 +1895,7 @@ export class Start extends Phaser.Scene {
     if (typeof window !== "undefined") {
       window.updateMyStatus = async (statusData) => {
         this.myStatus = statusData
-        console.log("我的状态已更新:", statusData)
+        debugLog("我的状态已更新:", statusData)
 
         // 根据状态更新工位角色可见性
         if (this.currentUser && this.workstationManager) {
@@ -1890,7 +1906,7 @@ export class Start extends Phaser.Scene {
             // 如果状态是"下班了"，隐藏角色；否则显示角色
             const isOffWork = statusData.type === "off_work"
             userWorkstation.character.player.setVisible(!isOffWork)
-            console.log(
+            debugLog(
               `工位 ${userWorkstation.id} 角色可见性: ${!isOffWork} (状态: ${
                 statusData.type
               })`
@@ -1901,7 +1917,7 @@ export class Start extends Phaser.Scene {
         // 如果是下班状态，结束所有活动
         if (statusData.type === "off_work" && this.currentUser) {
           try {
-            console.log("检测到下班状态，结束所有活动...")
+            debugLog("检测到下班状态，结束所有活动...")
             const response = await fetch("/api/time-tracking", {
               method: "POST",
               headers: {
@@ -1915,12 +1931,12 @@ export class Start extends Phaser.Scene {
 
             if (response.ok) {
               const result = await response.json()
-              console.log("下班时间跟踪完成:", result)
+              debugLog("下班时间跟踪完成:", result)
             } else {
-              console.error("结束活动失败:", response.status)
+              debugError("结束活动失败:", response.status)
             }
           } catch (error) {
-            console.error("结束活动时出错:", error)
+            debugError("结束活动时出错:", error)
           }
         }
       }
@@ -1939,7 +1955,7 @@ export class Start extends Phaser.Scene {
   setupCollisionEventHandlers() {
     // 碰撞开始事件处理器
     window.onPlayerCollisionStart = (collisionEvent) => {
-      console.log(
+      debugLog(
         "🎯 碰撞开始事件:",
         collisionEvent.targetPlayer.name,
         "at",
@@ -1958,7 +1974,7 @@ export class Start extends Phaser.Scene {
 
     // 碰撞结束事件处理器
     window.onPlayerCollisionEnd = (collisionEvent) => {
-      console.log(
+      debugLog(
         "🔚 碰撞结束事件:",
         collisionEvent.targetPlayer.name,
         "持续时间:",
@@ -1978,7 +1994,7 @@ export class Start extends Phaser.Scene {
     // 保持向后兼容的碰撞处理器
     if (!window.onPlayerCollision) {
       window.onPlayerCollision = (playerData) => {
-        console.log("玩家碰撞（兼容模式）:", playerData)
+        debugLog("玩家碰撞（兼容模式）:", playerData)
 
         // 触发自定义事件，供React组件监听
         const customEvent = new CustomEvent("player-collision", {
@@ -2034,7 +2050,7 @@ export class Start extends Phaser.Scene {
   // 所有角色现在都通过工位绑定系统在工位旁边创建
 
   setupPlayerCollisions() {
-    console.log('🎯 设置玩家碰撞检测系统...')
+    debugLog('🎯 设置玩家碰撞检测系统...')
     
     // 初始化碰撞管理器
     this.collisionManager = {
@@ -2045,7 +2061,7 @@ export class Start extends Phaser.Scene {
     }
 
     // 设置主玩家与其他玩家的碰撞检测
-    console.log('🎯 其他玩家数量:', this.otherPlayers.size)
+    debugLog('🎯 其他玩家数量:', this.otherPlayers.size)
     this.otherPlayers.forEach((otherPlayer) => {
       this.physics.add.overlap(
         this.player,
@@ -2067,7 +2083,7 @@ export class Start extends Phaser.Scene {
     // 设置碰撞检测更新循环
     this.setupCollisionDetectionLoop()
     
-    console.log('🎯 玩家碰撞检测系统设置完成')
+    debugLog('🎯 玩家碰撞检测系统设置完成')
   }
 
   // 处理玩家碰撞（带防抖机制）
@@ -2076,7 +2092,7 @@ export class Start extends Phaser.Scene {
 
     // 如果这是一个新的碰撞
     if (!this.collisionManager.activeCollisions.has(playerId)) {
-      console.log("🔄 新碰撞检测到:", otherPlayer.playerData.name)
+      debugLog("🔄 新碰撞检测到:", otherPlayer.playerData.name)
 
       // 添加到活动碰撞集合
       this.collisionManager.activeCollisions.add(playerId)
@@ -2125,10 +2141,10 @@ export class Start extends Phaser.Scene {
 
   // 设置碰撞检测循环 - 优化为定时检查而不是每帧检查
   setupCollisionDetectionLoop() {
-    console.log('🎯 设置碰撞检测循环...')
+    debugLog('🎯 设置碰撞检测循环...')
     
     // 临时禁用碰撞检测定时器以修复CPU占用过高问题
-    console.log('⚠️ 碰撞检测定时器已暂时禁用以解决CPU占用问题')
+    debugLog('⚠️ 碰撞检测定时器已暂时禁用以解决CPU占用问题')
     // this.collisionCheckTimer = this.time.addEvent({
     //   delay: 500, // 改为每500ms检查一次，进一步减少CPU使用
     //   callback: this.updateCollisionDetection,
@@ -2227,7 +2243,7 @@ export class Start extends Phaser.Scene {
             this
           )
 
-          console.log("设置工位角色碰撞检测:", character.playerData.name)
+          debugLog("设置工位角色碰撞检测:", character.playerData.name)
         }
         // 同时支持旧的结构以保持兼容性
         else if (
@@ -2251,7 +2267,7 @@ export class Start extends Phaser.Scene {
             this
           )
 
-          console.log("设置工位角色碰撞检测 (旧结构):", character.playerData.name)
+          debugLog("设置工位角色碰撞检测 (旧结构):", character.playerData.name)
         }
       })
     })
@@ -2273,7 +2289,7 @@ export class Start extends Phaser.Scene {
         this
       )
 
-      console.log("为新工位角色添加碰撞检测:", character.playerData.name)
+      debugLog("为新工位角色添加碰撞检测:", character.playerData.name)
     }
   }
 
@@ -2300,7 +2316,7 @@ export class Start extends Phaser.Scene {
   setCollisionSensitivity(radius) {
     if (this.collisionManager) {
       this.collisionManager.collisionThreshold = radius
-      console.log("碰撞敏感度已设置为:", radius)
+      debugLog("碰撞敏感度已设置为:", radius)
     }
   }
 
@@ -2386,11 +2402,11 @@ export class Start extends Phaser.Scene {
       // Clear original collision tracking
       this.currentCollisions.clear()
       
-      console.log('[Start] All collisions cleared')
+      debugLog('[Start] All collisions cleared')
       return true
       
     } catch (error) {
-      console.error('[Start] Error clearing collisions:', error)
+      debugError('[Start] Error clearing collisions:', error)
       return false
     }
   }
@@ -2420,14 +2436,14 @@ export class Start extends Phaser.Scene {
           this.collisionOptimizer.setCollisionSensitivity(radius)
         }
         
-        console.log(`[Start] Collision sensitivity set to ${radius}px`)
+        debugLog(`[Start] Collision sensitivity set to ${radius}px`)
         return true
       } else {
-        console.warn('[Start] Invalid collision sensitivity value')
+        debugWarn('[Start] Invalid collision sensitivity value')
         return false
       }
     } catch (error) {
-      console.error('[Start] Error setting collision sensitivity:', error)
+      debugError('[Start] Error setting collision sensitivity:', error)
       return false
     }
   }
@@ -2478,7 +2494,7 @@ export class Start extends Phaser.Scene {
 
         // 调试信息（每5秒输出一次）
         // if (Date.now() % 5000 < 100) {
-        //   console.log(
+        //   debugLog(
         //     `[CollisionDebug] 检查真实玩家 ${
         //       otherPlayer.playerData.name
         //     }: 距离=${Math.round(distance)}px, 敏感度=${
@@ -2528,7 +2544,7 @@ export class Start extends Phaser.Scene {
 
     // 调试信息（每5秒输出一次）
     // if (Date.now() % 5000 < 100) {
-    //   console.log(
+    //   debugLog(
     //     `[CollisionDebug] 主玩家位置: (${Math.round(mainPlayerX)}, ${Math.round(
     //       mainPlayerY
     //     )}), 真实玩家: ${realPlayersFound}, 碰撞检查: ${collisionChecks}`
@@ -2570,7 +2586,7 @@ export class Start extends Phaser.Scene {
       return true
       
     } catch (error) {
-      console.error('[Start] Error handling collision start:', error)
+      debugError('[Start] Error handling collision start:', error)
       
       // Fallback to basic collision handling
       this.currentCollisions.add(playerId)
@@ -2593,15 +2609,15 @@ export class Start extends Phaser.Scene {
     this.collisionHistory.push(collisionRecord)
 
     // 详细的碰撞日志
-    console.log(`🎯 [碰撞开始] 玩家碰撞检测成功！`)
-    console.log(
+    debugLog(`🎯 [碰撞开始] 玩家碰撞检测成功！`)
+    debugLog(
       `   主玩家: ${this.player.playerData.name} (ID: ${this.player.playerData.id})`
     )
-    console.log(
+    debugLog(
       `   碰撞玩家: ${otherPlayer.playerData.name} (ID: ${otherPlayer.playerData.id})`
     )
-    console.log(`   碰撞时间: ${new Date().toLocaleTimeString()}`)
-    console.log(
+    debugLog(`   碰撞时间: ${new Date().toLocaleTimeString()}`)
+    debugLog(
       `   玩家位置: 主玩家(${Math.round(this.player.x)}, ${Math.round(
         this.player.y
       )}) - 碰撞玩家(${Math.round(otherPlayer.x)}, ${Math.round(
@@ -2646,7 +2662,7 @@ export class Start extends Phaser.Scene {
       return true
       
     } catch (error) {
-      console.error('[Start] Error handling collision end:', error)
+      debugError('[Start] Error handling collision end:', error)
       
       // Fallback to basic collision handling
       this.currentCollisions.delete(playerId)
@@ -2674,15 +2690,15 @@ export class Start extends Phaser.Scene {
     }
 
     // 详细的碰撞结束日志
-    console.log(`🎯 [碰撞结束] 玩家碰撞结束`)
-    console.log(
+    debugLog(`🎯 [碰撞结束] 玩家碰撞结束`)
+    debugLog(
       `   主玩家: ${this.player.playerData.name} (ID: ${this.player.playerData.id})`
     )
-    console.log(
+    debugLog(
       `   碰撞玩家: ${otherPlayer.playerData.name} (ID: ${otherPlayer.playerData.id})`
     )
-    console.log(`   结束时间: ${new Date().toLocaleTimeString()}`)
-    console.log(`   碰撞持续时间: ${duration}ms`)
+    debugLog(`   结束时间: ${new Date().toLocaleTimeString()}`)
+    debugLog(`   碰撞持续时间: ${duration}ms`)
 
     // 在页面上显示碰撞结束信息
     this.showCollisionNotification(
@@ -2721,15 +2737,15 @@ export class Start extends Phaser.Scene {
   // 设置碰撞敏感度
   setCollisionSensitivity(radius) {
     this.collisionSensitivity = Math.max(10, Math.min(200, radius))
-    console.log(
+    debugLog(
       `[CollisionSystem] 碰撞敏感度设置为: ${this.collisionSensitivity}px`
     )
   }
 
   // 调试碰撞系统
   debugCollisionSystem() {
-    console.log("=== 碰撞系统调试信息（真实玩家） ===")
-    console.log(
+    debugLog("=== 碰撞系统调试信息（真实玩家） ===")
+    debugLog(
       "主玩家:",
       this.player
         ? {
@@ -2740,9 +2756,9 @@ export class Start extends Phaser.Scene {
         : "未创建"
     )
 
-    console.log("碰撞敏感度:", this.collisionSensitivity)
-    console.log("当前碰撞:", Array.from(this.currentCollisions))
-    console.log("碰撞历史:", this.collisionHistory.length)
+    debugLog("碰撞敏感度:", this.collisionSensitivity)
+    debugLog("当前碰撞:", Array.from(this.currentCollisions))
+    debugLog("碰撞历史:", this.collisionHistory.length)
 
     const workstations = this.workstationManager.getAllWorkstations()
     const realPlayers = []
@@ -2766,7 +2782,7 @@ export class Start extends Phaser.Scene {
       }
     })
 
-    console.log("真实玩家数量:", realPlayers.length)
+    debugLog("真实玩家数量:", realPlayers.length)
     realPlayers.forEach((item, index) => {
       const player = item.player
       const ws = item.workstation
@@ -2779,7 +2795,7 @@ export class Start extends Phaser.Scene {
           )
         : 0
 
-      console.log(`真实玩家 ${index + 1}:`, {
+      debugLog(`真实玩家 ${index + 1}:`, {
         name: player.playerData.name,
         id: player.playerData.id,
         position: { x: player.x, y: player.y },
@@ -2813,10 +2829,10 @@ export class Start extends Phaser.Scene {
 
   // 强制碰撞测试
   forceCollisionTest() {
-    console.log("=== 强制碰撞测试（使用真实玩家） ===")
+    debugLog("=== 强制碰撞测试（使用真实玩家） ===")
 
     if (!this.player) {
-      console.error("主玩家未创建")
+      debugError("主玩家未创建")
       return { success: false, error: "主玩家未创建" }
     }
 
@@ -2842,26 +2858,26 @@ export class Start extends Phaser.Scene {
     }
 
     if (!targetPlayer) {
-      console.error("没有找到真实玩家")
+      debugError("没有找到真实玩家")
       return {
         success: false,
         error: "没有找到真实玩家，请确保有其他用户绑定了工位",
       }
     }
 
-    console.log(
+    debugLog(
       "选择真实玩家:",
       targetPlayer.playerData.name,
       "(ID:",
       targetPlayer.playerData.id + ")"
     )
-    console.log("工位信息:", targetWorkstation.userInfo)
+    debugLog("工位信息:", targetWorkstation.userInfo)
 
     // 将主玩家传送到真实玩家附近
     const targetX = targetPlayer.x + 30 // 30像素距离，应该触发碰撞
     const targetY = targetPlayer.y
 
-    console.log(
+    debugLog(
       `传送主玩家到真实玩家 ${targetPlayer.playerData.name} 附近: (${targetX}, ${targetY})`
     )
     this.player.setPosition(targetX, targetY)
@@ -2983,7 +2999,7 @@ export class Start extends Phaser.Scene {
       window.dispatchEvent(event)
     }
 
-    console.log(`📢 [通知] ${message}`)
+    debugLog(`📢 [通知] ${message}`)
   }
 
   // ===== 清理性能优化系统 =====
@@ -3007,10 +3023,10 @@ export class Start extends Phaser.Scene {
         this.multiPlayerCollisionManager = null
       }
       
-      console.log('[Start] Performance optimization systems cleaned up')
+      debugLog('[Start] Performance optimization systems cleaned up')
       
     } catch (error) {
-      console.error('[Start] Error cleaning up optimization systems:', error)
+      debugError('[Start] Error cleaning up optimization systems:', error)
     }
   }
 
@@ -3029,7 +3045,7 @@ export class Start extends Phaser.Scene {
 
   // 测试碰撞系统
   testCollisionSystem() {
-    console.log("🧪 测试碰撞系统...")
+    debugLog("🧪 测试碰撞系统...")
 
     // 获取第一个工位角色进行测试
     const workstations = this.workstationManager.getAllWorkstations()
@@ -3039,7 +3055,7 @@ export class Start extends Phaser.Scene {
 
     if (testWorkstation && testWorkstation.character.player) {
       const testPlayer = testWorkstation.character.player
-      console.log("找到测试角色:", testPlayer.playerData.name)
+      debugLog("找到测试角色:", testPlayer.playerData.name)
 
       // 模拟碰撞开始
       testPlayer.handleCollisionStart(this.player)
