@@ -114,22 +114,7 @@ export class Start extends Phaser.Scene {
       window.clearAllCollisions = this.clearAllCollisions.bind(this)
       window.setMaxSimultaneousCollisions = this.setMaxSimultaneousCollisions.bind(this)
 
-      // 添加测试函数
-      window.testCollisionSystem = this.testCollisionSystem.bind(this)
-
-      // 添加调试函数
-      window.debugCollisionSystem = this.debugCollisionSystem.bind(this)
-      window.forceCollisionTest = this.forceCollisionTest.bind(this)
-      window.getPlayerInfo = this.getPlayerInfo.bind(this)
-
-      // 添加FocusManager调试函数
-      window.debugFocusManager = () => {
-        if (this.focusManager) {
-          this.focusManager.debugFocusState()
-          return this.focusManager.getFocusState()
-        }
-        return { error: 'FocusManager not initialized' }
-      }
+      // 测试和调试函数已移除以优化性能
       window.forceEnableKeyboard = () => {
         if (this.focusManager) {
           this.focusManager.forceEnableKeyboard()
@@ -149,38 +134,7 @@ export class Start extends Phaser.Scene {
         return { error: 'WorkstationManager not initialized' };
       }
 
-      // 添加工位调试信息函数
-      window.debugWorkstations = () => {
-        if (this.workstationManager) {
-          const stats = this.workstationManager.getStatistics();
-          const allWorkstations = this.workstationManager.getAllWorkstations();
-          const occupiedWorkstations = allWorkstations.filter(w => w.isOccupied);
-
-          debugLog('=== 工位调试信息 ===');
-          debugLog('总工位数:', stats.total);
-          debugLog('已占用:', stats.occupied);
-          debugLog('占用率:', stats.occupancyRate);
-          debugLog('已占用工位详情:', occupiedWorkstations.map(w => ({
-            id: w.id,
-            userId: w.userId,
-            userName: w.userInfo?.name,
-            hasCharacter: !!w.characterSprite,
-            position: w.position
-          })));
-
-          return {
-            stats,
-            occupiedWorkstations: occupiedWorkstations.map(w => ({
-              id: w.id,
-              userId: w.userId,
-              userName: w.userInfo?.name,
-              hasCharacter: !!w.characterSprite,
-              position: w.position
-            }))
-          };
-        }
-        return { error: 'WorkstationManager not initialized' };
-      }
+      // 工位调试函数已移除以优化性能
 
       // 添加简单的键盘控制接口
       window.disableGameKeyboard = () => {
@@ -288,31 +242,7 @@ export class Start extends Phaser.Scene {
         return { enabled: this.keyboardInputEnabled !== false };
       }
 
-      // 添加基础的游戏状态测试函数
-      window.testGameRunning = () => {
-        debugLog('=== GAME STATUS TEST ===');
-        debugLog('Scene exists:', !!this);
-        debugLog('Player exists:', !!this.player);
-        debugLog('Player enableMovement:', this.player?.enableMovement);
-        debugLog('Player body exists:', !!this.player?.body);
-        debugLog('Input keyboard exists:', !!this.input?.keyboard);
-        debugLog('Scene is active:', this.scene?.isActive());
-        
-        // 强制设置玩家移动为true
-        if (this.player) {
-          this.player.enableMovement = true;
-          debugLog('Forced player enableMovement to true');
-        }
-        
-        return {
-          sceneExists: !!this,
-          playerExists: !!this.player,
-          playerEnableMovement: this.player?.enableMovement,
-          playerBodyExists: !!this.player?.body,
-          keyboardExists: !!this.input?.keyboard,
-          sceneActive: this.scene?.isActive()
-        };
-      }
+      // 游戏状态测试函数已移除以优化性能
 
       // 添加恢复玩家移动的全局函数
       window.enablePlayerMovement = () => {
@@ -1204,18 +1134,7 @@ export class Start extends Phaser.Scene {
     )
   }
 
-  addDebugBounds(obj, adjustedY) {
-    const debugRect = this.add.rectangle(
-      obj.x,
-      adjustedY,
-      obj.width || 48,
-      obj.height || 48,
-      0xff0000,
-      0.2
-    )
-    debugRect.setOrigin(0, 0)
-    debugRect.setStrokeStyle(1, 0xff0000)
-  }
+  // addDebugBounds function removed for performance optimization
 
   setupCamera(map) {
     // For infinite maps, we need to calculate the bounds based on the layer data
@@ -1274,40 +1193,7 @@ export class Start extends Phaser.Scene {
     }
   }
 
-  createDeadzoneDebug(deadzoneWidth, deadzoneHeight) {
-    // 创建一个图形对象来可视化死区
-    if (this.deadzoneDebug) {
-      this.deadzoneDebug.destroy()
-    }
-
-    this.deadzoneDebug = this.add.graphics()
-    this.deadzoneDebug.setScrollFactor(0) // 固定在屏幕上，不随相机滚动
-    this.deadzoneDebug.setDepth(999) // 确保在最上层
-
-    // 考虑当前相机zoom值来正确绘制死区
-    const zoom = this.cameras.main.zoom
-    const adjustedWidth = deadzoneWidth / zoom
-    const adjustedHeight = deadzoneHeight / zoom
-    const offsetX = (this.game.config.width - adjustedWidth) / 2
-    const offsetY = (this.game.config.height - adjustedHeight) / 2
-
-    // 绘制死区边界框（红色半透明）
-    this.deadzoneDebug.fillStyle(0xff0000, 0.3)
-    this.deadzoneDebug.fillRect(offsetX, offsetY, adjustedWidth, adjustedHeight)
-
-    // 添加边框
-    this.deadzoneDebug.lineStyle(2, 0xff0000, 0.8)
-    this.deadzoneDebug.strokeRect(
-      offsetX,
-      offsetY,
-      adjustedWidth,
-      adjustedHeight
-    )
-
-    debugLog(
-      `Deadzone debug created: ${adjustedWidth}x${adjustedHeight} at zoom ${zoom}`
-    )
-  }
+  // createDeadzoneDebug function removed for performance optimization
 
   createZoomControls() {
     // 使用新创建的ZoomControl组件
@@ -1356,10 +1242,10 @@ export class Start extends Phaser.Scene {
 
       this.cameras.main.setDeadzone(adjustedWidth, adjustedHeight)
 
-      // 如果存在死区调试可视化，也更新它
+      // 死区调试可视化功能已移除以优化性能
       if (this.deadzoneDebug) {
         this.deadzoneDebug.destroy()
-        this.createDeadzoneDebug(adjustedWidth * zoom, adjustedHeight * zoom)
+        this.deadzoneDebug = null
       }
     }
   }
@@ -1471,110 +1357,7 @@ export class Start extends Phaser.Scene {
     return this.workstationManager.getAvailableWorkstations()
   }
 
-  // ===== 示例和测试方法（已移除，用于生产环境） =====
-  // setupTestBindings() {
-  //     debugLog('=== Setting up test bindings ===');
-
-  //     // 获取前几个工位进行测试绑定
-  //     const availableWorkstations = this.workstationManager.getAvailableWorkstations().slice(0, 10);
-
-  //     availableWorkstations.forEach((workstation, index) => {
-  //         const userId = `user_${index + 1}`;
-  //         const userInfo = {
-  //             name: `User ${index + 1}`,
-  //             department: 'Engineering',
-  //             role: 'Developer'
-  //         };
-  //         this.workstationManager.bindUserToWorkstation(workstation.id, userId, userInfo);
-  //     });
-
-  //     debugLog('=== Test bindings complete ===');
-  //     this.workstationManager.printStatistics();
-  // }
-
-  // 在已绑定工位旁边放置随机角色（已移除，用于生产环境）
-  // placeCharactersAtOccupiedWorkstations() {
-  //     debugLog('=== Setting up characters at occupied workstations ===');
-
-  //     // 获取所有角色图片的key
-  //     const characterKeys = [
-  //         'Premade_Character_48x48_01',
-  //         'Premade_Character_48x48_02',
-  //         'Premade_Character_48x48_03',
-  //         'Premade_Character_48x48_04',
-  //         'Premade_Character_48x48_05',
-  //         'Premade_Character_48x48_06',
-  //         'Premade_Character_48x48_07',
-  //         'Premade_Character_48x48_08',
-  //         'Premade_Character_48x48_09',
-  //         'Premade_Character_48x48_10',
-  //         'Premade_Character_48x48_11',
-  //         'Premade_Character_48x48_12',
-  //         'Premade_Character_48x48_13',
-  //         'Premade_Character_48x48_14',
-  //         'Premade_Character_48x48_15',
-  //         'Premade_Character_48x48_16',
-  //         'Premade_Character_48x48_17',
-  //         'Premade_Character_48x48_18',
-  //         'Premade_Character_48x48_19',
-  //         'Premade_Character_48x48_20',
-  //     ];
-
-  //     // 获取所有已绑定的工位
-  //     const occupiedWorkstations = this.workstationManager.getOccupiedWorkstations();
-
-  //     occupiedWorkstations.forEach((workstation, index) => {
-  //         debugLog('workstation',workstation)
-
-  //         // 跳过属于当前玩家的工位
-  //         if (this.currentUser && workstation.userId === this.currentUser.id) {
-  //             debugLog(`Skipping workstation ${workstation.id} - belongs to current user ${this.currentUser.id}`);
-  //             return;
-  //         }
-
-  //         // 随机选择一个角色
-  //         const randomCharacterKey = characterKeys[Math.floor(Math.random() * characterKeys.length)];
-
-  //         // 根据工位方向计算角色位置
-  //         const { x: characterX, y: characterY, direction: characterDirection } = this.calculateCharacterPosition(workstation);
-
-  //         // 为其他玩家生成随机状态数据
-  //         const statusOptions = [
-  //             { type: 'working', status: '工作中', emoji: '💼', message: '正在写代码...' },
-  //             { type: 'break', status: '休息中', emoji: '☕', message: '喝杯咖啡放松一下' },
-  //             { type: 'reading', status: '阅读中', emoji: '📚', message: '在读技术书籍' },
-  //             { type: 'meeting', status: '会议中', emoji: '👥', message: '团队讨论中' }
-  //         ];
-
-  //         const randomStatus = statusOptions[Math.floor(Math.random() * statusOptions.length)];
-  //         const playerData = {
-  //             id: `player_${workstation.userId}_${index}`,
-  //             name: `玩家${index + 1}`,
-  //             currentStatus: {
-  //                 ...randomStatus,
-  //                 timestamp: new Date().toISOString()
-  //             }
-  //         };
-
-  //         // 创建Player对象，传入随机角色和状态数据
-  //         const character = new Player(this, characterX, characterY, randomCharacterKey, false, false, true, playerData);
-  //         this.add.existing(character);
-
-  //         // 根据工位方向设置角色朝向
-  //         character.setDirectionFrame(characterDirection);
-
-  //         // 存储角色信息到工位对象中
-  //         workstation.character = {
-  //             player: character,
-  //             characterKey: randomCharacterKey,
-  //             direction: characterDirection
-  //         };
-
-  //         debugLog(`Placed character ${randomCharacterKey} at workstation ${workstation.id} (${characterX}, ${characterY}) facing ${characterDirection} (workstation direction: ${workstation.direction})`);
-  //     });
-
-  //     debugLog('=== Characters placement complete ===');
-  // }
+  // setupTestBindings and placeCharactersAtOccupiedWorkstations functions removed for performance optimization
 
   // 根据工位方向计算角色位置和朝向
   calculateCharacterPosition(workstation) {
@@ -2742,163 +2525,9 @@ export class Start extends Phaser.Scene {
     )
   }
 
-  // 调试碰撞系统
-  debugCollisionSystem() {
-    debugLog("=== 碰撞系统调试信息（真实玩家） ===")
-    debugLog(
-      "主玩家:",
-      this.player
-        ? {
-            x: this.player.x,
-            y: this.player.y,
-            playerData: this.player.playerData,
-          }
-        : "未创建"
-    )
+  // debugCollisionSystem函数已移除以优化性能
 
-    debugLog("碰撞敏感度:", this.collisionSensitivity)
-    debugLog("当前碰撞:", Array.from(this.currentCollisions))
-    debugLog("碰撞历史:", this.collisionHistory.length)
-
-    const workstations = this.workstationManager.getAllWorkstations()
-    const realPlayers = []
-
-    // 收集所有真实玩家
-    workstations.forEach((ws) => {
-      if (ws.characterSprite && ws.characterSprite.isOtherPlayer) {
-        realPlayers.push({
-          player: ws.characterSprite,
-          workstation: ws,
-        })
-      } else if (
-        ws.character &&
-        ws.character.player &&
-        ws.character.player.isOtherPlayer
-      ) {
-        realPlayers.push({
-          player: ws.character.player,
-          workstation: ws,
-        })
-      }
-    })
-
-    debugLog("真实玩家数量:", realPlayers.length)
-    realPlayers.forEach((item, index) => {
-      const player = item.player
-      const ws = item.workstation
-      const distance = this.player
-        ? Phaser.Math.Distance.Between(
-            this.player.x,
-            this.player.y,
-            player.x,
-            player.y
-          )
-        : 0
-
-      debugLog(`真实玩家 ${index + 1}:`, {
-        name: player.playerData.name,
-        id: player.playerData.id,
-        position: { x: player.x, y: player.y },
-        workstation: ws.id,
-        userInfo: ws.userInfo,
-        distance: Math.round(distance),
-        isColliding: distance <= this.collisionSensitivity,
-      })
-    })
-
-    return {
-      mainPlayer: this.player
-        ? {
-            x: this.player.x,
-            y: this.player.y,
-            playerData: this.player.playerData,
-          }
-        : null,
-      realPlayers: realPlayers.length,
-      testPlayers: realPlayers.length, // 保持向后兼容
-      sensitivity: this.collisionSensitivity,
-      currentCollisions: this.currentCollisions.size,
-      collisionHistory: this.collisionHistory.length,
-      workstationStats: {
-        total: workstations.length,
-        occupied: workstations.filter((ws) => ws.isOccupied).length,
-        withCharacters: realPlayers.length,
-      },
-    }
-  }
-
-  // 强制碰撞测试
-  forceCollisionTest() {
-    debugLog("=== 强制碰撞测试（使用真实玩家） ===")
-
-    if (!this.player) {
-      debugError("主玩家未创建")
-      return { success: false, error: "主玩家未创建" }
-    }
-
-    const workstations = this.workstationManager.getAllWorkstations()
-    let targetPlayer = null
-    let targetWorkstation = null
-
-    // 寻找有真实玩家的工位
-    for (const ws of workstations) {
-      if (ws.characterSprite && ws.characterSprite.isOtherPlayer) {
-        targetPlayer = ws.characterSprite
-        targetWorkstation = ws
-        break
-      } else if (
-        ws.character &&
-        ws.character.player &&
-        ws.character.player.isOtherPlayer
-      ) {
-        targetPlayer = ws.character.player
-        targetWorkstation = ws
-        break
-      }
-    }
-
-    if (!targetPlayer) {
-      debugError("没有找到真实玩家")
-      return {
-        success: false,
-        error: "没有找到真实玩家，请确保有其他用户绑定了工位",
-      }
-    }
-
-    debugLog(
-      "选择真实玩家:",
-      targetPlayer.playerData.name,
-      "(ID:",
-      targetPlayer.playerData.id + ")"
-    )
-    debugLog("工位信息:", targetWorkstation.userInfo)
-
-    // 将主玩家传送到真实玩家附近
-    const targetX = targetPlayer.x + 30 // 30像素距离，应该触发碰撞
-    const targetY = targetPlayer.y
-
-    debugLog(
-      `传送主玩家到真实玩家 ${targetPlayer.playerData.name} 附近: (${targetX}, ${targetY})`
-    )
-    this.player.setPosition(targetX, targetY)
-
-    // 手动触发碰撞检测
-    setTimeout(() => {
-      this.checkPlayerCollisions()
-    }, 100)
-
-    return {
-      success: true,
-      message: `已将主玩家传送到真实玩家 ${targetPlayer.playerData.name} 附近`,
-      targetPosition: { x: targetX, y: targetY },
-      testPlayer: targetPlayer.playerData.name,
-      realPlayer: {
-        id: targetPlayer.playerData.id,
-        name: targetPlayer.playerData.name,
-        workstation: targetWorkstation.id,
-      },
-    }
-  }
+  // forceCollisionTest function removed for performance optimization
 
   // 获取玩家信息
   getPlayerInfo() {
@@ -3043,39 +2672,7 @@ export class Start extends Phaser.Scene {
     }
   }
 
-  // 测试碰撞系统
-  testCollisionSystem() {
-    debugLog("🧪 测试碰撞系统...")
-
-    // 获取第一个工位角色进行测试
-    const workstations = this.workstationManager.getAllWorkstations()
-    const testWorkstation = workstations.find(
-      (ws) => ws.character && ws.character.player
-    )
-
-    if (testWorkstation && testWorkstation.character.player) {
-      const testPlayer = testWorkstation.character.player
-      debugLog("找到测试角色:", testPlayer.playerData.name)
-
-      // 模拟碰撞开始
-      testPlayer.handleCollisionStart(this.player)
-
-      // 2秒后模拟碰撞结束
-      this.time.delayedCall(2000, () => {
-        testPlayer.handleCollisionEnd(this.player)
-      })
-
-      return {
-        success: true,
-        message: `正在测试与 ${testPlayer.playerData.name} 的碰撞`,
-      }
-    } else {
-      return {
-        success: false,
-        message: "没有找到可测试的角色",
-      }
-    }
-  }
+  // testCollisionSystem function removed for performance optimization
 
   updateOtherPlayerStatus(playerId, newStatus) {
     const otherPlayer = this.otherPlayers.get(playerId)
