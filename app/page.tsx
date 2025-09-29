@@ -101,6 +101,10 @@ const AuthModal = dynamic(() => import('@/components/AuthModal'), {
   ssr: false
 })
 
+const PostDetailModal = dynamic(() => import('@/components/PostDetailModal'), {
+  ssr: false
+})
+
 export default function Home() {
   // 认证相关状态
   const { user, isLoading, playerExists, setPlayerExists } = useUser()
@@ -111,7 +115,13 @@ export default function Home() {
   const [showAuthPrompt, setShowAuthPrompt] = useState(false)
   const [authPromptMessage, setAuthPromptMessage] = useState('')
   const [showAuthModal, setShowAuthModal] = useState(false)
-  
+
+  // 帖子详情弹窗状态
+  const [postDetailModal, setPostDetailModal] = useState({
+    isVisible: false,
+    postId: null as string | null
+  })
+
   const [isMobile, setIsMobile] = useState(false)
   const [selectedPlayer, setSelectedPlayer] = useState(null)
   const [myStatus, setMyStatus] = useState<any>('')
@@ -157,12 +167,8 @@ export default function Home() {
   // 同步认证用户数据到currentUser状态，支持临时玩家
   const syncAuthenticatedUser = useCallback(() => {
     if (user) {
-      // 用户已登录 - 处理从临时玩家到正式用户的迁移
-      const migrationResult = migrateTempPlayerToUser(user.id)
-      if (migrationResult.migrationSuccess) {
-        // 临时玩家数据迁移成功
-      }
-
+      // 用户已登录 - 确保设置为非临时用户状态
+      // (临时玩家数据迁移已在UserContext中处理)
       setIsTemporaryPlayer(false)
 
       // 从localStorage获取游戏相关数据（如角色、积分等）
@@ -587,17 +593,62 @@ export default function Home() {
     })
   }, [])
 
+  // 处理帖子点击 - 显示帖子详情弹窗
+  const handlePostClick = useCallback((postId: string) => {
+    console.log('打开帖子详情弹窗:', postId)
+    setPostDetailModal({
+      isVisible: true,
+      postId
+    })
+  }, [])
+
+  // 关闭帖子详情弹窗
+  const handlePostDetailModalClose = useCallback(() => {
+    setPostDetailModal({
+      isVisible: false,
+      postId: null
+    })
+  }, [])
+
+  // 处理跳转到帖子页面
+  const handleNavigateToPostPage = useCallback((postId: string) => {
+    console.log('跳转到帖子页面:', postId)
+    handlePostDetailModalClose()
+    // 在新标签页中打开帖子详情页面
+    window.open(`/posts/${postId}`, '_blank')
+  }, [handlePostDetailModalClose])
+
   // 检查Player状态 - 仅对正式用户检查
   useEffect(() => {
     if (user && playerExists === false && !isTemporaryPlayer) {
       // PlayerExists状态由UserContext管理，这里直接显示角色创建弹窗
+      console.log('显示角色创建弹窗:', { user: !!user, playerExists, isTemporaryPlayer })
       setShowCharacterCreation(true)
     } else if (isTemporaryPlayer) {
       // 临时玩家直接设置为已有玩家，不需要创建角色
       setPlayerExists(true)
       setShowCharacterCreation(false)
+    } else if (user && playerExists === true) {
+      // 用户已有角色，确保关闭弹窗
+      setShowCharacterCreation(false)
     }
   }, [user, playerExists, isTemporaryPlayer, setPlayerExists])
+
+  // 额外的用户登录后状态检查 - 确保弹窗在登录后立即显示
+  useEffect(() => {
+    if (user && !isTemporaryPlayer) {
+      // 用户登录且不是临时用户，检查是否需要显示角色创建弹窗
+      // 添加小延迟确保playerExists状态已更新
+      const timer = setTimeout(() => {
+        if (playerExists === false) {
+          console.log('用户登录后检查角色状态，需要创建角色')
+          setShowCharacterCreation(true)
+        }
+      }, 100)
+
+      return () => clearTimeout(timer)
+    }
+  }, [user, isTemporaryPlayer, playerExists])
 
   // 关闭玩家点击弹窗
   const handlePlayerClickModalClose = useCallback(() => {
@@ -669,11 +720,12 @@ export default function Home() {
       workstationStats={workstationStats} // 重新启用工位统计
       isMobile={isMobile}
       isTablet={isTablet}
+      onPostClick={handlePostClick} // 传递帖子点击回调
     >
       {/* 重新启用状态模块 */}
       {memoizedPostStatus}
     </InfoPanel>
-  ), [selectedPlayer, currentUser?.id, currentUser?.name, currentUser?.points, currentUser?.workstationId, workstationStats, isMobile, isTablet, memoizedPostStatus]) // collision处理移至TabManager
+  ), [selectedPlayer, currentUser?.id, currentUser?.name, currentUser?.points, currentUser?.workstationId, workstationStats, isMobile, isTablet, memoizedPostStatus, handlePostClick]) // collision处理移至TabManager
 
   // 如果正在加载认证状态，显示加载界面
   if (isLoading) {
@@ -769,6 +821,14 @@ export default function Home() {
         />
       )}
 
+      {/* 帖子详情弹窗 */}
+      <PostDetailModal
+        isOpen={postDetailModal.isVisible}
+        postId={postDetailModal.postId}
+        currentUserId={currentUser?.id || ''}
+        onClose={handlePostDetailModalClose}
+        onNavigateToPage={handleNavigateToPostPage}
+      />
 
       {/* 错误消息弹窗 */}
       {errorMessage && (

@@ -78,6 +78,18 @@ export function UserProvider({ children }: { children: ReactNode }) {
         const data = await response.json()
         if (data.success && data.data) {
           setUser(data.data)
+
+          // 处理临时玩家迁移
+          const migrationResult = migrateTempPlayerToUser(data.data.id)
+          if (migrationResult.migrationSuccess) {
+            // 临时玩家数据迁移成功
+            console.log('临时玩家数据已迁移到正式用户')
+          }
+
+          // Clear any existing player data from localStorage for the user
+          clearPlayerFromLocalStorage()
+          clearTempPlayer() // 清理临时玩家数据
+
           // Initialize player sync after successful login
           const playerSyncResult = await initializePlayerSync()
           setPlayerExists(playerSyncResult.hasPlayer)

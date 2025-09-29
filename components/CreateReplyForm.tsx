@@ -8,13 +8,15 @@ interface CreateReplyFormProps {
   onCancel: () => void
   isMobile?: boolean
   isSubmitting?: boolean
+  variant?: 'dark' | 'light' // 新增：支持不同主题变体
 }
 
-export default function CreateReplyForm({ 
-  onSubmit, 
-  onCancel, 
+export default function CreateReplyForm({
+  onSubmit,
+  onCancel,
   isMobile = false,
-  isSubmitting = false
+  isSubmitting = false,
+  variant = 'dark'
 }: CreateReplyFormProps) {
   const [content, setContent] = useState('')
   const [error, setError] = useState('')
@@ -78,35 +80,60 @@ export default function CreateReplyForm({
     }
   }
 
+  // 根据variant设置样式
+  const getVariantStyles = () => {
+    if (variant === 'light') {
+      return {
+        container: "relative bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm",
+        textarea: "w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 focus:border-blue-500 dark:focus:border-blue-400 rounded-xl px-4 py-3 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all duration-200 resize-none",
+        counter: "text-xs text-gray-500 dark:text-gray-400",
+        error: "text-red-500 dark:text-red-400 text-xs font-medium",
+        clearButton: "px-3 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 rounded-lg border border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 transition-all duration-200 text-sm font-medium",
+        submitButton: "px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white rounded-lg border border-transparent transition-all duration-200 shadow-sm hover:shadow-md text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50 transform hover:scale-105 active:scale-95"
+      }
+    } else {
+      return {
+        container: "relative bg-gradient-to-br from-retro-bg-dark/50 to-retro-bg-darker/50 backdrop-blur-sm border border-retro-border/50 rounded-lg p-3 shadow-lg",
+        textarea: "relative w-full bg-gradient-to-br from-retro-bg-dark/80 to-retro-bg-darker/80 border border-retro-border focus:border-retro-blue rounded-lg px-3 py-2 text-white placeholder-retro-textMuted focus:outline-none backdrop-blur-md transition-all duration-300 font-retro text-sm resize-none focus:shadow-lg focus:shadow-retro-blue/20",
+        counter: "text-xs text-retro-textMuted font-pixel",
+        error: "text-retro-red text-xs font-pixel",
+        clearButton: "relative group overflow-hidden bg-gradient-to-r from-retro-bg-dark/80 to-retro-bg-darker/80 hover:from-retro-border/60 hover:to-retro-border/80 text-white font-medium py-1.5 px-3 rounded-lg border border-retro-border hover:border-retro-yellow/60 transition-all duration-200 shadow-sm hover:shadow-md backdrop-blur-sm disabled:cursor-not-allowed disabled:opacity-50",
+        submitButton: "relative group overflow-hidden bg-gradient-to-r from-retro-blue to-retro-cyan hover:from-retro-cyan hover:to-retro-green text-white font-bold py-1.5 px-4 rounded-lg border border-white/20 hover:border-white/40 transition-all duration-200 shadow-sm hover:shadow-lg backdrop-blur-sm disabled:cursor-not-allowed disabled:opacity-50 transform hover:scale-[1.02] active:scale-[0.98]"
+      }
+    }
+  }
+
+  const styles = getVariantStyles()
+
   return (
-    <div className="relative bg-gradient-to-br from-retro-bg-dark/50 to-retro-bg-darker/50 backdrop-blur-sm border border-retro-border/50 rounded-lg p-3 shadow-lg">
-      <form onSubmit={handleSubmit} className="space-y-3">
-        {/* 内容输入 - 紧凑文本区域 */}
-        <div className="relative group">
+    <div className={styles.container}>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* 内容输入 */}
+        <div className="relative">
           <textarea
-            placeholder="Write a reply..."
+            placeholder={variant === 'light' ? '写下你的回复...' : 'Write a reply...'}
             value={content}
             onChange={(e) => setContent(e.target.value)}
             onFocus={handleInputFocus}
             onBlur={handleInputBlur}
-            className="relative w-full bg-gradient-to-br from-retro-bg-dark/80 to-retro-bg-darker/80 border border-retro-border focus:border-retro-blue rounded-lg px-3 py-2 text-white placeholder-retro-textMuted focus:outline-none backdrop-blur-md transition-all duration-300 font-retro text-sm resize-none focus:shadow-lg focus:shadow-retro-blue/20"
-            rows={isMobile ? 2 : 3}
+            className={styles.textarea}
+            rows={isMobile ? 3 : 4}
             maxLength={1000}
             disabled={finalIsSubmitting}
             data-input-container="true"
           />
 
           {/* 字符计数和错误显示 */}
-          <div className="flex justify-between items-center mt-2 px-1">
-            <span className="text-xs text-retro-textMuted font-pixel">{content.length}/1000</span>
+          <div className="flex justify-between items-center mt-3">
+            <span className={styles.counter}>{content.length}/1000 字符</span>
             {error && (
-              <span className="text-retro-red text-xs font-pixel">{error}</span>
+              <span className={styles.error}>{error}</span>
             )}
           </div>
         </div>
 
-        {/* 操作按钮 - 紧凑设计 */}
-        <div className="flex items-center justify-end gap-2 pt-1">
+        {/* 操作按钮 */}
+        <div className="flex items-center justify-end gap-3">
           <button
             type="button"
             onClick={() => {
@@ -114,29 +141,33 @@ export default function CreateReplyForm({
               setError('')
             }}
             disabled={finalIsSubmitting}
-            className="relative group overflow-hidden bg-gradient-to-r from-retro-bg-dark/80 to-retro-bg-darker/80 hover:from-retro-border/60 hover:to-retro-border/80 text-white font-medium py-1.5 px-3 rounded-lg border border-retro-border hover:border-retro-yellow/60 transition-all duration-200 shadow-sm hover:shadow-md backdrop-blur-sm disabled:cursor-not-allowed disabled:opacity-50"
+            className={styles.clearButton}
           >
-            <div className="flex items-center gap-1">
-              <span className="text-xs">🧹</span>
-              <span className="font-pixel text-xs">CLEAR</span>
+            <div className="flex items-center gap-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              <span>清空</span>
             </div>
           </button>
 
           <button
             type="submit"
             disabled={finalIsSubmitting || !content.trim()}
-            className="relative group overflow-hidden bg-gradient-to-r from-retro-blue to-retro-cyan hover:from-retro-cyan hover:to-retro-green text-white font-bold py-1.5 px-4 rounded-lg border border-white/20 hover:border-white/40 transition-all duration-200 shadow-sm hover:shadow-lg backdrop-blur-sm disabled:cursor-not-allowed disabled:opacity-50 transform hover:scale-[1.02] active:scale-[0.98]"
+            className={styles.submitButton}
           >
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-2">
               {finalIsSubmitting ? (
                 <>
-                  <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin"></div>
-                  <span className="font-pixel text-xs">REPLY...</span>
+                  <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                  <span>发布中...</span>
                 </>
               ) : (
                 <>
-                  <span className="text-xs">💬</span>
-                  <span className="font-pixel text-xs">REPLY</span>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                  </svg>
+                  <span>发布回复</span>
                 </>
               )}
             </div>

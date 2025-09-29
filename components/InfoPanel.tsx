@@ -15,6 +15,7 @@ interface InfoPanelProps {
   workstationStats?: any
   isMobile?: boolean
   isTablet?: boolean
+  onPostClick?: (postId: string) => void // 新增：处理帖子点击
 }
 
 export default function InfoPanel({
@@ -23,7 +24,8 @@ export default function InfoPanel({
   currentUser,
   workstationStats,
   isMobile = false,
-  isTablet = false
+  isTablet = false,
+  onPostClick
 }: InfoPanelProps) {
   // Define available tabs
   const tabs: TabType[] = [
@@ -55,7 +57,12 @@ export default function InfoPanel({
       id: 'notifications',
       label: 'Inbox',
       icon: '💎',
-      component: NotificationsTab,
+      component: (props: any) => (
+        <NotificationsTab
+          {...props}
+          onPostClick={onPostClick}
+        />
+      ),
       priority: 1.8
     },
     // Social功能重新启用
