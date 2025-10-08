@@ -5,13 +5,14 @@ import dynamic from 'next/dynamic'
 import { EventBus, CollisionEvent } from '@/lib/eventBus'
 import { useUser } from '@/contexts/UserContext'
 import CharacterCreationModal from '@/components/CharacterCreationModal'
-import { 
-  isFirstTimeVisitor, 
-  createTempPlayer, 
-  getTempPlayer, 
+import { statusHistoryManager } from '@/lib/statusHistory'
+import {
+  isFirstTimeVisitor,
+  createTempPlayer,
+  getTempPlayer,
   getTempPlayerGameData,
   migrateTempPlayerToUser,
-  hasTempPlayer 
+  hasTempPlayer
 } from '@/lib/tempPlayerManager'
 
 // 声明全局函数的类型
@@ -85,16 +86,10 @@ const CharacterDisplayModal = dynamic(() => import('@/components/CharacterDispla
 
 
 // 静态导入布局管理器组件
-// const LayoutManager = dynamic(() => import('@/components/LayoutManager'), {
-//   ssr: false
-// })
 import LayoutManager from '@/components/LayoutManager'
-
-// 静态导入信息面板组件
-// const InfoPanel = dynamic(() => import('@/components/InfoPanel'), {
-//   ssr: false
-// })
-import InfoPanel from '@/components/InfoPanel'
+// 新的面板组件
+import LeftPanel from '@/components/LeftPanel'
+import RightPanel from '@/components/RightPanel'
 
 // 认证模态框组件
 const AuthModal = dynamic(() => import('@/components/AuthModal'), {
@@ -124,7 +119,7 @@ export default function Home() {
 
   const [isMobile, setIsMobile] = useState(false)
   const [selectedPlayer, setSelectedPlayer] = useState(null)
-  const [myStatus, setMyStatus] = useState<any>('')
+  const [myStatus, setMyStatus] = useState<any>(null)
   const [currentUser, setCurrentUser] = useState<any>(null)
   const [workstationStats, setWorkstationStats] = useState<any>(null)
   
@@ -262,11 +257,11 @@ export default function Home() {
     
     const checkDeviceType = () => {
       const width = window.innerWidth
-      if (width < 640) {
+      if (width < 768) {
         setDeviceType('mobile')
         setIsMobile(true)
         setIsTablet(false)
-      } else if (width < 1024) {
+      } else if (width < 1200) {
         setDeviceType('tablet')
         setIsMobile(false)
         setIsTablet(true)
@@ -513,6 +508,26 @@ export default function Home() {
     // 这里可以发送到服务器或广播给其他玩家
   }, [myStatus])
 
+  // 在用户加载完成后，从状态历史中加载最新状态
+  useEffect(() => {
+    if (currentUser?.id && !myStatus) {
+      // 从localStorage中获取状态历史
+      const history = statusHistoryManager.getStatusHistory(currentUser.id)
+      if (history && history.length > 0) {
+        // 获取最新的状态记录
+        const latestStatus = history[0]
+        setMyStatus({
+          type: latestStatus.type,
+          status: latestStatus.status,
+          emoji: latestStatus.emoji,
+          message: latestStatus.message,
+          timestamp: latestStatus.timestamp
+        })
+        console.log('✅ [App] 已从历史记录加载用户状态:', latestStatus)
+      }
+    }
+  }, [currentUser?.id, myStatus])
+
   // 处理工位绑定请求 - 现在由workstationBindingManager直接处理
   const handleWorkstationBinding = useCallback((workstation: any, user: any) => {
     console.log('React handleWorkstationBinding 被调用（已弃用）:', { workstation, user })
@@ -707,32 +722,36 @@ export default function Home() {
   //   <SocialFeed player={selectedPlayer} />
   // ), [selectedPlayer])
 
-  // Create memoized info panel content for mobile
-  const memoizedMobileInfoPanel = useMemo(() => (
-    memoizedPostStatus
-  ), [memoizedPostStatus]) // 重新启用状态模块
-
-  // Create memoized info panel content for desktop - 重新启用状态和工位统计
-  const memoizedDesktopInfoPanel = useMemo(() => (
-    <InfoPanel
-      selectedPlayer={selectedPlayer}
+  // Create memoized left panel content
+  const memoizedLeftPanel = useMemo(() => (
+    <LeftPanel
       currentUser={currentUser}
-      workstationStats={workstationStats} // 重新启用工位统计
+      workstationStats={workstationStats}
       isMobile={isMobile}
       isTablet={isTablet}
-      onPostClick={handlePostClick} // 传递帖子点击回调
     >
-      {/* 重新启用状态模块 */}
+      {/* 状态更新组件 */}
       {memoizedPostStatus}
-    </InfoPanel>
-  ), [selectedPlayer, currentUser?.id, currentUser?.name, currentUser?.points, currentUser?.workstationId, workstationStats, isMobile, isTablet, memoizedPostStatus, handlePostClick]) // collision处理移至TabManager
+    </LeftPanel>
+  ), [currentUser?.id, currentUser?.name, currentUser?.points, workstationStats, isMobile, isTablet, memoizedPostStatus])
+
+  // Create memoized right panel content
+  const memoizedRightPanel = useMemo(() => (
+    <RightPanel
+      currentUser={currentUser}
+      selectedPlayer={selectedPlayer}
+      onPostClick={handlePostClick}
+      isMobile={isMobile}
+      isTablet={isTablet}
+    />
+  ), [currentUser?.id, selectedPlayer, handlePostClick, isMobile, isTablet])
 
   // 如果正在加载认证状态，显示加载界面
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-black via-gray-900 to-black">
         <div className="flex flex-col items-center space-y-4">
-          <div className="w-16 h-16 border-4 border-retro-purple border-t-transparent rounded-full animate-spin"></div>
+          <div className="w-16 h-16 border-4 border-retro-purple border-t-transparent rounded-full "></div>
           <p className="text-white text-lg">Loading PixelDesk...</p>
         </div>
       </div>
@@ -745,7 +764,7 @@ export default function Home() {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-black via-gray-900 to-black">
         <div className="flex flex-col items-center space-y-4">
-          <div className="w-16 h-16 border-4 border-retro-purple border-t-transparent rounded-full animate-spin"></div>
+          <div className="w-16 h-16 border-4 border-retro-purple border-t-transparent rounded-full "></div>
           <p className="text-white text-lg">Preparing your gaming experience...</p>
         </div>
       </div>
@@ -782,7 +801,8 @@ export default function Home() {
     <div>
       <LayoutManager
         gameComponent={memoizedPhaserGame}
-        infoPanel={isMobile ? memoizedMobileInfoPanel : memoizedDesktopInfoPanel}
+        leftPanel={memoizedLeftPanel}
+        rightPanel={memoizedRightPanel}
       />
       
       {/* All modals remain the same */}
@@ -847,7 +867,7 @@ export default function Home() {
             <div className="flex justify-center">
               <button
                 onClick={() => setErrorMessage(null)}
-                className="bg-retro-blue hover:bg-retro-blue/80 text-white font-medium py-3 px-6 rounded-md transition-all duration-200"
+                className="bg-retro-blue hover:bg-retro-blue/80 text-white font-medium py-3 px-6 rounded-md "
               >
                 确定
               </button>
@@ -904,7 +924,7 @@ export default function Home() {
             <div className="flex items-center justify-between space-x-4">
               <button
                 onClick={() => setShowAuthPrompt(false)}
-                className="text-retro-textMuted hover:text-white text-sm transition-colors"
+                className="text-retro-textMuted hover:text-white text-sm "
               >
                 稍后再说
               </button>
@@ -915,7 +935,7 @@ export default function Home() {
                     setShowAuthPrompt(false)
                     setShowAuthModal(true)
                   }}
-                  className="bg-gradient-to-r from-retro-purple to-retro-pink hover:from-retro-purple/90 hover:to-retro-pink/90 text-white font-bold py-2 px-6 rounded-lg transition-all duration-200 shadow-lg hover:shadow-purple-500/25 transform hover:scale-[1.02] active:scale-[0.98]"
+                  className="bg-gradient-to-r from-retro-purple to-retro-pink hover:from-retro-purple/90 hover:to-retro-pink/90 text-white font-bold py-2 px-6 rounded-lg  shadow-lg hover:shadow-purple-500/25 transform hover:scale-[1.02] active:scale-[0.98]"
                 >
                   立即注册
                 </button>
@@ -944,7 +964,7 @@ export default function Home() {
                   setAuthPromptMessage('注册账号即可享受完整游戏体验，包括工位绑定、进度保存等功能！')
                   setShowAuthPrompt(true)
                 }}
-                className="text-yellow-200 hover:text-white text-xs underline transition-colors"
+                className="text-yellow-200 hover:text-white text-xs underline "
               >
                 升级账号
               </button>
