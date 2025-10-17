@@ -181,6 +181,16 @@ model Post {
   viewCount     Int            @default(0)
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
+
+  // 博客相关字段
+  summary       String?                      // 摘要（前200字或自定义）
+  wordCount     Int            @default(0)  // 字数统计
+  readTime      Int            @default(1)  // 预估阅读时间（分钟）
+  tags          String[]       @default([]) // 标签
+  coverImage    String?                      // 封面图片
+  isDraft       Boolean        @default(false) // 是否草稿
+  publishedAt   DateTime?                    // 发布时间
+
   notifications Notification[]
   likes         PostLike[]
   replies       PostReply[]
@@ -189,6 +199,8 @@ model Post {
   @@index([createdAt])
   @@index([authorId])
   @@index([likeCount])
+  @@index([isDraft])
+  @@index([publishedAt])
   @@map("posts")
 }
 
@@ -286,6 +298,7 @@ enum PostType {
   TEXT
   IMAGE
   MIXED
+  MARKDOWN
 }
 
 enum NotificationType {

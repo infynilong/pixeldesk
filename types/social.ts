@@ -10,7 +10,7 @@ export interface Post {
   id: string
   title?: string | null
   content: string
-  type: 'TEXT' | 'IMAGE' | 'MIXED'
+  type: 'TEXT' | 'IMAGE' | 'MIXED' | 'MARKDOWN'
   imageUrl?: string | null
   isPublic: boolean
   likeCount: number
@@ -25,6 +25,14 @@ export interface Post {
     replies: number
     likes: number
   }
+  // 博客相关字段
+  summary?: string | null
+  wordCount?: number
+  readTime?: number
+  tags?: string[]
+  coverImage?: string | null
+  isDraft?: boolean
+  publishedAt?: string | null
 }
 
 export interface PostReply {
@@ -46,8 +54,16 @@ export interface PostLike {
 export interface CreatePostData {
   title?: string
   content: string
-  type?: 'TEXT' | 'IMAGE' | 'MIXED'
+  type?: 'TEXT' | 'IMAGE' | 'MIXED' | 'MARKDOWN'
   imageUrl?: string
+  // 博客相关字段
+  summary?: string
+  wordCount?: number
+  readTime?: number
+  tags?: string[]
+  coverImage?: string
+  isDraft?: boolean
+  publishedAt?: string
 }
 
 export interface CreateReplyData {

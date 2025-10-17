@@ -9,6 +9,7 @@ import { usePostReplies } from '@/lib/hooks/usePostReplies'
 import UserAvatar from '@/components/UserAvatar'
 import CreateReplyForm from '@/components/CreateReplyForm'
 import LoadingSpinner from '@/components/LoadingSpinner'
+import MarkdownRenderer from '@/components/MarkdownRenderer'
 
 export default function PostDetailPage() {
   const params = useParams()
@@ -279,17 +280,69 @@ export default function PostDetailPage() {
                         {post.title}
                       </h1>
                     )}
+
+                    {/* 博客元信息 */}
+                    {post.type === 'MARKDOWN' && (
+                      <div className="flex items-center gap-4 text-sm text-gray-400 mt-3">
+                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-retro-purple/20 text-retro-purple border border-retro-purple/30 rounded font-pixel text-xs">
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                          </svg>
+                          博客
+                        </span>
+                        {post.readTime && (
+                          <span className="font-mono">
+                            <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            {post.readTime} 分钟阅读
+                          </span>
+                        )}
+                        {post.wordCount && (
+                          <span className="font-mono">{post.wordCount.toLocaleString()} 字</span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* 标签 */}
+                    {post.type === 'MARKDOWN' && post.tags && post.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-3">
+                        {post.tags.map((tag, index) => (
+                          <span
+                            key={index}
+                            className="inline-block px-2 py-1 bg-gray-800/50 text-gray-400 border border-gray-700 rounded text-xs"
+                          >
+                            #{tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
 
+                {/* 封面图片 */}
+                {post.type === 'MARKDOWN' && post.coverImage && (
+                  <div className="mb-6 overflow-hidden rounded-xl border border-retro-border/20">
+                    <img
+                      src={post.coverImage}
+                      alt="Cover"
+                      className="w-full max-h-[400px] object-cover"
+                    />
+                  </div>
+                )}
+
                 {/* 帖子内容 */}
                 <div className="mb-6">
-                  <p className="text-retro-text whitespace-pre-wrap leading-relaxed text-lg">
-                    {post.content}
-                  </p>
+                  {post.type === 'MARKDOWN' ? (
+                    <MarkdownRenderer content={post.content} />
+                  ) : (
+                    <p className="text-retro-text whitespace-pre-wrap leading-relaxed text-lg">
+                      {post.content}
+                    </p>
+                  )}
 
-                  {/* 图片内容 */}
-                  {post.imageUrl && (
+                  {/* 图片内容 - 非博客类型 */}
+                  {post.type !== 'MARKDOWN' && post.imageUrl && (
                     <div className="mt-6 overflow-hidden rounded-xl">
                       <img
                         src={post.imageUrl}
