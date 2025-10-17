@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useSocialPosts } from '@/lib/hooks/useSocialPosts'
 import { useCurrentUser } from '@/lib/hooks/useCurrentUser'
+import { useUser } from '@/contexts/UserContext'
 import { Post, CreatePostData } from '@/types/social'
 import PostCard from '@/components/PostCard'
 import CreatePostForm from '@/components/CreatePostForm'
@@ -25,7 +26,14 @@ export default function SocialFeedTab({
   const [showLoginPrompt, setShowLoginPrompt] = useState(false)
 
   // 使用新的用户hook获取当前用户信息
-  const { currentUser, userId: currentUserId, isLoading: isUserLoading, error: userError, isAuthenticated } = useCurrentUser()
+  const { currentUser, userId: currentUserId, isLoading: isUserLoading, error: userError } = useCurrentUser()
+
+  // 使用 UserContext 获取真实的登录状态（排除临时玩家）
+  const { user } = useUser()
+
+  // 正确的登录状态判断：只有 UserContext 的 user 存在才算真正登录
+  // 临时玩家虽然有 currentUser，但 user 为 null
+  const isAuthenticated = !!user
 
   // 使用社交帖子hook，只在tab激活且有用户ID时启用
   const {
