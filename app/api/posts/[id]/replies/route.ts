@@ -129,10 +129,15 @@ export async function POST(
 
   console.log(`💬 [POST replies] 开始创建回复，postId: ${postId}, userId: ${userId}`)
 
+  // 验证用户身份
   if (!userId) {
     return NextResponse.json(
-      { error: 'User ID required' },
-      { status: 400 }
+      {
+        success: false,
+        error: 'Unauthorized: User authentication required',
+        message: '需要登录才能回复'
+      },
+      { status: 401 }
     )
   }
 
@@ -203,8 +208,12 @@ export async function POST(
 
       if (!user) {
         return NextResponse.json(
-          { error: 'User not found' },
-          { status: 404 }
+          {
+            success: false,
+            error: 'User not found or invalid',
+            message: '用户不存在或无效，请重新登录'
+          },
+          { status: 401 }
         )
       }
 
