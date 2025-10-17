@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { Post } from '@/types/social'
 import { useCurrentUser } from '@/lib/hooks/useCurrentUser'
+import { useUser } from '@/contexts/UserContext'
 import { usePostReplies } from '@/lib/hooks/usePostReplies'
 import UserAvatar from '@/components/UserAvatar'
 import CreateReplyForm from '@/components/CreateReplyForm'
@@ -15,11 +16,16 @@ export default function PostDetailPage() {
   const postId = params.id as string
 
   const { userId: currentUserId } = useCurrentUser()
+  const { user } = useUser()
+
+  // 正确的登录状态判断：只有 UserContext 的 user 存在才算真正登录
+  const isAuthenticated = !!user
 
   const [post, setPost] = useState<Post | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isLiking, setIsLiking] = useState(false)
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false)
 
   // 使用回复hook来管理回复数据
   const {
@@ -72,16 +78,18 @@ export default function PostDetailPage() {
 
   // 处理点赞
   const handleLike = async () => {
+    // 检查登录状态
+    if (!isAuthenticated) {
+      setShowLoginPrompt(true)
+      return
+    }
+
     if (!post || isLiking || !currentUserId) return
 
     setIsLiking(true)
     try {
-      const response = await fetch(`/api/posts/${post.id}/like`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ userId: currentUserId }),
+      const response = await fetch(`/api/posts/${post.id}/like?userId=${currentUserId}`, {
+        method: 'POST'
       })
 
       const data = await response.json()
@@ -102,6 +110,12 @@ export default function PostDetailPage() {
 
   // 处理回复提交
   const handleReplySubmit = async (replyData: { content: string }) => {
+    // 检查登录状态
+    if (!isAuthenticated) {
+      setShowLoginPrompt(true)
+      return false
+    }
+
     if (!post) return false
 
     const newReply = await createReply(replyData)
@@ -132,6 +146,47 @@ export default function PostDetailPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black">
+      {/* 登录提示模态框 */}
+      {showLoginPrompt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+          <div className="bg-gradient-to-br from-gray-900 to-gray-800 border-2 border-retro-purple/50 rounded-xl p-6 max-w-md mx-4 shadow-2xl shadow-retro-purple/20">
+            <div className="text-center space-y-4">
+              {/* 图标 */}
+              <div className="w-16 h-16 bg-gradient-to-br from-retro-purple to-retro-blue rounded-full flex items-center justify-center mx-auto shadow-lg shadow-retro-purple/30">
+                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              </div>
+
+              {/* 标题和消息 */}
+              <div>
+                <h3 className="text-xl font-bold text-white mb-2 font-retro">需要登录</h3>
+                <p className="text-gray-300 text-sm font-pixel">请先登录后再进行操作</p>
+              </div>
+
+              {/* 按钮 */}
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => setShowLoginPrompt(false)}
+                  className="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded-lg border border-gray-600 font-pixel text-sm transition-all"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={() => {
+                    setShowLoginPrompt(false)
+                    router.push('/')
+                  }}
+                  className="flex-1 bg-gradient-to-r from-retro-purple to-retro-blue hover:from-retro-blue hover:to-retro-cyan text-white font-bold py-2 px-4 rounded-lg border border-white/20 shadow-lg shadow-retro-purple/30 font-pixel text-sm transition-all"
+                >
+                  前往登录
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 导航栏 */}
       <nav className="bg-retro-bg-dark/95 backdrop-blur-sm border-b border-retro-border/30 sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 py-4">
