@@ -12,9 +12,19 @@ interface PostCardProps {
   onLike: () => void
   onReplyCountUpdate?: (postId: string, newCount: number) => void
   isMobile?: boolean
+  isAuthenticated?: boolean
+  onShowLoginPrompt?: () => void
 }
 
-export default function PostCard({ post, currentUserId, onLike, onReplyCountUpdate, isMobile = false }: PostCardProps) {
+export default function PostCard({
+  post,
+  currentUserId,
+  onLike,
+  onReplyCountUpdate,
+  isMobile = false,
+  isAuthenticated = true,
+  onShowLoginPrompt
+}: PostCardProps) {
   const [showReplies, setShowReplies] = useState(false)
   const [isLiking, setIsLiking] = useState(false)
 
@@ -44,6 +54,13 @@ export default function PostCard({ post, currentUserId, onLike, onReplyCountUpda
 
   // 处理回复提交
   const handleReplySubmit = async (replyData: CreateReplyData) => {
+    // 检查登录状态
+    if (!isAuthenticated) {
+      if (onShowLoginPrompt) {
+        onShowLoginPrompt()
+      }
+      return false
+    }
 
     const newReply = await createReply(replyData)
 

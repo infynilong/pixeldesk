@@ -76,6 +76,11 @@ export default function SocialFeedTab({
 
   // 处理点赞
   const handleLikePost = async (postId: string) => {
+    // 检查登录状态
+    if (!isAuthenticated) {
+      setShowLoginPrompt(true)
+      return
+    }
     await likePost(postId)
   }
 
@@ -251,6 +256,8 @@ export default function SocialFeedTab({
                   onLike={() => handleLikePost(post.id)}
                   onReplyCountUpdate={handleReplyCountUpdate}
                   isMobile={isMobile}
+                  isAuthenticated={isAuthenticated}
+                  onShowLoginPrompt={() => setShowLoginPrompt(true)}
                 />
               ))}
               
