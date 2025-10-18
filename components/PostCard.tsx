@@ -12,9 +12,19 @@ interface PostCardProps {
   onLike: () => void
   onReplyCountUpdate?: (postId: string, newCount: number) => void
   isMobile?: boolean
+  isAuthenticated?: boolean
+  onShowLoginPrompt?: () => void
 }
 
-export default function PostCard({ post, currentUserId, onLike, onReplyCountUpdate, isMobile = false }: PostCardProps) {
+export default function PostCard({
+  post,
+  currentUserId,
+  onLike,
+  onReplyCountUpdate,
+  isMobile = false,
+  isAuthenticated = true,
+  onShowLoginPrompt
+}: PostCardProps) {
   const [showReplies, setShowReplies] = useState(false)
   const [isLiking, setIsLiking] = useState(false)
 
@@ -44,6 +54,13 @@ export default function PostCard({ post, currentUserId, onLike, onReplyCountUpda
 
   // 处理回复提交
   const handleReplySubmit = async (replyData: CreateReplyData) => {
+    // 检查登录状态
+    if (!isAuthenticated) {
+      if (onShowLoginPrompt) {
+        onShowLoginPrompt()
+      }
+      return false
+    }
 
     const newReply = await createReply(replyData)
 
@@ -126,13 +143,70 @@ export default function PostCard({ post, currentUserId, onLike, onReplyCountUpda
 
       {/* 帖子内容 */}
       <div className="px-4 pb-4">
-        {/* 内容文本 */}
+        {/* 博客类型标识 */}
+        {post.type === 'MARKDOWN' && (
+          <div className="flex items-center gap-3 mb-3">
+            <span className="inline-flex items-center gap-1 px-2 py-1 bg-retro-purple/20 text-retro-purple border border-retro-purple/30 rounded text-xs font-pixel">
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+              </svg>
+              博客文章
+            </span>
+            {post.readTime && (
+              <span className="text-xs text-gray-500 font-mono">
+                {post.readTime} 分钟阅读
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* 封面图片 */}
+        {post.type === 'MARKDOWN' && post.coverImage && (
+          <div className="relative overflow-hidden rounded-lg border border-gray-800 mb-3">
+            <img
+              src={post.coverImage}
+              alt="Cover"
+              className="w-full h-48 object-cover"
+            />
+          </div>
+        )}
+
+        {/* 内容文本 - 博客显示摘要，普通帖子显示全文 */}
         <p className="text-gray-300 whitespace-pre-wrap leading-relaxed text-sm mb-3 font-sans">
-          {post.content}
+          {post.type === 'MARKDOWN' && post.summary ? post.summary : post.content}
         </p>
 
-        {/* 图片内容 */}
-        {post.imageUrl && (
+        {/* 博客标签 */}
+        {post.type === 'MARKDOWN' && post.tags && post.tags.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-3">
+            {post.tags.map((tag, index) => (
+              <span
+                key={index}
+                className="inline-block px-2 py-0.5 bg-gray-800/50 text-gray-400 border border-gray-700 rounded text-xs"
+              >
+                #{tag}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* 阅读全文按钮 - 只对博客类型显示 */}
+        {post.type === 'MARKDOWN' && (
+          <a
+            href={`/posts/${post.id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 text-retro-blue hover:text-retro-cyan text-sm font-medium transition-colors"
+          >
+            阅读全文
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+            </svg>
+          </a>
+        )}
+
+        {/* 图片内容 - 非博客类型 */}
+        {post.type !== 'MARKDOWN' && post.imageUrl && (
           <div className="relative overflow-hidden rounded-lg border border-gray-800">
             <img
               src={post.imageUrl}

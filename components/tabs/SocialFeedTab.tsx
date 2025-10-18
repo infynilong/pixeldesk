@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useSocialPosts } from '@/lib/hooks/useSocialPosts'
 import { useCurrentUser } from '@/lib/hooks/useCurrentUser'
+import { useUser } from '@/contexts/UserContext'
 import { Post, CreatePostData } from '@/types/social'
 import PostCard from '@/components/PostCard'
 import CreatePostForm from '@/components/CreatePostForm'
@@ -15,16 +16,24 @@ interface SocialFeedTabProps {
   isTablet?: boolean
 }
 
-export default function SocialFeedTab({ 
+export default function SocialFeedTab({
   collisionPlayer,
   isActive = false,
   isMobile = false,
   isTablet = false
 }: SocialFeedTabProps) {
   const [showCreateForm, setShowCreateForm] = useState(false)
-  
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false)
+
   // 使用新的用户hook获取当前用户信息
   const { currentUser, userId: currentUserId, isLoading: isUserLoading, error: userError } = useCurrentUser()
+
+  // 使用 UserContext 获取真实的登录状态（排除临时玩家）
+  const { user } = useUser()
+
+  // 正确的登录状态判断：只有 UserContext 的 user 存在才算真正登录
+  // 临时玩家虽然有 currentUser，但 user 为 null
+  const isAuthenticated = !!user
 
   // 使用社交帖子hook，只在tab激活且有用户ID时启用
   const {
@@ -43,8 +52,21 @@ export default function SocialFeedTab({
     refreshInterval: isActive ? 30000 : 0 // 30秒刷新一次，仅在激活时
   })
 
+  // 处理点击发帖按钮
+  const handlePostButtonClick = () => {
+    if (!isAuthenticated) {
+      setShowLoginPrompt(true)
+      return
+    }
+    setShowCreateForm(!showCreateForm)
+  }
+
   // 处理创建帖子
   const handleCreatePost = async (postData: CreatePostData) => {
+    if (!isAuthenticated) {
+      setShowLoginPrompt(true)
+      return false
+    }
     const newPost = await createPost(postData)
     if (newPost) {
       setShowCreateForm(false)
@@ -54,6 +76,11 @@ export default function SocialFeedTab({
 
   // 处理点赞
   const handleLikePost = async (postId: string) => {
+    // 检查登录状态
+    if (!isAuthenticated) {
+      setShowLoginPrompt(true)
+      return
+    }
     await likePost(postId)
   }
 
@@ -123,7 +150,7 @@ export default function SocialFeedTab({
             </button>
 
             <button
-              onClick={() => setShowCreateForm(!showCreateForm)}
+              onClick={handlePostButtonClick}
               className="bg-gray-800 hover:bg-gray-700 border border-gray-700 hover:border-gray-600 text-gray-300 hover:text-gray-200 py-2 px-3 rounded-lg  text-xs font-mono"
             >
               <div className="flex items-center gap-1.5">
@@ -131,9 +158,65 @@ export default function SocialFeedTab({
                 <span>{showCreateForm ? 'CANCEL' : 'POST'}</span>
               </div>
             </button>
+
+            <a
+              href="/posts/create"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-gradient-to-r from-retro-purple to-retro-blue hover:from-retro-blue hover:to-retro-cyan text-white font-bold py-2 px-3 rounded-lg border border-white/20 shadow-sm hover:shadow-md  text-xs font-pixel"
+            >
+              <div className="flex items-center gap-1.5">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                </svg>
+                <span>博客</span>
+              </div>
+            </a>
           </div>
         </div>
       </div>
+
+      {/* 登录提示模态框 */}
+      {showLoginPrompt && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+          <div className="bg-gradient-to-br from-gray-900 to-gray-800 border-2 border-retro-purple/50 rounded-xl p-6 max-w-md mx-4 shadow-2xl shadow-retro-purple/20">
+            <div className="text-center space-y-4">
+              {/* 图标 */}
+              <div className="w-16 h-16 bg-gradient-to-br from-retro-purple to-retro-blue rounded-full flex items-center justify-center mx-auto shadow-lg shadow-retro-purple/30">
+                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              </div>
+
+              {/* 标题和消息 */}
+              <div>
+                <h3 className="text-xl font-bold text-white mb-2 font-retro">需要登录</h3>
+                <p className="text-gray-300 text-sm font-pixel">请先登录后再发布帖子</p>
+              </div>
+
+              {/* 按钮 */}
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => setShowLoginPrompt(false)}
+                  className="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded-lg border border-gray-600 font-pixel text-sm transition-all"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={() => {
+                    setShowLoginPrompt(false)
+                    // 这里可以触发登录流程，暂时只是关闭提示
+                    alert('请在游戏主界面进行登录')
+                  }}
+                  className="flex-1 bg-gradient-to-r from-retro-purple to-retro-blue hover:from-retro-blue hover:to-retro-cyan text-white font-bold py-2 px-4 rounded-lg border border-white/20 shadow-lg shadow-retro-purple/30 font-pixel text-sm transition-all"
+                >
+                  前往登录
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 创建帖子表单 */}
       {showCreateForm && (
@@ -187,6 +270,8 @@ export default function SocialFeedTab({
                   onLike={() => handleLikePost(post.id)}
                   onReplyCountUpdate={handleReplyCountUpdate}
                   isMobile={isMobile}
+                  isAuthenticated={isAuthenticated}
+                  onShowLoginPrompt={() => setShowLoginPrompt(true)}
                 />
               ))}
               

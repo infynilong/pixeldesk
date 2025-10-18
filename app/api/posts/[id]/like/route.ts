@@ -10,11 +10,16 @@ export async function POST(
     const { id: postId } = params
     const { searchParams } = new URL(request.url)
     const userId = searchParams.get('userId')
-    
+
+    // 验证用户身份
     if (!userId) {
       return NextResponse.json(
-        { error: 'User ID required' },
-        { status: 400 }
+        {
+          success: false,
+          error: 'Unauthorized: User authentication required',
+          message: '需要登录才能点赞'
+        },
+        { status: 401 }
       )
     }
 
@@ -51,8 +56,12 @@ export async function POST(
 
     if (!user) {
       return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
+        {
+          success: false,
+          error: 'User not found or invalid',
+          message: '用户不存在或无效，请重新登录'
+        },
+        { status: 401 }
       )
     }
 

@@ -14,9 +14,10 @@ export async function GET(request: NextRequest) {
 
     // 构建查询条件
     const where: any = {
-      isPublic: true
+      isPublic: true,
+      isDraft: false // 只显示已发布的帖子，不显示草稿
     }
-    
+
     if (authorId) {
       where.authorId = authorId
     }
@@ -96,32 +97,58 @@ export async function POST(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const userId = searchParams.get('userId')
-    
+
+    // 验证用户身份 - 必须提供 userId
     if (!userId) {
       return NextResponse.json(
-        { error: 'User ID required' },
-        { status: 400 }
+        {
+          success: false,
+          error: 'Unauthorized: User authentication required',
+          message: '需要登录才能发布帖子'
+        },
+        { status: 401 }
       )
     }
 
     const body = await request.json()
-    const { title, content, type = 'TEXT', imageUrl } = body
+    const {
+      title,
+      content,
+      type = 'TEXT',
+      imageUrl,
+      summary,
+      wordCount = 0,
+      readTime = 1,
+      tags = [],
+      coverImage,
+      isDraft = false,
+      publishedAt
+    } = body
 
     if (!content || content.trim().length === 0) {
       return NextResponse.json(
-        { error: 'Content is required' },
+        {
+          success: false,
+          error: 'Content is required',
+          message: '帖子内容不能为空'
+        },
         { status: 400 }
       )
     }
 
-    if (content.length > 2000) {
+    // 对非 MARKDOWN 类型的帖子进行长度限制
+    if (type !== 'MARKDOWN' && content.length > 2000) {
       return NextResponse.json(
-        { error: 'Content too long (max 2000 characters)' },
+        {
+          success: false,
+          error: 'Content too long (max 2000 characters)',
+          message: '内容过长（最多2000字符）'
+        },
         { status: 400 }
       )
     }
 
-    // 验证用户存在
+    // 验证用户存在且账户有效
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: { id: true, name: true }
@@ -129,8 +156,12 @@ export async function POST(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
+        {
+          success: false,
+          error: 'User not found or invalid',
+          message: '用户不存在或无效，请重新登录'
+        },
+        { status: 401 }
       )
     }
 
@@ -140,7 +171,15 @@ export async function POST(request: NextRequest) {
         content: content.trim(),
         type,
         imageUrl: imageUrl || null,
-        authorId: userId
+        authorId: userId,
+        // 博客相关字段
+        summary: summary || null,
+        wordCount,
+        readTime,
+        tags,
+        coverImage: coverImage || null,
+        isDraft,
+        publishedAt: publishedAt ? new Date(publishedAt) : null
       },
       include: {
         author: {
