@@ -454,7 +454,7 @@ export class Player extends Phaser.GameObjects.Container {
     // 处理玩家点击
     handlePlayerClick(pointer) {
         debugLog('玩家被点击:', this.playerData.name);
-        
+
         // 创建点击事件数据
         const clickEvent = {
             type: 'player_click',
@@ -463,17 +463,12 @@ export class Player extends Phaser.GameObjects.Container {
             position: { x: this.x, y: this.y },
             trigger: 'click'
         };
-        
-        // 使用事件总线触发点击事件
+
+        // 使用事件总线触发点击事件 - 统一使用 EventBus 处理
         if (window.gameEventBus) {
             window.gameEventBus.emit('player:click', clickEvent);
         }
-        
-        // 保持向后兼容性 - 触发全局回调函数
-        if (window.onPlayerClick) {
-            window.onPlayerClick(this.playerData);
-        }
-        
+
         // 添加点击动画效果
         this.addClickAnimation();
     }

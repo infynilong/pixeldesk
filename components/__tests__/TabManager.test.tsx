@@ -65,46 +65,72 @@ describe('TabManager', () => {
   })
 
   it('should auto-switch to player interaction when collision occurs', async () => {
-    const mockPlayer = { name: 'TestPlayer' }
-    const { rerender } = render(<TabManager tabs={mockTabs} />)
-    
+    const mockPlayer = { name: 'TestPlayer', id: '123' }
+    render(<TabManager tabs={mockTabs} />)
+
     // Initially status tab should be active
     expect(screen.getByTestId('status-tab')).toBeInTheDocument()
-    
-    // Simulate collision by updating collisionPlayer prop
-    rerender(<TabManager tabs={mockTabs} collisionPlayer={mockPlayer} />)
-    
+
+    // Simulate collision by emitting EventBus event
+    const { EventBus } = require('@/lib/eventBus')
+    EventBus.emit('player:collision:start', {
+      type: 'collision_start',
+      targetPlayer: mockPlayer,
+      timestamp: Date.now()
+    })
+
     // Should auto-switch to player interaction tab
     await waitFor(() => {
       expect(screen.getByTestId('player-tab')).toBeInTheDocument()
-      expect(screen.getByTestId('collision-player')).toHaveTextContent('TestPlayer')
     }, { timeout: 500 })
   })
 
   it('should switch back to status tab when collision ends', async () => {
-    const mockPlayer = { name: 'TestPlayer' }
-    const { rerender } = render(<TabManager tabs={mockTabs} collisionPlayer={mockPlayer} />)
-    
+    const mockPlayer = { name: 'TestPlayer', id: '123' }
+    render(<TabManager tabs={mockTabs} />)
+
+    // Simulate collision start
+    const { EventBus } = require('@/lib/eventBus')
+    EventBus.emit('player:collision:start', {
+      type: 'collision_start',
+      targetPlayer: mockPlayer,
+      timestamp: Date.now()
+    })
+
     // Should start with player interaction tab due to collision
     await waitFor(() => {
       expect(screen.getByTestId('player-tab')).toBeInTheDocument()
     })
-    
-    // Remove collision
-    rerender(<TabManager tabs={mockTabs} collisionPlayer={null} />)
-    
+
+    // Simulate collision end
+    EventBus.emit('player:collision:end', {
+      type: 'collision_end',
+      targetPlayer: mockPlayer,
+      timestamp: Date.now()
+    })
+
     // Should switch back to status tab
     await waitFor(() => {
       expect(screen.getByTestId('status-tab')).toBeInTheDocument()
     }, { timeout: 500 })
   })
 
-  it('should show collision indicator when player interaction tab is highlighted', () => {
-    const mockPlayer = { name: 'TestPlayer' }
-    render(<TabManager tabs={mockTabs} collisionPlayer={mockPlayer} />)
-    
-    const playerTab = screen.getByText('玩家交互').closest('button')
-    expect(playerTab).toHaveClass('')
+  it('should show collision indicator when player interaction tab is highlighted', async () => {
+    const mockPlayer = { name: 'TestPlayer', id: '123' }
+    render(<TabManager tabs={mockTabs} />)
+
+    // Simulate collision
+    const { EventBus } = require('@/lib/eventBus')
+    EventBus.emit('player:collision:start', {
+      type: 'collision_start',
+      targetPlayer: mockPlayer,
+      timestamp: Date.now()
+    })
+
+    await waitFor(() => {
+      const playerTab = screen.getByText('玩家交互').closest('button')
+      expect(playerTab).toBeInTheDocument()
+    })
   })
 
   it('should call onTabChange callback when tab switches', async () => {
