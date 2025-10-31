@@ -690,40 +690,50 @@ export class WorkstationManager {
             return;
         }
 
+        // 检查是否为当前用户的工位
+        const currentUser = this.scene.currentUser;
+        if (!currentUser || workstation.userId !== currentUser.id) {
+            return; // 只高亮当前用户的工位
+        }
+
         // 根据到期状态选择边框颜色
-        let borderColor = 0xffd700; // 默认金色
+        let borderColor = 0x06b6d4; // 主题色 cyan - 亮眼的青绿色
         let animationDuration = 1000;
+        let strokeWidth = 4; // 更粗的边框，更显眼
 
         if (workstation.isExpiringSoon) {
             borderColor = 0xff6b00; // 橙色，表示即将过期
             animationDuration = 500; // 更快的闪烁频率
+            strokeWidth = 5; // 即将过期时边框更粗
         }
 
         // 创建高亮边框效果
         const highlight = this.scene.add.rectangle(
             workstation.position.x + workstation.size.width / 2,
             workstation.position.y + workstation.size.height / 2,
-            workstation.size.width + 8,
-            workstation.size.height + 8,
+            workstation.size.width + 12, // 更大的边框范围
+            workstation.size.height + 12,
             null,
             0
         );
-        highlight.setStrokeStyle(3, borderColor);
+        highlight.setStrokeStyle(strokeWidth, borderColor);
         highlight.setOrigin(0.5, 0.5);
         highlight.setScrollFactor(1);
         highlight.setDepth(1003); // 在最上层
 
         workstation.userHighlight = highlight;
 
-        // 添加闪烁效果
+        // 添加闪烁效果 - 更明显的闪烁
         this.scene.tweens.add({
             targets: highlight,
-            alpha: workstation.isExpiringSoon ? 0.2 : 0.3,
+            alpha: workstation.isExpiringSoon ? 0.3 : 0.5, // 提高最低透明度，更显眼
             duration: animationDuration,
             ease: 'Sine.easeInOut',
             yoyo: true,
             repeat: -1
         });
+
+        debugLog(`✨ [addUserWorkstationHighlight] 为当前用户工位 ${workstation.id} 添加 ${workstation.isExpiringSoon ? '橙色警告' : 'cyan主题色'} 高亮`);
 
         // 如果即将过期，添加倒计时文本
         if (workstation.isExpiringSoon && workstation.remainingDays !== undefined) {
@@ -962,22 +972,19 @@ export class WorkstationManager {
             return;
         }
 
-        // 调试：检查当前用户信息
+        // 检查当前用户信息 - 不在当前用户的工位旁边显示角色（避免重复显示）
         const currentUser = this.scene.currentUser;
-        debugLog(`👤 [addCharacterToWorkstation] 工位 ${workstation.id} 调试信息:`, {
+        debugLog(`👤 [addCharacterToWorkstation] 工位 ${workstation.id} 检查用户:`, {
             currentUserId: currentUser?.id,
             workstationUserId: workstation.userId,
-            isCurrentUser: currentUser && workstation.userId === currentUser.id,
-            willShowCharacter: true // 暂时总是显示角色
+            isCurrentUser: currentUser && workstation.userId === currentUser.id
         });
 
-        // 暂时注释掉不显示当前用户角色的逻辑，调试角色显示问题
-        // if (currentUser && workstation.userId === currentUser.id) {
-        //     debugLog(`👤 [addCharacterToWorkstation] 工位 ${workstation.id} 是当前用户 ${currentUser.id} 的工位，不显示角色`);
-        //     return;
-        // }
-
-        debugLog(`🎯 [addCharacterToWorkstation] 强制显示所有角色以进行调试`);
+        // 如果是当前用户的工位，不显示角色（因为玩家自己已经在屏幕上显示了）
+        if (currentUser && workstation.userId === currentUser.id) {
+            debugLog(`👤 [addCharacterToWorkstation] 工位 ${workstation.id} 是当前用户 ${currentUser.id} 的工位，不显示角色（避免视觉重复）`);
+            return;
+        }
 
         
         // 根据工位方向计算角色位置
@@ -1378,42 +1385,9 @@ export class WorkstationManager {
     }
 
     addOccupiedIcon(workstation) {
-        if (workstation.occupiedIcon) {
-            return; // 已有占用图标
-        }
-        
-        // 检查 scene 是否存在且有效
-        if (!this.isSceneValid()) {
-            debugWarn('Scene is not available or not active, skipping addOccupiedIcon');
-            return;
-        }
-        
-        // 检查是否为当前用户的工位
-        const currentUser = this.scene.currentUser;
-        if (!currentUser || workstation.userId !== currentUser.id) {
-            return; // 不是当前用户的工位，不显示👤标志
-        }
-        
-        const iconX = workstation.position.x + workstation.size.width / 2;
-        const iconY = workstation.position.y - 20; // 在工位上方
-        
-        // 创建占用图标
-        const icon = this.scene.add.text(
-            iconX,
-            iconY,
-            '👤',
-            {
-                fontSize: '20px',
-                fill: '#ffffff',
-                backgroundColor: '#28a745',
-                padding: { x: 4, y: 2 }
-            }
-        );
-        icon.setOrigin(0.5, 0.5);
-        icon.setScrollFactor(1); // 跟随地图滚动
-        icon.setDepth(1002); // 确保在交互图标上方
-        
-        workstation.occupiedIcon = icon;
+        // 不再使用👤图标标记用户工位，改用颜色高亮（在 addUserWorkstationHighlight 中实现）
+        // 此方法保留但不执行任何操作，避免破坏现有调用逻辑
+        debugLog(`🏷️ [addOccupiedIcon] 工位 ${workstation.id} 不再使用图标标记，改用颜色高亮`);
     }
     
     removeInteractionIcon(workstation) {
