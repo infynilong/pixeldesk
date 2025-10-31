@@ -59,8 +59,8 @@ export default function BlogManagementPage() {
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black flex items-center justify-center p-4">
-        <div className="bg-gradient-to-br from-gray-900 to-gray-800 border-2 border-purple-500/50 rounded-xl p-8 max-w-md text-center shadow-2xl">
-          <div className="w-16 h-16 bg-gradient-to-br from-purple-600 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+        <div className="bg-gradient-to-br from-gray-900 to-gray-800 border-2 border-blue-500/50 rounded-xl p-8 max-w-md text-center shadow-2xl">
+          <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
@@ -69,7 +69,7 @@ export default function BlogManagementPage() {
           <p className="text-gray-300 mb-6">请先登录后再管理博客</p>
           <button
             onClick={() => router.push('/')}
-            className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-all"
+            className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-bold py-3 px-6 rounded-lg transition-all"
           >
             前往登录
           </button>
@@ -82,17 +82,17 @@ export default function BlogManagementPage() {
   if (!currentUser || !currentUserId) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
       </div>
     )
   }
 
-  // 构建 SocialUser 对象
+  // 构建 SocialUser 对象 - 优先使用 UserContext 的 user 数据
   const socialUser: SocialUser = {
-    id: currentUser.id,
-    name: currentUser.name || '未命名用户',
-    avatar: currentUser.avatar || null,
-    points: currentUser.points
+    id: user.id,
+    name: user.name || currentUser.name || '用户',
+    avatar: user.avatar || currentUser.avatar || null,
+    points: user.points || currentUser.points || 0
   }
 
   return (
@@ -112,7 +112,7 @@ export default function BlogManagementPage() {
                 </svg>
               </button>
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-pink-600 rounded-lg flex items-center justify-center">
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-lg flex items-center justify-center">
                   <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
@@ -127,18 +127,18 @@ export default function BlogManagementPage() {
             {/* 右侧 - 用户信息 */}
             <div className="flex items-center gap-3">
               <div className="text-right">
-                <p className="text-sm font-medium text-white">{currentUser.name}</p>
-                <p className="text-xs text-gray-400">{currentUser.points || 0} 积分</p>
+                <p className="text-sm font-medium text-white">{user.name}</p>
+                <p className="text-xs text-gray-400">{user.points || 0} 积分</p>
               </div>
-              {currentUser.avatar ? (
+              {user.avatar ? (
                 <img
-                  src={currentUser.avatar}
-                  alt={currentUser.name || ''}
-                  className="w-10 h-10 rounded-full border-2 border-purple-500"
+                  src={user.avatar}
+                  alt={user.name || ''}
+                  className="w-10 h-10 rounded-full border-2 border-blue-500"
                 />
               ) : (
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center text-white font-bold">
-                  {(currentUser.name || 'U')[0].toUpperCase()}
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-600 to-cyan-600 flex items-center justify-center text-white font-bold">
+                  {(user.name || 'U')[0].toUpperCase()}
                 </div>
               )}
             </div>

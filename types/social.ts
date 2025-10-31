@@ -4,6 +4,8 @@ export interface SocialUser {
   avatar?: string | null
   isOnline?: boolean
   lastSeen?: string | null
+  points?: number
+  gold?: number
 }
 
 export interface Post {

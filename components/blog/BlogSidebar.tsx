@@ -125,7 +125,7 @@ export default function BlogSidebar({
 
         <button
           onClick={onNewBlog}
-          className="p-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 rounded-lg text-white transition-all"
+          className="p-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 rounded-lg text-white transition-all"
           title="新建博客"
         >
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -140,7 +140,7 @@ export default function BlogSidebar({
               onClick={() => onSelectBlog(blog)}
               className={`w-full h-10 rounded-lg transition-colors ${
                 selectedBlogId === blog.id
-                  ? 'bg-purple-600'
+                  ? 'bg-blue-600'
                   : 'bg-gray-800 hover:bg-gray-700'
               }`}
               title={blog.title}
@@ -166,7 +166,7 @@ export default function BlogSidebar({
           <div className="flex items-center gap-2">
             <button
               onClick={onNewBlog}
-              className="p-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 rounded-lg text-white transition-all"
+              className="p-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 rounded-lg text-white transition-all"
               title="新建博客"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -194,7 +194,7 @@ export default function BlogSidebar({
             placeholder="搜索博客..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-9 pr-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
+            className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-9 pr-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
           />
           <svg
             className="w-4 h-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2"
@@ -250,7 +250,7 @@ export default function BlogSidebar({
       <div className="flex-1 overflow-y-auto">
         {loading ? (
           <div className="flex items-center justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
           </div>
         ) : blogs.length === 0 ? (
           <div className="text-center py-8 px-4">
@@ -262,7 +262,7 @@ export default function BlogSidebar({
             </p>
             <button
               onClick={onNewBlog}
-              className="mt-3 text-sm text-purple-400 hover:text-purple-300"
+              className="mt-3 text-sm text-blue-400 hover:text-blue-300"
             >
               创建第一篇博客
             </button>
@@ -275,7 +275,7 @@ export default function BlogSidebar({
                 onClick={() => onSelectBlog(blog)}
                 className={`w-full text-left p-4 transition-colors ${
                   selectedBlogId === blog.id
-                    ? 'bg-purple-600/20 border-l-4 border-purple-500'
+                    ? 'bg-blue-600/20 border-l-4 border-blue-500'
                     : 'hover:bg-gray-800/50'
                 }`}
               >

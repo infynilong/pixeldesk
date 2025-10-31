@@ -304,7 +304,7 @@ export default function BlogEditor({ blog, userId, onSaved, onPublished }: BlogE
             <button
               onClick={handlePublish}
               disabled={isPublishing || isSavingDraft}
-              className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium rounded-lg text-sm transition-all"
+              className="px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium rounded-lg text-sm transition-all"
             >
               {isPublishing ? '发布中...' : blog?.isDraft === false ? '更新发布' : '发布'}
             </button>
@@ -373,7 +373,7 @@ export default function BlogEditor({ blog, userId, onSaved, onPublished }: BlogE
                     handleAddTag()
                   }
                 }}
-                className="flex-1 bg-gray-800 border border-gray-700 focus:border-purple-500 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none text-sm"
+                className="flex-1 bg-gray-800 border border-gray-700 focus:border-blue-500 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none text-sm"
                 maxLength={20}
                 disabled={tags.length >= 5}
                 onFocus={() => {
@@ -390,7 +390,7 @@ export default function BlogEditor({ blog, userId, onSaved, onPublished }: BlogE
               <button
                 onClick={handleAddTag}
                 disabled={!tagInput.trim() || tags.length >= 5}
-                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white rounded-lg text-sm transition-colors"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white rounded-lg text-sm transition-colors"
               >
                 添加
               </button>
@@ -401,12 +401,12 @@ export default function BlogEditor({ blog, userId, onSaved, onPublished }: BlogE
                 {tags.map((tag, index) => (
                   <span
                     key={index}
-                    className="inline-flex items-center gap-2 px-3 py-1 bg-purple-600/20 text-purple-400 border border-purple-600/30 rounded-full text-sm"
+                    className="inline-flex items-center gap-2 px-3 py-1 bg-blue-600/20 text-blue-400 border border-blue-600/30 rounded-full text-sm"
                   >
                     {tag}
                     <button
                       onClick={() => handleRemoveTag(tag)}
-                      className="hover:text-purple-300"
+                      className="hover:text-blue-300"
                     >
                       ×
                     </button>
@@ -426,7 +426,7 @@ export default function BlogEditor({ blog, userId, onSaved, onPublished }: BlogE
               placeholder="https://example.com/image.jpg"
               value={coverImage}
               onChange={(e) => setCoverImage(e.target.value)}
-              className="w-full bg-gray-800 border border-gray-700 focus:border-purple-500 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none text-sm"
+              className="w-full bg-gray-800 border border-gray-700 focus:border-blue-500 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none text-sm"
               onFocus={() => {
                 if (typeof window !== 'undefined' && (window as any).disableGameKeyboard) {
                   (window as any).disableGameKeyboard()
