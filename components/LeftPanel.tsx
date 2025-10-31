@@ -1,6 +1,6 @@
 'use client'
 
-import { ReactNode } from 'react'
+import { ReactNode, useState } from 'react'
 import UserAvatar from './UserAvatar'
 import AuthenticationHeader from './AuthenticationHeader'
 
@@ -10,6 +10,8 @@ interface LeftPanelProps {
   children?: ReactNode
   isMobile?: boolean
   isTablet?: boolean
+  isCollapsed?: boolean
+  onCollapsedChange?: (collapsed: boolean) => void
 }
 
 export default function LeftPanel({
@@ -17,15 +19,57 @@ export default function LeftPanel({
   workstationStats,
   children,
   isMobile = false,
-  isTablet = false
+  isTablet = false,
+  isCollapsed: externalIsCollapsed,
+  onCollapsedChange
 }: LeftPanelProps) {
+  const [internalIsCollapsed, setInternalIsCollapsed] = useState(false)
+  const isCollapsed = externalIsCollapsed !== undefined ? externalIsCollapsed : internalIsCollapsed
+
+  const handleToggle = (collapsed: boolean) => {
+    if (onCollapsedChange) {
+      onCollapsedChange(collapsed)
+    } else {
+      setInternalIsCollapsed(collapsed)
+    }
+  }
   const containerPadding = isMobile ? "p-3" : "p-6"
   const titleSize = isMobile ? "text-base" : "text-xl"
   const textSize = isMobile ? "text-xs" : "text-base"
   const cardSpacing = isMobile ? "space-y-3" : "space-y-4"
 
+  // 收起状态下显示最小化的面板
+  if (isCollapsed) {
+    return (
+      <div className="h-full flex flex-col bg-transparent w-12 border-r border-gray-800">
+        <div className="flex-1 flex items-center justify-center">
+          <button
+            onClick={() => handleToggle(false)}
+            className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+            title="展开面板"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className="h-full flex flex-col bg-transparent">
+    <div className="h-full flex flex-col bg-transparent relative">
+      {/* 收起按钮 - 右上角 */}
+      <button
+        onClick={() => handleToggle(true)}
+        className="absolute top-3 right-2 z-10 p-1.5 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+        title="收起面板"
+      >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+        </svg>
+      </button>
+
       {/* 头部区域 */}
       <div className="border-b border-gray-800 bg-gray-900/50">
         <div className={containerPadding}>

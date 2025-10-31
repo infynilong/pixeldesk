@@ -142,10 +142,14 @@ export default function Home() {
   
   // 错误消息状态
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  
+
   // Enhanced device detection
   const [deviceType, setDeviceType] = useState<'mobile' | 'tablet' | 'desktop'>('desktop')
   const [isTablet, setIsTablet] = useState(false)
+
+  // 面板收起状态
+  const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false)
+  const [rightPanelCollapsed, setRightPanelCollapsed] = useState(false)
 
   // 同步认证用户数据到currentUser状态，支持临时玩家
   const syncAuthenticatedUser = useCallback(() => {
@@ -790,11 +794,13 @@ export default function Home() {
       workstationStats={workstationStats}
       isMobile={isMobile}
       isTablet={isTablet}
+      isCollapsed={leftPanelCollapsed}
+      onCollapsedChange={setLeftPanelCollapsed}
     >
       {/* 状态更新组件 */}
       {memoizedPostStatus}
     </LeftPanel>
-  ), [currentUser?.id, currentUser?.name, currentUser?.points, workstationStats, isMobile, isTablet, memoizedPostStatus])
+  ), [currentUser?.id, currentUser?.name, currentUser?.points, workstationStats, isMobile, isTablet, memoizedPostStatus, leftPanelCollapsed])
 
   // Create memoized right panel content
   const memoizedRightPanel = useMemo(() => (
@@ -804,8 +810,10 @@ export default function Home() {
       onPostClick={handlePostClick}
       isMobile={isMobile}
       isTablet={isTablet}
+      isCollapsed={rightPanelCollapsed}
+      onCollapsedChange={setRightPanelCollapsed}
     />
-  ), [currentUser?.id, selectedPlayer, handlePostClick, isMobile, isTablet])
+  ), [currentUser?.id, selectedPlayer, handlePostClick, isMobile, isTablet, rightPanelCollapsed])
 
   // 如果正在加载认证状态，显示加载界面
   if (isLoading) {
@@ -864,6 +872,8 @@ export default function Home() {
         gameComponent={memoizedPhaserGame}
         leftPanel={memoizedLeftPanel}
         rightPanel={memoizedRightPanel}
+        leftPanelCollapsed={leftPanelCollapsed}
+        rightPanelCollapsed={rightPanelCollapsed}
       />
       
       {/* All modals */}

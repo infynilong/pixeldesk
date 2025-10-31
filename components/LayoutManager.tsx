@@ -16,6 +16,10 @@ export interface LayoutManagerProps {
   className?: string
   /** Optional callback when layout changes */
   onLayoutChange?: (deviceType: DeviceType) => void
+  /** Left panel collapsed state */
+  leftPanelCollapsed?: boolean
+  /** Right panel collapsed state */
+  rightPanelCollapsed?: boolean
 }
 
 /**
@@ -168,7 +172,9 @@ export default function LayoutManager({
   leftPanel,
   rightPanel,
   className = '',
-  onLayoutChange
+  onLayoutChange,
+  leftPanelCollapsed = false,
+  rightPanelCollapsed = false
 }: LayoutManagerProps) {
   // State management
   const [screenSize, setScreenSize] = useState<ScreenSize>({
@@ -178,6 +184,9 @@ export default function LayoutManager({
     orientation: 'landscape'
   })
   const [layoutConfig] = useState<LayoutConfig>(DEFAULT_LAYOUT_CONFIG)
+
+  // 收起面板的宽度
+  const COLLAPSED_PANEL_WIDTH = 48
 
 
 
@@ -270,10 +279,33 @@ export default function LayoutManager({
     }
   }, []) // Empty dependency array to run only once
 
-  // Memoized layout configuration based on current screen size
+  // Memoized layout configuration based on current screen size and panel states
   const currentLayoutConfig = useMemo(() => {
-    return layoutConfig[screenSize.deviceType]
-  }, [screenSize.deviceType, layoutConfig])
+    const baseConfig = layoutConfig[screenSize.deviceType]
+
+    // 计算实际面板宽度
+    const leftPanelWidth = leftPanelCollapsed ? COLLAPSED_PANEL_WIDTH : parseInt(baseConfig.leftPanel.width)
+    const rightPanelWidth = rightPanelCollapsed ? COLLAPSED_PANEL_WIDTH : parseInt(baseConfig.rightPanel.width)
+
+    // 计算游戏区域宽度
+    const gameAreaWidth = `calc(100% - ${leftPanelWidth + rightPanelWidth}px)`
+
+    return {
+      ...baseConfig,
+      leftPanel: {
+        ...baseConfig.leftPanel,
+        width: `${leftPanelWidth}px`
+      },
+      rightPanel: {
+        ...baseConfig.rightPanel,
+        width: `${rightPanelWidth}px`
+      },
+      gameArea: {
+        ...baseConfig.gameArea,
+        width: gameAreaWidth
+      }
+    }
+  }, [screenSize.deviceType, layoutConfig, leftPanelCollapsed, rightPanelCollapsed, COLLAPSED_PANEL_WIDTH])
 
   // CSS classes without animations
   const layoutClasses = useMemo(() => {
