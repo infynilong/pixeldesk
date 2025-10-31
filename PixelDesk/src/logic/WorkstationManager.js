@@ -33,11 +33,13 @@ export class WorkstationManager {
         this.isViewportOptimizationEnabled = false; // 永久禁用
         
         this.config = {
-            occupiedTint: 0x888888,    // 已占用工位的颜色 (灰色，避免反色)
+            occupiedTint: 0x888888,    // 其他用户占用工位的颜色 (灰色)
+            userOwnedTint: 0x06b6d4,   // 当前用户工位的颜色 (cyan 青绿色主题色)
+            expiringSoonTint: 0xff6b00, // 即将过期工位的颜色 (橙色警告)
             highlightTint: 0xffff00,   // 高亮颜色
             highlightDuration: 500,    // 高亮持续时间
             debugBounds: false,        // 是否显示调试边界
-            
+
             // 视口优化配置
             viewportBuffer: 100,       // 视口缓冲区大小(像素)
             minMoveDistance: 50,       // 最小移动距离才触发更新
@@ -680,60 +682,23 @@ export class WorkstationManager {
     }
     
     addUserWorkstationHighlight(workstation) {
-        if (workstation.userHighlight) {
-            return; // 已有高亮
-        }
-
-        // 检查 scene 是否存在且有效
-        if (!this.isSceneValid()) {
-            debugWarn('Scene is not available or not active, skipping addUserWorkstationHighlight');
-            return;
-        }
-
         // 检查是否为当前用户的工位
         const currentUser = this.scene.currentUser;
         if (!currentUser || workstation.userId !== currentUser.id) {
-            return; // 只高亮当前用户的工位
+            return; // 只处理当前用户的工位
         }
 
-        // 根据到期状态选择边框颜色
-        let borderColor = 0x06b6d4; // 主题色 cyan - 亮眼的青绿色
-        let animationDuration = 1000;
-        let strokeWidth = 4; // 更粗的边框，更显眼
+        // 不再使用边框，改用工位自身的 tint 颜色来标识
+        if (workstation.sprite) {
+            // 根据到期状态选择颜色
+            const tintColor = workstation.isExpiringSoon
+                ? this.config.expiringSoonTint  // 橙色警告
+                : this.config.userOwnedTint;    // cyan 主题色
 
-        if (workstation.isExpiringSoon) {
-            borderColor = 0xff6b00; // 橙色，表示即将过期
-            animationDuration = 500; // 更快的闪烁频率
-            strokeWidth = 5; // 即将过期时边框更粗
+            workstation.sprite.setTint(tintColor);
+
+            debugLog(`✨ [addUserWorkstationHighlight] 为当前用户工位 ${workstation.id} 设置 ${workstation.isExpiringSoon ? '橙色警告' : 'cyan主题色'} tint`);
         }
-
-        // 创建高亮边框效果
-        const highlight = this.scene.add.rectangle(
-            workstation.position.x + workstation.size.width / 2,
-            workstation.position.y + workstation.size.height / 2,
-            workstation.size.width + 12, // 更大的边框范围
-            workstation.size.height + 12,
-            null,
-            0
-        );
-        highlight.setStrokeStyle(strokeWidth, borderColor);
-        highlight.setOrigin(0.5, 0.5);
-        highlight.setScrollFactor(1);
-        highlight.setDepth(1003); // 在最上层
-
-        workstation.userHighlight = highlight;
-
-        // 添加闪烁效果 - 更明显的闪烁
-        this.scene.tweens.add({
-            targets: highlight,
-            alpha: workstation.isExpiringSoon ? 0.3 : 0.5, // 提高最低透明度，更显眼
-            duration: animationDuration,
-            ease: 'Sine.easeInOut',
-            yoyo: true,
-            repeat: -1
-        });
-
-        debugLog(`✨ [addUserWorkstationHighlight] 为当前用户工位 ${workstation.id} 添加 ${workstation.isExpiringSoon ? '橙色警告' : 'cyan主题色'} 高亮`);
 
         // 如果即将过期，添加倒计时文本
         if (workstation.isExpiringSoon && workstation.remainingDays !== undefined) {
@@ -795,15 +760,7 @@ export class WorkstationManager {
     }
 
     removeUserWorkstationHighlight(workstation) {
-        if (workstation.userHighlight) {
-            // 停止闪烁动画
-            this.scene.tweens.killTweensOf(workstation.userHighlight);
-            // 移除高亮对象
-            workstation.userHighlight.destroy();
-            workstation.userHighlight = null;
-        }
-
-        // 同时移除倒计时文本
+        // 不再使用边框对象，只需移除倒计时文本
         this.removeExpiryCountdown(workstation);
     }
     
