@@ -34,7 +34,7 @@ export class WorkstationManager {
         
         this.config = {
             occupiedTint: 0x888888,    // 其他用户占用工位的颜色 (灰色)
-            userOwnedTint: 0x06b6d4,   // 当前用户工位的颜色 (cyan 青绿色主题色)
+            userOwnedTint: 0xFFD700,   // 当前用户工位的颜色 (金黄色 - 高贵醒目)
             expiringSoonTint: 0xff6b00, // 即将过期工位的颜色 (橙色警告)
             highlightTint: 0xffff00,   // 高亮颜色
             highlightDuration: 500,    // 高亮持续时间
@@ -693,11 +693,11 @@ export class WorkstationManager {
             // 根据到期状态选择颜色
             const tintColor = workstation.isExpiringSoon
                 ? this.config.expiringSoonTint  // 橙色警告
-                : this.config.userOwnedTint;    // cyan 主题色
+                : this.config.userOwnedTint;    // 金黄色
 
             workstation.sprite.setTint(tintColor);
 
-            debugLog(`✨ [addUserWorkstationHighlight] 为当前用户工位 ${workstation.id} 设置 ${workstation.isExpiringSoon ? '橙色警告' : 'cyan主题色'} tint`);
+            debugLog(`✨ [addUserWorkstationHighlight] 为当前用户工位 ${workstation.id} 设置 ${workstation.isExpiringSoon ? '橙色警告' : '金黄色'} tint`);
         }
 
         // 如果即将过期，添加倒计时文本
