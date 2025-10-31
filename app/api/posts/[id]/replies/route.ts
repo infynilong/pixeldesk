@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { rewardPoints } from '@/lib/pointsManager'
 
 // 获取帖子的回复 - 带重试机制处理数据库连接问题
 export async function GET(
@@ -262,6 +263,17 @@ export async function POST(
       })
 
       console.log(`✅ [POST replies] 回复创建成功:`, { id: result.id, content: result.content.substring(0, 50) })
+
+      // 奖励积分给回复者（不影响回复创建，失败也不抛出错误）
+      rewardPoints(userId, 'reply_post_reward', `回复帖子 ${postId}`)
+        .then(reward => {
+          if (reward.success) {
+            console.log(`✨ [POST replies] 用户 ${userId} 获得 ${reward.points} 积分奖励`)
+          }
+        })
+        .catch(err => {
+          console.error('❌ [POST replies] 积分奖励失败:', err)
+        })
 
       return NextResponse.json({
         success: true,

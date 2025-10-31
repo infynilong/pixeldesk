@@ -306,3 +306,24 @@ enum NotificationType {
   POST_LIKE
   SYSTEM
 }
+
+// 积分配置表 - 用于管理各种积分奖励和消耗规则
+model PointsConfig {
+  id          String   @id @default(cuid())
+  key         String   @unique  // 配置键，如 'reply_post_reward', 'create_blog_reward', 'bind_workstation_cost'
+  value       Int                // 积分数值
+  description String             // 配置说明
+  category    PointsCategory     // 分类：奖励或消耗
+  isActive    Boolean  @default(true)  // 是否启用
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([key])
+  @@index([category])
+  @@map("points_config")
+}
+
+enum PointsCategory {
+  REWARD    // 积分奖励
+  COST      // 积分消耗
+}

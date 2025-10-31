@@ -18,6 +18,7 @@ import {
 // 声明全局函数的类型
 declare global {
   interface Window {
+    isUserAuthenticated: boolean // 用户是否已真正登录（非临时用户）
     setWorkstationBindingModal: (modalState: any) => void
     showWorkstationInfo: (workstationId: number, userId: string) => void
     showPlayerInfo: (userId: string, userInfo: any) => void
@@ -98,12 +99,43 @@ export default function Home() {
   // 认证相关状态
   const { user, isLoading, playerExists, setPlayerExists } = useUser()
   const [showCharacterCreation, setShowCharacterCreation] = useState(false)
-  
+
   // 临时玩家状态
   const [isTemporaryPlayer, setIsTemporaryPlayer] = useState(false)
   const [showAuthPrompt, setShowAuthPrompt] = useState(false)
   const [authPromptMessage, setAuthPromptMessage] = useState('')
   const [showAuthModal, setShowAuthModal] = useState(false)
+
+  // 设置全局登录状态标志
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.isUserAuthenticated = !!user
+      console.log('🔐 用户认证状态已更新:', window.isUserAuthenticated)
+    }
+  }, [user])
+
+  // 预加载积分配置（在应用启动时）
+  useEffect(() => {
+    const loadPointsConfig = async () => {
+      try {
+        const response = await fetch('/api/points-config')
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success) {
+            console.log('✅ 积分配置已预加载:', data.data)
+            // 可以将配置存储到全局状态或localStorage中
+            if (typeof window !== 'undefined') {
+              (window as any).pointsConfig = data.data
+            }
+          }
+        }
+      } catch (error) {
+        console.error('⚠️ 预加载积分配置失败:', error)
+      }
+    }
+
+    loadPointsConfig()
+  }, [])
 
   // 帖子详情弹窗状态
   const [postDetailModal, setPostDetailModal] = useState({
