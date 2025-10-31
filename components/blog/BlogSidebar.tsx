@@ -125,7 +125,7 @@ export default function BlogSidebar({
 
         <button
           onClick={onNewBlog}
-          className="p-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 rounded-lg text-white transition-all"
+          className="p-2 bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 rounded-lg text-white transition-all shadow-lg shadow-cyan-500/20"
           title="新建博客"
         >
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -140,7 +140,7 @@ export default function BlogSidebar({
               onClick={() => onSelectBlog(blog)}
               className={`w-full h-10 rounded-lg transition-colors ${
                 selectedBlogId === blog.id
-                  ? 'bg-blue-600'
+                  ? 'bg-gradient-to-r from-cyan-600 to-teal-600'
                   : 'bg-gray-800 hover:bg-gray-700'
               }`}
               title={blog.title}
@@ -166,7 +166,7 @@ export default function BlogSidebar({
           <div className="flex items-center gap-2">
             <button
               onClick={onNewBlog}
-              className="p-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 rounded-lg text-white transition-all"
+              className="p-2 bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 rounded-lg text-white transition-all shadow-lg shadow-cyan-500/20"
               title="新建博客"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -194,7 +194,7 @@ export default function BlogSidebar({
             placeholder="搜索博客..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-9 pr-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
+            className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-9 pr-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all"
           />
           <svg
             className="w-4 h-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2"
@@ -250,7 +250,11 @@ export default function BlogSidebar({
       <div className="flex-1 overflow-y-auto">
         {loading ? (
           <div className="flex items-center justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+            <div className="flex items-center gap-3">
+              <div className="w-2 h-2 bg-cyan-500 rounded-full animate-pulse"></div>
+              <div className="w-2 h-2 bg-teal-500 rounded-full animate-pulse" style={{ animationDelay: '150ms' }}></div>
+              <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" style={{ animationDelay: '300ms' }}></div>
+            </div>
           </div>
         ) : blogs.length === 0 ? (
           <div className="text-center py-8 px-4">
@@ -262,20 +266,20 @@ export default function BlogSidebar({
             </p>
             <button
               onClick={onNewBlog}
-              className="mt-3 text-sm text-blue-400 hover:text-blue-300"
+              className="mt-3 text-sm text-cyan-400 hover:text-cyan-300 transition-colors"
             >
               创建第一篇博客
             </button>
           </div>
         ) : (
-          <div className="divide-y divide-gray-800">
+          <div className="divide-y divide-gray-800/50">
             {blogs.map((blog) => (
               <button
                 key={blog.id}
                 onClick={() => onSelectBlog(blog)}
-                className={`w-full text-left p-4 transition-colors ${
+                className={`w-full text-left p-4 transition-all ${
                   selectedBlogId === blog.id
-                    ? 'bg-blue-600/20 border-l-4 border-blue-500'
+                    ? 'bg-gradient-to-r from-cyan-600/20 to-teal-600/20 border-l-4 border-cyan-500'
                     : 'hover:bg-gray-800/50'
                 }`}
               >

@@ -41,7 +41,7 @@ module.exports = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        // 复古像素风格色彩
+        // 复古像素风格色彩（仅用于特定场景）
         retro: {
           bg: {
             dark: '#1a1b26',
@@ -55,10 +55,15 @@ module.exports = {
           yellow: '#f9f871',
           green: '#5af78e',
           blue: '#57c7ff',
-          purple: '#c74ded',
-          pink: '#ff6ac1',
+          purple: '#c74ded',  // ⚠️ 不推荐使用（用户反馈：看吐了）
+          pink: '#ff6ac1',    // ⚠️ 不推荐使用（用户反馈：看吐了）
           cyan: '#9aedfe',
         },
+        // 📌 推荐配色方案（参考 DESIGN_SYSTEM.md）
+        // 主色调：使用 Tailwind 默认的 cyan-* 和 teal-* 类
+        // 强调色：orange-*, emerald-*
+        // 背景：gray-950, gray-900, gray-800
+        // 禁止：purple-*, pink-*, violet-*, retro-purple, retro-pink
       },
       borderRadius: {
         lg: "var(--radius)",

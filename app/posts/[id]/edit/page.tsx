@@ -231,18 +231,18 @@ export default function EditBlogPage() {
   // 未登录提示
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black flex items-center justify-center p-4">
-        <div className="bg-gradient-to-br from-gray-900 to-gray-800 border-2 border-retro-purple/50 rounded-xl p-8 max-w-md text-center shadow-2xl">
-          <div className="w-16 h-16 bg-gradient-to-br from-retro-purple to-retro-blue rounded-full flex items-center justify-center mx-auto mb-4">
+      <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 flex items-center justify-center p-4">
+        <div className="bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-700 rounded-xl p-8 max-w-md text-center shadow-2xl">
+          <div className="w-16 h-16 bg-gradient-to-br from-cyan-600 to-teal-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-cyan-500/20">
             <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
           </div>
-          <h2 className="text-2xl font-bold text-white mb-2 font-retro">需要登录</h2>
-          <p className="text-gray-300 mb-6 font-pixel">请先登录后再编辑博客</p>
+          <h2 className="text-2xl font-bold text-white mb-2">需要登录</h2>
+          <p className="text-gray-300 mb-6">请先登录后再编辑博客</p>
           <button
             onClick={() => router.push('/')}
-            className="w-full bg-gradient-to-r from-retro-purple to-retro-blue hover:from-retro-blue hover:to-retro-cyan text-white font-bold py-3 px-6 rounded-lg font-pixel"
+            className="w-full bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-white font-bold py-3 px-6 rounded-lg transition-all"
           >
             前往登录
           </button>
@@ -254,62 +254,53 @@ export default function EditBlogPage() {
   // 加载中
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black flex items-center justify-center">
-        <LoadingSpinner />
+      <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500"></div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black">
+    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950">
       {/* 顶部导航栏 */}
-      <nav className="bg-retro-bg-dark/95 backdrop-blur-sm border-b border-retro-border/30 sticky top-0 z-10">
+      <nav className="bg-gray-900/80 backdrop-blur-sm border-b border-gray-800 sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            {/* 左侧 - 返回和标题 */}
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => {
-                  if (confirm('确定要离开吗？未保存的内容将丢失。')) {
-                    router.push(`/posts/${postId}`)
-                  }
-                }}
-                className="p-2 text-retro-textMuted hover:text-white hover:bg-retro-purple/20 rounded-lg"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            {/* 左侧 - Logo */}
+            <button
+              onClick={() => {
+                if (confirm('确定要离开吗？未保存的内容将丢失。')) {
+                  router.push('/')
+                }
+              }}
+              className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+            >
+              <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-teal-500 rounded-xl flex items-center justify-center shadow-lg shadow-cyan-500/20">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
-              </button>
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-gradient-to-br from-retro-purple to-retro-pink rounded-lg flex items-center justify-center">
-                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                  </svg>
-                </div>
-                <div>
-                  <h1 className="text-lg font-bold text-white font-retro">编辑博客</h1>
-                  {lastSaved && (
-                    <p className="text-xs text-gray-400 font-pixel">
-                      自动保存于 {lastSaved.toLocaleTimeString()}
-                    </p>
-                  )}
-                </div>
               </div>
-            </div>
+              <div className="flex flex-col">
+                <span className="text-white font-bold text-lg">PixelDesk</span>
+                <span className="text-gray-400 text-xs font-mono">
+                  {lastSaved ? `自动保存于 ${lastSaved.toLocaleTimeString()}` : 'Blog Editor'}
+                </span>
+              </div>
+            </button>
 
             {/* 右侧 - 操作按钮 */}
             <div className="flex items-center space-x-3">
               <button
                 onClick={handleSaveDraft}
                 disabled={isSavingDraft || isUpdating}
-                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg border border-gray-600 disabled:opacity-50 font-pixel text-sm"
+                className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg border border-gray-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm transition-all"
               >
                 {isSavingDraft ? '保存中...' : '保存草稿'}
               </button>
               <button
                 onClick={handleUpdate}
                 disabled={isUpdating || isSavingDraft}
-                className="px-6 py-2 bg-gradient-to-r from-retro-purple to-retro-blue hover:from-retro-blue hover:to-retro-cyan text-white font-bold rounded-lg border border-white/20 shadow-lg disabled:opacity-50 font-pixel text-sm"
+                className="px-6 py-2 bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-white font-bold rounded-lg shadow-lg shadow-cyan-500/20 disabled:opacity-50 disabled:cursor-not-allowed text-sm transition-all"
               >
                 {isUpdating ? '更新中...' : '更新'}
               </button>
@@ -323,18 +314,18 @@ export default function EditBlogPage() {
         <div className="space-y-6">
           {/* 错误提示 */}
           {error && (
-            <div className="bg-retro-red/10 border border-retro-red/30 rounded-lg p-4">
+            <div className="bg-red-900/20 border border-red-800/50 rounded-lg p-4">
               <div className="flex items-center gap-3">
-                <svg className="w-5 h-5 text-retro-red" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span className="text-retro-red font-pixel">{error}</span>
+                <span className="text-red-300 text-sm">{error}</span>
               </div>
             </div>
           )}
 
           {/* 标题输入 */}
-          <div className="bg-retro-bg-dark/95 rounded-xl border border-retro-border/30 p-6">
+          <div className="bg-gray-900 rounded-xl border border-gray-800 p-6">
             <input
               type="text"
               placeholder="输入博客标题..."
@@ -354,18 +345,18 @@ export default function EditBlogPage() {
               }}
             />
             <div className="flex items-center justify-between mt-2">
-              <span className="text-xs text-gray-500 font-pixel">{title.length}/100</span>
-              <span className="text-xs text-gray-500 font-pixel">
-                预计阅读时间: {calculateReadTime(content)} 分钟
+              <span className="text-xs text-gray-500">{title.length}/100</span>
+              <span className="text-xs text-gray-500">
+                预计阅读: {calculateReadTime(content)} 分钟
               </span>
             </div>
           </div>
 
           {/* 标签和封面 */}
-          <div className="bg-retro-bg-dark/95 rounded-xl border border-retro-border/30 p-6 space-y-4">
+          <div className="bg-gray-900 rounded-xl border border-gray-800 p-6 space-y-4">
             {/* 标签输入 */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2 font-pixel">
+              <label className="block text-sm font-medium text-gray-400 mb-2">
                 标签 (最多5个)
               </label>
               <div className="flex gap-2 mb-2">
@@ -380,7 +371,7 @@ export default function EditBlogPage() {
                       handleAddTag()
                     }
                   }}
-                  className="flex-1 bg-gray-800 border border-gray-700 focus:border-retro-purple rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none text-sm"
+                  className="flex-1 bg-gray-800 border border-gray-700 focus:ring-2 focus:ring-cyan-500 focus:border-transparent rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none text-sm transition-all"
                   maxLength={20}
                   disabled={tags.length >= 5}
                   onFocus={() => {
@@ -397,7 +388,7 @@ export default function EditBlogPage() {
                 <button
                   onClick={handleAddTag}
                   disabled={!tagInput.trim() || tags.length >= 5}
-                  className="px-4 py-2 bg-retro-purple hover:bg-retro-purple/80 text-white rounded-lg disabled:opacity-50 font-pixel text-sm"
+                  className="px-4 py-2 bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed text-sm transition-all"
                 >
                   添加
                 </button>
@@ -409,12 +400,12 @@ export default function EditBlogPage() {
                   {tags.map((tag, index) => (
                     <span
                       key={index}
-                      className="inline-flex items-center gap-2 px-3 py-1 bg-retro-purple/20 text-retro-purple border border-retro-purple/30 rounded-full text-sm font-pixel"
+                      className="inline-flex items-center gap-2 px-3 py-1 bg-cyan-600/20 text-cyan-400 border border-cyan-500/30 rounded-full text-sm"
                     >
                       {tag}
                       <button
                         onClick={() => handleRemoveTag(tag)}
-                        className="hover:text-retro-pink"
+                        className="hover:text-cyan-300 transition-colors"
                       >
                         ×
                       </button>
@@ -426,7 +417,7 @@ export default function EditBlogPage() {
 
             {/* 封面图片URL */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2 font-pixel">
+              <label className="block text-sm font-medium text-gray-400 mb-2">
                 封面图片 URL (可选)
               </label>
               <input
@@ -434,7 +425,7 @@ export default function EditBlogPage() {
                 placeholder="https://example.com/image.jpg"
                 value={coverImage}
                 onChange={(e) => setCoverImage(e.target.value)}
-                className="w-full bg-gray-800 border border-gray-700 focus:border-retro-purple rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none text-sm"
+                className="w-full bg-gray-800 border border-gray-700 focus:ring-2 focus:ring-cyan-500 focus:border-transparent rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none text-sm transition-all"
                 onFocus={() => {
                   if (typeof window !== 'undefined' && (window as any).disableGameKeyboard) {
                     (window as any).disableGameKeyboard()
@@ -450,10 +441,10 @@ export default function EditBlogPage() {
           </div>
 
           {/* Markdown 编辑器 */}
-          <div className="bg-retro-bg-dark/95 rounded-xl border border-retro-border/30 overflow-hidden">
-            <div className="p-4 border-b border-retro-border/30">
-              <h3 className="text-sm font-medium text-gray-300 font-pixel">博客内容</h3>
-              <p className="text-xs text-gray-500 mt-1">支持 Markdown 语法，实时预览</p>
+          <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
+            <div className="p-4 border-b border-gray-800">
+              <h3 className="text-sm font-medium text-gray-400">博客内容 (支持 Markdown)</h3>
+              <p className="text-xs text-gray-500 mt-1">实时预览，支持代码高亮</p>
             </div>
             <div className="p-4">
               <MarkdownEditor
@@ -466,13 +457,13 @@ export default function EditBlogPage() {
           </div>
 
           {/* 底部提示 */}
-          <div className="bg-retro-bg-dark/95 rounded-xl border border-retro-border/30 p-4">
+          <div className="bg-gray-900 rounded-xl border border-gray-800 p-4">
             <div className="flex items-start gap-3 text-sm text-gray-400">
-              <svg className="w-5 h-5 text-retro-cyan flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-cyan-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <div className="space-y-1">
-                <p className="font-pixel">提示：</p>
+                <p className="text-gray-300 font-medium">提示：</p>
                 <ul className="list-disc list-inside space-y-1 text-xs">
                   <li>内容会自动保存草稿，每30秒保存一次</li>
                   <li>支持完整的 Markdown 语法，包括代码高亮</li>

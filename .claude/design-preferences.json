@@ -1,0 +1,153 @@
+{
+  "projectName": "PixelDesk",
+  "designSystem": {
+    "colorScheme": {
+      "primary": {
+        "name": "蓝绿色系 (Cyan & Teal)",
+        "description": "主要用于按钮、链接、高亮等交互元素",
+        "colors": {
+          "cyan": {
+            "400": "#22d3ee",
+            "500": "#06b6d4",
+            "600": "#0891b2"
+          },
+          "teal": {
+            "400": "#2dd4bf",
+            "500": "#14b8a6",
+            "600": "#0d9488"
+          }
+        },
+        "usage": [
+          "主按钮渐变：from-cyan-600 to-teal-600",
+          "悬停效果：from-cyan-500 to-teal-500",
+          "Logo背景：from-cyan-500 to-teal-500",
+          "博客标签：bg-cyan-600/20 text-cyan-400 border-cyan-500/30"
+        ]
+      },
+      "accent": {
+        "name": "强调色 (Orange & Emerald)",
+        "description": "用于特殊状态、数据展示、通知等",
+        "colors": {
+          "orange": {
+            "400": "#fb923c",
+            "500": "#f97316",
+            "600": "#ea580c"
+          },
+          "emerald": {
+            "400": "#34d399",
+            "500": "#10b981",
+            "600": "#059669"
+          }
+        },
+        "usage": [
+          "获赞数统计：from-orange-400 to-amber-400",
+          "积分显示：from-emerald-400 to-green-400",
+          "成功提示：emerald-400",
+          "警告提示：orange-400"
+        ]
+      },
+      "background": {
+        "name": "深色背景系统",
+        "description": "整体采用深色主题，营造专业科技感",
+        "colors": {
+          "gray": {
+            "950": "#030712",
+            "900": "#111827",
+            "800": "#1f2937",
+            "700": "#374151"
+          }
+        },
+        "usage": [
+          "页面背景：bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950",
+          "卡片背景：from-gray-900 to-gray-800",
+          "导航栏：bg-gray-900/80",
+          "输入框：bg-gray-800 border-gray-700"
+        ]
+      },
+      "text": {
+        "name": "文字颜色",
+        "description": "确保在深色背景上有良好的可读性",
+        "colors": {
+          "white": "#ffffff",
+          "gray": {
+            "200": "#e5e7eb",
+            "300": "#d1d5db",
+            "400": "#9ca3af",
+            "500": "#6b7280",
+            "600": "#4b5563"
+          }
+        },
+        "usage": [
+          "主标题：text-white",
+          "正文：text-gray-200 或 text-gray-300",
+          "次要文字：text-gray-400",
+          "提示文字：text-gray-500"
+        ]
+      },
+      "forbidden": {
+        "name": "禁止使用的颜色",
+        "description": "为避免视觉疲劳，以下颜色不应使用",
+        "colors": [
+          "purple (retro-purple, purple-*)",
+          "pink (retro-pink, pink-*)",
+          "violet (violet-*)"
+        ],
+        "reason": "用户反馈：'看吐了'"
+      }
+    },
+    "components": {
+      "button": {
+        "primary": "bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500",
+        "secondary": "bg-gray-800 hover:bg-gray-700 border border-gray-700",
+        "danger": "bg-red-900/30 border border-red-800/50 text-red-300"
+      },
+      "card": {
+        "default": "bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-700",
+        "hover": "hover:border-gray-600"
+      },
+      "input": {
+        "default": "bg-gray-800 border border-gray-700 text-white focus:ring-cyan-500",
+        "disabled": "bg-gray-900 border border-gray-700 text-gray-500 cursor-not-allowed"
+      },
+      "badge": {
+        "blog": "bg-cyan-600/20 text-cyan-400 border border-cyan-500/30",
+        "tag": "bg-gray-800/50 text-gray-400 border border-gray-700/50"
+      },
+      "header": {
+        "background": "bg-gray-900/80 backdrop-blur-sm border-b border-gray-800",
+        "logo": "bg-gradient-to-br from-cyan-500 to-teal-500 shadow-lg shadow-cyan-500/20"
+      }
+    },
+    "branding": {
+      "logo": {
+        "icon": "显示器/桌面图标",
+        "gradient": "from-cyan-500 to-teal-500",
+        "shadow": "shadow-lg shadow-cyan-500/20",
+        "text": {
+          "primary": "PixelDesk",
+          "secondary": "Social Platform"
+        }
+      }
+    }
+  },
+  "guidelines": {
+    "spacing": "使用 Tailwind 默认间距系统",
+    "borderRadius": {
+      "small": "rounded-lg (8px)",
+      "medium": "rounded-xl (12px)",
+      "large": "rounded-2xl (16px)"
+    },
+    "shadows": {
+      "default": "shadow-lg",
+      "hover": "hover:shadow-xl",
+      "glow": "shadow-lg shadow-cyan-500/20"
+    },
+    "transitions": "transition-all duration-300 ease-in-out",
+    "typography": {
+      "heading": "font-bold",
+      "body": "font-normal",
+      "code": "font-mono"
+    }
+  },
+  "notes": "本配色方案于 2025 年创建，旨在提供专业、现代、舒适的用户体验。避免使用紫色系配色。"
+}

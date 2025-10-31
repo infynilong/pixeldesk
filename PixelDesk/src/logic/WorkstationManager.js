@@ -606,7 +606,8 @@ export class WorkstationManager {
                 workstation.userInfo = {
                     name: binding.user?.name,
                     avatar: binding.user?.avatar,
-                    points: binding.user?.points
+                    points: binding.user?.points,
+                    characterSprite: binding.user?.player?.characterSprite // 添加角色精灵字段
                 };
                 workstation.boundAt = binding.boundAt;
 
@@ -988,14 +989,21 @@ export class WorkstationManager {
             workstationDirection: workstation.direction
         });
         
-        // 确定角色图片 - 使用用户选择的角色形象
+        // 确定角色图片 - 优先使用player表的characterSprite
         let characterKey = 'Premade_Character_48x48_01'; // 默认角色
-        if (userInfo && (userInfo.character || userInfo.avatar)) {
-            // 优先使用用户选择的角色形象
-            characterKey = userInfo.character || userInfo.avatar;
+        if (userInfo) {
+            // 优先使用player表的characterSprite，其次是character字段，最后是avatar（如果是角色精灵格式）
+            if (userInfo.characterSprite && userInfo.characterSprite.includes('Premade_Character')) {
+                characterKey = userInfo.characterSprite;
+            } else if (userInfo.character && userInfo.character.includes('Premade_Character')) {
+                characterKey = userInfo.character;
+            } else if (userInfo.avatar && userInfo.avatar.includes('Premade_Character')) {
+                characterKey = userInfo.avatar;
+            }
         }
         debugLog(`🎨 [addCharacterToWorkstation] 角色图片选择:`, {
             characterKey,
+            userInfoCharacterSprite: userInfo?.characterSprite,
             userInfoCharacter: userInfo?.character,
             userInfoAvatar: userInfo?.avatar,
             finalKey: characterKey
@@ -1696,7 +1704,8 @@ export class WorkstationManager {
         workstation.userInfo = {
             name: binding.user?.name,
             avatar: binding.user?.avatar,
-            points: binding.user?.points
+            points: binding.user?.points,
+            characterSprite: binding.user?.player?.characterSprite // 添加角色精灵字段
         };
         workstation.boundAt = binding.boundAt;
         workstation.expiresAt = binding.expiresAt;

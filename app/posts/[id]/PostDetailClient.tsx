@@ -9,6 +9,7 @@ import { usePostReplies } from '@/lib/hooks/usePostReplies'
 import UserAvatar from '@/components/UserAvatar'
 import CreateReplyForm from '@/components/CreateReplyForm'
 import MarkdownRenderer from '@/components/MarkdownRenderer'
+import Link from 'next/link'
 
 interface PostDetailClientProps {
   initialPost: Post
@@ -117,10 +118,10 @@ export default function PostDetailClient({ initialPost }: PostDetailClientProps)
       {/* 登录提示模态框 */}
       {showLoginPrompt && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-          <div className="bg-gradient-to-br from-gray-900 to-gray-800 border border-retro-purple/30 rounded-xl p-6 max-w-md mx-4">
+          <div className="bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-700 rounded-xl p-6 max-w-md mx-4 shadow-2xl">
             <div className="text-center space-y-4">
               {/* 图标 */}
-              <div className="w-16 h-16 bg-gradient-to-br from-retro-purple to-retro-blue rounded-full flex items-center justify-center mx-auto">
+              <div className="w-16 h-16 bg-gradient-to-br from-cyan-600 to-teal-600 rounded-full flex items-center justify-center mx-auto shadow-lg shadow-cyan-500/20">
                 <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                 </svg>
@@ -128,15 +129,15 @@ export default function PostDetailClient({ initialPost }: PostDetailClientProps)
 
               {/* 标题和消息 */}
               <div>
-                <h3 className="text-xl font-bold text-white mb-2 font-retro">需要登录</h3>
-                <p className="text-gray-300 text-sm font-pixel">请先登录后再进行操作</p>
+                <h3 className="text-xl font-bold text-white mb-2">需要登录</h3>
+                <p className="text-gray-300 text-sm">请先登录后再进行操作</p>
               </div>
 
               {/* 按钮 */}
               <div className="flex gap-3 pt-2">
                 <button
                   onClick={() => setShowLoginPrompt(false)}
-                  className="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded-lg border border-gray-600 font-pixel text-sm"
+                  className="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded-lg border border-gray-600 text-sm transition-all"
                 >
                   取消
                 </button>
@@ -145,7 +146,7 @@ export default function PostDetailClient({ initialPost }: PostDetailClientProps)
                     setShowLoginPrompt(false)
                     router.push('/')
                   }}
-                  className="flex-1 bg-gradient-to-r from-retro-purple to-retro-blue hover:from-retro-blue hover:to-retro-cyan text-white font-bold py-2 px-4 rounded-lg border border-white/20 font-pixel text-sm"
+                  className="flex-1 bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-white font-bold py-2 px-4 rounded-lg text-sm transition-all"
                 >
                   前往登录
                 </button>
@@ -156,36 +157,34 @@ export default function PostDetailClient({ initialPost }: PostDetailClientProps)
       )}
 
       {/* 导航栏 */}
-      <nav className="bg-retro-bg-dark/95 backdrop-blur-sm border-b border-retro-border/20 sticky top-0 z-10">
+      <nav className="bg-gray-900/80 backdrop-blur-sm border-b border-gray-800 sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-retro-purple to-retro-pink rounded-lg flex items-center justify-center">
-                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+            {/* Logo */}
+            <button
+              onClick={() => router.push('/')}
+              className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+            >
+              <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-teal-500 rounded-xl flex items-center justify-center shadow-lg shadow-cyan-500/20">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
               </div>
-              <div>
-                <h1 className="text-xl font-bold text-white font-pixel">帖子详情</h1>
-                <p className="text-xs text-retro-textMuted">PixelDesk 社交平台</p>
+              <div className="flex flex-col">
+                <span className="text-white font-bold text-lg">PixelDesk</span>
+                <span className="text-gray-400 text-xs font-mono">Social Platform</span>
               </div>
-            </div>
+            </button>
 
             <div className="flex items-center space-x-2">
               {isAuthor && (
                 <button
                   onClick={() => router.push(`/posts/${post.id}/edit`)}
-                  className="px-4 py-2 bg-retro-purple/20 hover:bg-retro-purple/30 text-retro-purple rounded-lg border border-retro-purple/30 hover:border-retro-purple/50 text-sm font-medium"
+                  className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-cyan-400 rounded-lg border border-gray-700 hover:border-cyan-500/50 text-sm font-medium transition-all"
                 >
                   编辑
                 </button>
               )}
-              <button
-                onClick={() => router.push('/')}
-                className="px-4 py-2 bg-retro-blue/20 hover:bg-retro-blue/30 text-retro-blue rounded-lg border border-retro-blue/30 hover:border-retro-blue/50 text-sm font-medium"
-              >
-                返回主页
-              </button>
             </div>
           </div>
         </div>
@@ -195,7 +194,7 @@ export default function PostDetailClient({ initialPost }: PostDetailClientProps)
       <main className="max-w-4xl mx-auto px-4 py-8">
         <div className="space-y-8">
           {/* 帖子内容卡片 */}
-          <article className="bg-retro-bg-dark/95 rounded-xl border border-retro-border/10">
+          <article className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl overflow-hidden">
             <div className="p-8">
               {/* 作者信息 */}
               <header className="flex items-start space-x-6 mb-6">
@@ -208,9 +207,14 @@ export default function PostDetailClient({ initialPost }: PostDetailClientProps)
                 />
                 <div className="flex-1">
                   <div className="flex items-center space-x-3 mb-2">
-                    <h2 className="font-bold text-white text-2xl">
+                    <Link
+                      href={`/profile/${post.author.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-bold text-white hover:text-cyan-400 text-2xl transition-colors"
+                    >
                       {post.author.name}
-                    </h2>
+                    </Link>
                     <span className="text-retro-textMuted">•</span>
                     <time className="text-retro-textMuted" dateTime={post.createdAt}>
                       {formatTimeAgo(post.createdAt)}
@@ -227,7 +231,7 @@ export default function PostDetailClient({ initialPost }: PostDetailClientProps)
                   {/* 博客元信息 */}
                   {post.type === 'MARKDOWN' && (
                     <div className="flex items-center gap-4 text-sm text-gray-400 mt-3">
-                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-retro-purple/20 text-retro-purple border border-retro-purple/20 rounded font-pixel text-xs">
+                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-cyan-600/20 text-cyan-400 border border-cyan-500/30 rounded font-pixel text-xs">
                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                         </svg>
@@ -265,7 +269,7 @@ export default function PostDetailClient({ initialPost }: PostDetailClientProps)
 
               {/* 封面图片 */}
               {post.type === 'MARKDOWN' && post.coverImage && (
-                <div className="mb-6 overflow-hidden rounded-xl border border-retro-border/10">
+                <div className="mb-6 overflow-hidden rounded-xl">
                   <img
                     src={post.coverImage}
                     alt="Cover"
@@ -279,7 +283,7 @@ export default function PostDetailClient({ initialPost }: PostDetailClientProps)
                 {post.type === 'MARKDOWN' ? (
                   <MarkdownRenderer content={post.content} />
                 ) : (
-                  <p className="text-retro-text whitespace-pre-wrap leading-relaxed text-lg">
+                  <p className="text-gray-200 whitespace-pre-wrap leading-relaxed text-lg">
                     {post.content}
                   </p>
                 )}
@@ -297,50 +301,44 @@ export default function PostDetailClient({ initialPost }: PostDetailClientProps)
               </div>
 
               {/* 统计和操作 */}
-              <footer className="flex items-center justify-between pt-6 border-t border-retro-border/10">
+              <footer className="flex items-center justify-between pt-6 border-t border-gray-800">
                 <div className="flex items-center space-x-6">
                   {/* 浏览数 */}
-                  <div className="flex items-center space-x-3 text-retro-textMuted">
-                    <div className="w-6 h-6 bg-retro-cyan/20 rounded-lg flex items-center justify-center">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                      </svg>
-                    </div>
-                    <span className="font-medium">{post.viewCount} 次浏览</span>
+                  <div className="flex items-center space-x-2 text-gray-400">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                    <span className="text-sm font-medium">{post.viewCount}</span>
                   </div>
 
                   {/* 回复数 */}
-                  <div className="flex items-center space-x-3 text-retro-textMuted">
-                    <div className="w-6 h-6 bg-retro-blue/20 rounded-lg flex items-center justify-center">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                      </svg>
-                    </div>
-                    <span className="font-medium">{post.replyCount} 条回复</span>
+                  <div className="flex items-center space-x-2 text-gray-400">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                    <span className="text-sm font-medium">{post.replyCount}</span>
                   </div>
 
                   {/* 点赞按钮 */}
                   <button
                     onClick={handleLike}
                     disabled={isLiking}
-                    className={`flex items-center space-x-3 px-4 py-2 rounded-xl font-medium ${
+                    className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all ${
                       post.isLiked
-                        ? 'text-retro-pink bg-retro-pink/15 border border-retro-pink/30'
-                        : 'text-retro-textMuted hover:text-retro-pink hover:bg-retro-pink/10 border border-retro-border/20 hover:border-retro-pink/30'
+                        ? 'text-orange-400 bg-orange-500/10 hover:bg-orange-500/20'
+                        : 'text-gray-400 hover:text-orange-400 hover:bg-gray-800'
                     } ${isLiking ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105 active:scale-95'}`}
                   >
-                    <div className={`w-6 h-6 ${post.isLiked ? 'bg-retro-pink/30' : 'bg-retro-textMuted/20'} rounded-lg flex items-center justify-center`}>
-                      <svg
-                        className={`w-4 h-4 ${post.isLiked ? 'fill-current text-retro-pink' : ''}`}
-                        fill={post.isLiked ? 'currentColor' : 'none'}
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                      </svg>
-                    </div>
-                    <span>{post.likeCount} 赞</span>
+                    <svg
+                      className={`w-5 h-5 ${post.isLiked ? 'fill-current' : ''}`}
+                      fill={post.isLiked ? 'currentColor' : 'none'}
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                    </svg>
+                    <span className="text-sm">{post.likeCount}</span>
                   </button>
                 </div>
               </footer>
@@ -348,10 +346,10 @@ export default function PostDetailClient({ initialPost }: PostDetailClientProps)
           </article>
 
           {/* 回复区域 */}
-          <section className="bg-retro-bg-dark/95 rounded-xl border border-retro-border/10">
+          <section className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl overflow-hidden">
             <div className="p-8 space-y-6">
-              <div className="flex items-center gap-3 pb-4 border-b border-retro-border/10">
-                <svg className="w-6 h-6 text-retro-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="flex items-center gap-3 pb-4 border-b border-gray-800">
+                <svg className="w-6 h-6 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                 </svg>
                 <h3 className="text-2xl font-bold text-white">
@@ -372,12 +370,12 @@ export default function PostDetailClient({ initialPost }: PostDetailClientProps)
 
               {/* 错误显示 */}
               {repliesError && (
-                <div className="p-4 bg-retro-red/10 border border-retro-red/20 rounded-xl">
+                <div className="p-4 bg-red-900/20 border border-red-800/50 rounded-lg">
                   <div className="flex items-center gap-3">
-                    <div className="w-5 h-5 bg-retro-red/20 rounded flex items-center justify-center">
-                      <span className="text-sm">⚠️</span>
-                    </div>
-                    <span className="text-retro-red font-pixel">{repliesError}</span>
+                    <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span className="text-red-300 text-sm">{repliesError}</span>
                   </div>
                 </div>
               )}
@@ -386,9 +384,9 @@ export default function PostDetailClient({ initialPost }: PostDetailClientProps)
               {isLoadingReplies && replies.length === 0 && (
                 <div className="flex items-center justify-center py-12">
                   <div className="flex items-center gap-4">
-                    <div className="w-4 h-4 bg-retro-blue rounded-full animate-pulse"></div>
-                    <div className="w-4 h-4 bg-retro-cyan rounded-full animate-pulse" style={{ animationDelay: '150ms' }}></div>
-                    <div className="w-4 h-4 bg-retro-green rounded-full animate-pulse" style={{ animationDelay: '300ms' }}></div>
+                    <div className="w-3 h-3 bg-cyan-500 rounded-full animate-pulse"></div>
+                    <div className="w-3 h-3 bg-teal-500 rounded-full animate-pulse" style={{ animationDelay: '150ms' }}></div>
+                    <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse" style={{ animationDelay: '300ms' }}></div>
                   </div>
                 </div>
               )}
@@ -397,7 +395,7 @@ export default function PostDetailClient({ initialPost }: PostDetailClientProps)
               {replies.length > 0 && (
                 <div className="space-y-4">
                   {replies.map((reply) => (
-                    <div key={reply.id} className="bg-retro-bg-darker/40 rounded-xl p-6 border border-retro-border/10">
+                    <div key={reply.id} className="bg-gray-800/50 hover:bg-gray-800/70 rounded-xl p-6 transition-all">
                       <div className="flex items-start space-x-4">
                         {/* 回复者头像 */}
                         <div className="flex-shrink-0 pt-1">
@@ -413,15 +411,20 @@ export default function PostDetailClient({ initialPost }: PostDetailClientProps)
                         {/* 回复内容 */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center space-x-3 mb-3">
-                            <span className="font-bold text-white">
+                            <Link
+                              href={`/profile/${reply.author.id}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="font-bold text-white hover:text-cyan-400 transition-colors"
+                            >
                               {reply.author.name}
-                            </span>
-                            <span className="text-retro-textMuted">•</span>
-                            <time className="text-sm text-retro-textMuted" dateTime={reply.createdAt}>
+                            </Link>
+                            <span className="text-gray-600">•</span>
+                            <time className="text-sm text-gray-400" dateTime={reply.createdAt}>
                               {formatTimeAgo(reply.createdAt)}
                             </time>
                           </div>
-                          <p className="text-retro-text leading-relaxed">
+                          <p className="text-gray-200 leading-relaxed">
                             {reply.content}
                           </p>
                         </div>
@@ -434,13 +437,13 @@ export default function PostDetailClient({ initialPost }: PostDetailClientProps)
               {/* 没有回复时的空状态 */}
               {!isLoadingReplies && replies.length === 0 && (
                 <div className="text-center py-12">
-                  <div className="w-16 h-16 bg-retro-blue/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                    <svg className="w-8 h-8 text-retro-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="w-16 h-16 bg-gray-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                     </svg>
                   </div>
                   <h4 className="text-xl font-semibold text-white mb-2">还没有回复</h4>
-                  <p className="text-retro-textMuted">成为第一个回复的人!</p>
+                  <p className="text-gray-400">成为第一个回复的人!</p>
                 </div>
               )}
 
@@ -450,7 +453,7 @@ export default function PostDetailClient({ initialPost }: PostDetailClientProps)
                   <button
                     onClick={loadMoreReplies}
                     disabled={isLoadingReplies}
-                    className="px-8 py-3 bg-retro-purple/10 hover:bg-retro-purple/20 text-retro-purple rounded-xl border border-retro-purple/20 hover:border-retro-purple/50 disabled:opacity-50 font-medium"
+                    className="px-8 py-3 bg-gray-800 hover:bg-gray-700 text-cyan-400 rounded-lg border border-gray-700 hover:border-cyan-500/50 disabled:opacity-50 font-medium transition-all"
                   >
                     {isLoadingReplies ? '加载中...' : `加载更多回复 (${repliesPagination.totalPages - repliesPagination.page})`}
                   </button>

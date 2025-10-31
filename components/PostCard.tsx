@@ -5,6 +5,7 @@ import { Post, CreateReplyData } from '@/types/social'
 import UserAvatar from './UserAvatar'
 import CreateReplyForm from './CreateReplyForm'
 import { usePostReplies } from '@/lib/hooks/usePostReplies'
+import Link from 'next/link'
 
 interface PostCardProps {
   post: Post
@@ -122,9 +123,15 @@ export default function PostCard({
           {/* 作者信息和时间 */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center space-x-2 mb-1">
-              <h4 className="font-medium text-gray-200 text-sm truncate">
+              <Link
+                href={`/profile/${post.author.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="font-medium text-gray-200 hover:text-cyan-400 text-sm truncate transition-colors"
+              >
                 {post.author.name}
-              </h4>
+              </Link>
               <span className="text-gray-600">•</span>
               <span className="text-xs text-gray-500 font-mono">
                 {formatTimeAgo(post.createdAt)}
@@ -146,7 +153,7 @@ export default function PostCard({
         {/* 博客类型标识 */}
         {post.type === 'MARKDOWN' && (
           <div className="flex items-center gap-3 mb-3">
-            <span className="inline-flex items-center gap-1 px-2 py-1 bg-retro-purple/20 text-retro-purple border border-retro-purple/30 rounded text-xs font-pixel">
+            <span className="inline-flex items-center gap-1 px-2 py-1 bg-cyan-600/20 text-cyan-400 border border-cyan-500/30 rounded text-xs font-pixel">
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
               </svg>

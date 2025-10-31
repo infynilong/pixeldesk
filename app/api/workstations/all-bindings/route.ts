@@ -29,7 +29,12 @@ export async function GET() {
             name: true,
             email: true,
             avatar: true,
-            points: true
+            points: true,
+            player: {
+              select: {
+                characterSprite: true
+              }
+            }
           }
         }
       },
