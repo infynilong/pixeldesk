@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, memo } from 'react'
+import { useState, useCallback, memo, useEffect } from 'react'
 
 interface WorkstationBindingModalProps {
   isVisible: boolean
@@ -11,17 +11,41 @@ interface WorkstationBindingModalProps {
   onClose: () => void
 }
 
-const WorkstationBindingModal = memo(({ 
-  isVisible, 
-  workstation, 
-  user, 
-  onConfirm, 
+const WorkstationBindingModal = memo(({
+  isVisible,
+  workstation,
+  user,
+  onConfirm,
   onCancel,
-  onClose 
+  onClose
 }: WorkstationBindingModalProps) => {
   const [isProcessing, setIsProcessing] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [messageType, setMessageType] = useState<'info' | 'success' | 'error'>('info')
+  const [bindCost, setBindCost] = useState(10) // 默认10积分，从配置加载
+
+  // 加载积分配置
+  useEffect(() => {
+    const loadConfig = async () => {
+      try {
+        const response = await fetch('/api/points-config?key=bind_workstation_cost')
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success && data.data) {
+            setBindCost(data.data.value)
+            console.log('✅ 加载绑定工位积分配置:', data.data.value)
+          }
+        }
+      } catch (error) {
+        console.error('加载积分配置失败:', error)
+        // 使用默认值
+      }
+    }
+
+    if (isVisible) {
+      loadConfig()
+    }
+  }, [isVisible])
 
   // 重置状态
   const resetState = useCallback(() => {
@@ -87,7 +111,7 @@ const WorkstationBindingModal = memo(({
 
   // 计算用户可用积分
   const userPoints = user.points || user.gold || 0
-  const canAfford = userPoints >= 5
+  const canAfford = userPoints >= bindCost
 
   return (
     <div
@@ -206,7 +230,7 @@ const WorkstationBindingModal = memo(({
                     <div className="w-4 h-4 bg-retro-yellow/30 rounded flex items-center justify-center">
                       <span className="text-xs">💎</span>
                     </div>
-                    <span className="text-retro-yellow font-bold text-sm font-pixel">5</span>
+                    <span className="text-retro-yellow font-bold text-sm font-pixel">{bindCost}</span>
                   </div>
                 </div>
                 <div className="flex items-center justify-between bg-gradient-to-r from-retro-bg-darker/30 to-retro-bg-dark/30 rounded-lg p-3 border border-retro-border/30">
@@ -245,7 +269,7 @@ const WorkstationBindingModal = memo(({
                     <div className="w-4 h-4 bg-retro-green/30 rounded flex items-center justify-center">
                       <span className="text-xs">✓</span>
                     </div>
-                    <span className="text-retro-green font-bold text-sm font-pixel">{Math.max(0, userPoints - 5)}</span>
+                    <span className="text-retro-green font-bold text-sm font-pixel">{Math.max(0, userPoints - bindCost)}</span>
                   </div>
                 </div>
               </div>
@@ -263,7 +287,7 @@ const WorkstationBindingModal = memo(({
                       <div className="text-center">
                         <div className="text-retro-red font-bold text-sm font-pixel tracking-wide">INSUFFICIENT POINTS</div>
                         <p className="text-retro-red/80 text-xs font-retro mt-1">
-                          Need at least 5 points to bind workstation
+                          Need at least {bindCost} points to bind workstation
                         </p>
                       </div>
                     </div>

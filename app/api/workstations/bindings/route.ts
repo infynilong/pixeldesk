@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { getPointsConfig } from '@/lib/pointsManager'
 
 export async function GET(request: NextRequest) {
   try {
@@ -24,8 +25,8 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId, workstationId, cost } = await request.json()
-    
+    const { userId, workstationId } = await request.json()
+
     if (!userId || !workstationId) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
@@ -36,13 +37,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid workstation ID' }, { status: 400 })
     }
 
+    // 从配置中获取绑定工位所需的积分
+    const cost = await getPointsConfig('bind_workstation_cost')
+    console.log(`💰 绑定工位所需积分: ${cost}`)
+
     // 检查用户积分
     const user = await prisma.user.findUnique({
       where: { id: userId }
     })
 
-    if (!user || (user.points < cost)) {
-      return NextResponse.json({ error: 'Insufficient points' }, { status: 400 })
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
+
+    if (user.points < cost) {
+      return NextResponse.json({
+        error: 'Insufficient points',
+        required: cost,
+        current: user.points
+      }, { status: 400 })
     }
 
     // 检查用户是否已经绑定了其他工位（一个用户只能绑定一个工位）

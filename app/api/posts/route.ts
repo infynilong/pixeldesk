@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { rewardPoints } from '@/lib/pointsManager'
 
 // 获取帖子列表
 export async function GET(request: NextRequest) {
@@ -191,6 +192,22 @@ export async function POST(request: NextRequest) {
         }
       }
     })
+
+    // 奖励积分（仅对已发布的非草稿帖子）
+    if (!isDraft) {
+      const rewardKey = type === 'MARKDOWN' ? 'create_blog_reward' : 'create_post_reward'
+      const postTypeText = type === 'MARKDOWN' ? '博客' : '帖子'
+
+      rewardPoints(userId, rewardKey, `发布${postTypeText} ${post.id}`)
+        .then(reward => {
+          if (reward.success) {
+            console.log(`✨ [POST posts] 用户 ${userId} 发布${postTypeText}获得 ${reward.points} 积分奖励`)
+          }
+        })
+        .catch(err => {
+          console.error('❌ [POST posts] 积分奖励失败:', err)
+        })
+    }
 
     return NextResponse.json({
       success: true,

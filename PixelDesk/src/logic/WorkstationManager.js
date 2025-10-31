@@ -261,12 +261,12 @@ export class WorkstationManager {
         });
 
         // 调用后端API保存绑定信息并扣除积分
+        // pointsCost 已从配置中读取，不再传递
         const saveResult = await this.saveWorkstationBinding(workstationId, {
             userId,
             userInfo,
             boundAt: workstation.boundAt,
-            expiresAt: workstation.expiresAt,
-            pointsCost: 5
+            expiresAt: workstation.expiresAt
         });
         
         if (!saveResult.success) {
@@ -806,8 +806,8 @@ export class WorkstationManager {
                 },
                 body: JSON.stringify({
                     userId: bindingData.userId,
-                    workstationId: workstationId,
-                    cost: bindingData.pointsCost
+                    workstationId: workstationId
+                    // cost 参数已从配置中读取，不再由前端传递
                 })
             });
 
@@ -913,25 +913,22 @@ export class WorkstationManager {
     async purchaseWorkstation(workstationId, userId, userInfo) {
         debugLog(`用户 ${userId} 尝试购买工位 ${workstationId}, 当前积分: ${userInfo.points || 0}`);
 
-        // 检查用户积分是否足够
-        const userPoints = userInfo.points || 0;
-        if (userPoints < 5) {
-            return { success: false, error: '积分不足，需要5积分' };
-        }
+        // 积分检查已移至后端 API，由配置动态决定所需积分
+        // 前端只需确保用户信息有效即可
 
-        // 直接绑定工位 - 积分扣除在 saveWorkstationBinding 中通过API处理
+        // 直接绑定工位 - 积分检查和扣除在 saveWorkstationBinding 中通过API处理
         const bindResult = await this.bindUserToWorkstation(workstationId, userId, userInfo);
         if (!bindResult.success) {
             console.error('工位绑定失败:', bindResult.error);
             return bindResult;
         }
 
-        debugLog(`工位购买成功，剩余积分: ${bindResult.remainingPoints || userPoints - 5}`);
-        
-        return { 
-            success: true, 
+        debugLog(`工位购买成功，剩余积分: ${bindResult.remainingPoints}`);
+
+        return {
+            success: true,
             workstation: bindResult.workstation,
-            remainingPoints: bindResult.remainingPoints || userPoints - 5
+            remainingPoints: bindResult.remainingPoints
         };
     }
     
@@ -1457,9 +1454,23 @@ export class WorkstationManager {
 
         // 计算传送位置（工位前方）
         const teleportPosition = this.calculateTeleportPosition(workstation);
-        
-        // 扣除积分（1积分）
-        const pointsResult = await this.updateUserPoints(userId, -1);
+
+        // 从配置获取传送所需积分
+        let teleportCost = 3; // 默认值
+        try {
+            const configResponse = await fetch('/api/points-config?key=teleport_workstation_cost');
+            if (configResponse.ok) {
+                const configData = await configResponse.json();
+                if (configData.success && configData.data) {
+                    teleportCost = configData.data.value;
+                }
+            }
+        } catch (error) {
+            console.error('获取传送积分配置失败，使用默认值:', error);
+        }
+
+        // 扣除积分
+        const pointsResult = await this.updateUserPoints(userId, -teleportCost);
         if (!pointsResult.success) {
             console.error('扣除积分失败:', pointsResult.error);
             return { success: false, error: '积分扣除失败' };
@@ -1471,22 +1482,22 @@ export class WorkstationManager {
             player.teleportTo(teleportPosition.x, teleportPosition.y, teleportPosition.direction);
         }
 
-        debugLog(`用户 ${userId} 快速回到工位，扣除1积分，剩余积分: ${pointsResult.newPoints}`);
-        
+        debugLog(`用户 ${userId} 快速回到工位，扣除${teleportCost}积分，剩余积分: ${pointsResult.newPoints}`);
+
         // 触发事件
         this.scene.events.emit('teleport-to-workstation', {
             userId,
             workstationId: workstation.id,
             position: teleportPosition,
-            pointsDeducted: 1,
+            pointsDeducted: teleportCost,
             remainingPoints: pointsResult.newPoints
         });
 
-        return { 
-            success: true, 
+        return {
+            success: true,
             workstation,
             position: teleportPosition,
-            pointsDeducted: 1,
+            pointsDeducted: teleportCost,
             remainingPoints: pointsResult.newPoints
         };
     }
