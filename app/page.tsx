@@ -18,6 +18,7 @@ import {
 // 声明全局函数的类型
 declare global {
   interface Window {
+    isUserAuthenticated: boolean // 用户是否已真正登录（非临时用户）
     setWorkstationBindingModal: (modalState: any) => void
     showWorkstationInfo: (workstationId: number, userId: string) => void
     showPlayerInfo: (userId: string, userInfo: any) => void
@@ -98,12 +99,20 @@ export default function Home() {
   // 认证相关状态
   const { user, isLoading, playerExists, setPlayerExists } = useUser()
   const [showCharacterCreation, setShowCharacterCreation] = useState(false)
-  
+
   // 临时玩家状态
   const [isTemporaryPlayer, setIsTemporaryPlayer] = useState(false)
   const [showAuthPrompt, setShowAuthPrompt] = useState(false)
   const [authPromptMessage, setAuthPromptMessage] = useState('')
   const [showAuthModal, setShowAuthModal] = useState(false)
+
+  // 设置全局登录状态标志
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.isUserAuthenticated = !!user
+      console.log('🔐 用户认证状态已更新:', window.isUserAuthenticated)
+    }
+  }, [user])
 
   // 帖子详情弹窗状态
   const [postDetailModal, setPostDetailModal] = useState({
