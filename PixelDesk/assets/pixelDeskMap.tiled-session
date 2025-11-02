@@ -46,7 +46,7 @@
             "selectedLayer": 1,
             "viewCenter": {
                 "x": 5608,
-                "y": 2088
+                "y": 2092
             }
         },
         "/Users/jiangyilong/project/PixelDesk/public/assets/officemap.json#bathroom": {
@@ -83,6 +83,29 @@
         },
         "/Users/jiangyilong/project/PixelDesk/public/assets/officemap.json#room_floor_tileset": {
             "dynamicWrapping": false,
+            "scaleInDock": 1
+        },
+        "/Users/jiangyilong/project/PixelDesk/public/assets/officemap.tmx": {
+            "scale": 0.015625,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 5760,
+                "y": 4640
+            }
+        },
+        "/Users/jiangyilong/project/PixelDesk/public/assets/officemap.tmx#bathroom": {
+            "scaleInDock": 1
+        },
+        "/Users/jiangyilong/project/PixelDesk/public/assets/officemap.tmx#characters_list": {
+            "scaleInDock": 1
+        },
+        "/Users/jiangyilong/project/PixelDesk/public/assets/officemap.tmx#ice_creem_floor": {
+            "scaleInDock": 1
+        },
+        "/Users/jiangyilong/project/PixelDesk/public/assets/officemap.tmx#library_tileset": {
+            "scaleInDock": 1
+        },
+        "/Users/jiangyilong/project/PixelDesk/public/assets/officemap.tmx#room_floor_tileset": {
             "scaleInDock": 1
         },
         "industial-map/town.tmx": {
@@ -167,6 +190,7 @@
     "project": "pixelDeskMap.tiled-project",
     "property.type": "string",
     "recentFiles": [
+        "/Users/jiangyilong/project/PixelDesk/public/assets/officemap.tmx",
         "/Users/jiangyilong/project/PixelDesk/public/assets/officemap.json",
         "officemap.tmx",
         "industial-map/town.tmx",
