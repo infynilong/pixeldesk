@@ -942,39 +942,39 @@ export class Start extends Phaser.Scene {
   }
 
   addDeskCollision(sprite, obj) {
-    // 启用sprite的物理特性
-    this.physics.world.enable(sprite)
-    sprite.body.setImmovable(true)
+    // 🔧 修复：先添加到staticGroup，让group管理物理体
+    // staticGroup会自动为成员启用物理并设置为immovable
+    this.deskColliders.add(sprite)
 
     // 根据桌子类型调整碰撞边界
     const collisionSettings = this.getCollisionSettings(obj)
-    const originalWidth = sprite.body.width
-    const originalHeight = sprite.body.height
 
-    // 计算新的碰撞边界大小
-    const newWidth = originalWidth * collisionSettings.scaleX
-    const newHeight = originalHeight * collisionSettings.scaleY
+    // 🔧 添加到group后，物理体才被创建，现在可以调整碰撞边界
+    if (sprite.body) {
+      const originalWidth = sprite.body.width
+      const originalHeight = sprite.body.height
 
-    // 设置碰撞边界大小（居中）
-    sprite.body.setSize(newWidth, newHeight, true)
+      // 计算新的碰撞边界大小
+      const newWidth = originalWidth * collisionSettings.scaleX
+      const newHeight = originalHeight * collisionSettings.scaleY
 
-    // 如果需要偏移碰撞边界
-    if (collisionSettings.offsetX !== 0 || collisionSettings.offsetY !== 0) {
-      sprite.body.setOffset(
-        collisionSettings.offsetX,
-        collisionSettings.offsetY
-      )
+      // 设置碰撞边界大小（居中）
+      sprite.body.setSize(newWidth, newHeight, true)
+
+      // 如果需要偏移碰撞边界
+      if (collisionSettings.offsetX !== 0 || collisionSettings.offsetY !== 0) {
+        sprite.body.setOffset(
+          collisionSettings.offsetX,
+          collisionSettings.offsetY
+        )
+      }
+
+      // 确保是静止的
+      sprite.body.setImmovable(true)
     }
 
-    // 🔧 性能优化：只添加到碰撞组，不单独创建碰撞器
-    // 在create()中会创建一个针对整个group的碰撞器
-    this.deskColliders.add(sprite)
-
-    // 🔧 删除了单个sprite的碰撞器创建，避免创建成百上千个碰撞器
-    // 之前的代码：
-    // this.physics.add.collider(this.player, sprite)  // ❌ 性能杀手
-    //
-    // 现在使用group碰撞器（在setupPlayerCollisions中创建）：
+    // 🔧 性能优化：不单独创建碰撞器
+    // group碰撞器在ensurePlayerDeskCollider()中创建
     // this.physics.add.collider(this.player, this.deskColliders)  // ✅ 只有1个碰撞器
   }
 

@@ -187,46 +187,15 @@ export class Player extends Phaser.GameObjects.Container {
             }, 200); // 200ms防抖延迟
         }
 
-        // 保存到数据库（低频率，每5秒）
-        const now = Date.now();
-        if (now - this.lastDbSave > this.dbSaveInterval && !this.dbSaveTimer) {
-            this.dbSaveTimer = setTimeout(async () => {
-                const state = {
-                    x: this.x,
-                    y: this.y,
-                    direction: this.currentDirection
-                };
-
-                try {
-                    // 直接使用 fetch 调用 API，避免模块导入问题
-                    const response = await fetch('/api/player', {
-                        method: 'PUT',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        credentials: 'include',
-                        body: JSON.stringify({
-                            currentX: Math.round(this.x),
-                            currentY: Math.round(this.y),
-                            currentScene: 'Start',
-                            playerState: state
-                        })
-                    });
-
-                    if (response.ok) {
-                        debugLog('💾 Player position saved to database:', Math.round(this.x), Math.round(this.y));
-                        this.lastDbSave = Date.now();
-                    } else {
-                        debugWarn('⚠️ Failed to save player position, status:', response.status);
-                    }
-                } catch (error) {
-                    debugWarn('⚠️ Failed to save player position to database:', error);
-                    // 不抛出错误，localStorage 保存仍然成功
-                }
-
-                this.dbSaveTimer = null;
-            }, 100); // 短暂延迟以批量处理
-        }
+        // 🔧 性能优化：禁用数据库保存，避免频繁HTTP请求消耗CPU
+        // 玩家位置已保存到localStorage，数据库同步不是必需的
+        // 保存到数据库（低频率，每5秒）- 已禁用
+        // const now = Date.now();
+        // if (now - this.lastDbSave > this.dbSaveInterval && !this.dbSaveTimer) {
+        //     this.dbSaveTimer = setTimeout(async () => {
+        //         // ... 数据库保存代码已禁用
+        //     }, 100);
+        // }
     }
     
     // 从localStorage获取保存的玩家状态
