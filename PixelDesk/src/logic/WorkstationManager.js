@@ -120,13 +120,17 @@ export class WorkstationManager {
     }
 
     setupInteraction(workstation) {
-        if (workstation.sprite) {
-            workstation.sprite.setInteractive();
-            workstation.sprite.on('pointerdown', () => this.onWorkstationClick(workstation.id));
-            workstation.sprite.on('pointerover', () => this.onWorkstationHover(workstation.id));
-            workstation.sprite.on('pointerout', () => this.onWorkstationOut(workstation.id));
+        // 区块系统：只有当sprite存在时才设置交互
+        if (!workstation.sprite) {
+            debugLog(`⚠️ 工位 ${workstation.id} 的sprite不存在，跳过交互设置（可能在未加载的区块中）`);
+            return;
         }
-        
+
+        workstation.sprite.setInteractive();
+        workstation.sprite.on('pointerdown', () => this.onWorkstationClick(workstation.id));
+        workstation.sprite.on('pointerover', () => this.onWorkstationHover(workstation.id));
+        workstation.sprite.on('pointerout', () => this.onWorkstationOut(workstation.id));
+
         // 为未占用的工位添加交互图标
         if (!workstation.isOccupied) {
             this.addInteractionIcon(workstation);
@@ -688,17 +692,21 @@ export class WorkstationManager {
             return; // 只处理当前用户的工位
         }
 
-        // 不再使用边框，改用工位自身的 tint 颜色来标识
-        if (workstation.sprite) {
-            // 根据到期状态选择颜色
-            const tintColor = workstation.isExpiringSoon
-                ? this.config.expiringSoonTint  // 橙色警告
-                : this.config.userOwnedTint;    // 金黄色
-
-            workstation.sprite.setTint(tintColor);
-
-            debugLog(`✨ [addUserWorkstationHighlight] 为当前用户工位 ${workstation.id} 设置 ${workstation.isExpiringSoon ? '橙色警告' : '金黄色'} tint`);
+        // 区块系统：检查sprite是否存在
+        if (!workstation.sprite) {
+            debugLog(`⚠️ 工位 ${workstation.id} 的sprite不存在，无法添加高亮（可能在未加载的区块中）`);
+            return;
         }
+
+        // 不再使用边框，改用工位自身的 tint 颜色来标识
+        // 根据到期状态选择颜色
+        const tintColor = workstation.isExpiringSoon
+            ? this.config.expiringSoonTint  // 橙色警告
+            : this.config.userOwnedTint;    // 金黄色
+
+        workstation.sprite.setTint(tintColor);
+
+        debugLog(`✨ [addUserWorkstationHighlight] 为当前用户工位 ${workstation.id} 设置 ${workstation.isExpiringSoon ? '橙色警告' : '金黄色'} tint`);
 
         // 如果即将过期，添加倒计时文本
         if (workstation.isExpiringSoon && workstation.remainingDays !== undefined) {
@@ -1296,13 +1304,19 @@ export class WorkstationManager {
         if (workstation.interactionIcon) {
             return; // 已有交互图标
         }
-        
+
+        // 区块系统：检查sprite和场景是否有效
+        if (!workstation.sprite) {
+            // 工位未加载，跳过
+            return;
+        }
+
         // 检查 scene 是否存在且有效
         if (!this.isSceneValid()) {
             debugWarn('Scene is not available or not active, skipping addInteractionIcon');
             return;
         }
-        
+
         const iconX = workstation.position.x + workstation.size.width / 2;
         const iconY = workstation.position.y + workstation.size.height / 2;
         
@@ -1646,25 +1660,25 @@ export class WorkstationManager {
         this.userBindings.set(String(workstation.id), binding.userId);
         debugLog(`✅ [applyBindingToWorkstation] 工位 ${workstation.id} 状态已更新: isOccupied=${workstation.isOccupied}, userId=${workstation.userId}, remainingDays=${workstation.remainingDays}`);
 
-        // 更新视觉效果
+        // 区块系统：只有当sprite存在时才更新视觉效果
         if (workstation.sprite) {
             workstation.sprite.setTint(this.config.occupiedTint);
             debugLog(`🎨 [applyBindingToWorkstation] 工位 ${workstation.id} 精灵已着色`);
+
+            // 管理图标
+            this.removeInteractionIcon(workstation);
+            this.addOccupiedIcon(workstation);
+            debugLog(`🏷️ [applyBindingToWorkstation] 工位 ${workstation.id} 图标已更新`);
+
+            // 添加用户工位高亮（如果即将过期，使用警告颜色）
+            this.addUserWorkstationHighlight(workstation);
+
+            // 添加角色显示
+            debugLog(`👤 [applyBindingToWorkstation] 开始为工位 ${workstation.id} 添加角色显示`);
+            this.addCharacterToWorkstation(workstation, binding.userId, workstation.userInfo);
         } else {
-            debugWarn(`⚠️ [applyBindingToWorkstation] 工位 ${workstation.id} 没有精灵对象`);
+            debugLog(`⚠️ [applyBindingToWorkstation] 工位 ${workstation.id} 的sprite不存在，跳过视觉效果更新（可能在未加载的区块中）`);
         }
-
-        // 管理图标
-        this.removeInteractionIcon(workstation);
-        this.addOccupiedIcon(workstation);
-        debugLog(`🏷️ [applyBindingToWorkstation] 工位 ${workstation.id} 图标已更新`);
-
-        // 添加用户工位高亮（如果即将过期，使用警告颜色）
-        this.addUserWorkstationHighlight(workstation);
-
-        // 添加角色显示
-        debugLog(`👤 [applyBindingToWorkstation] 开始为工位 ${workstation.id} 添加角色显示`);
-        this.addCharacterToWorkstation(workstation, binding.userId, workstation.userInfo);
 
         debugLog(`🎯 [applyBindingToWorkstation] 工位 ${workstation.id} 绑定应用完成`, {
             hasCharacterAfter: !!workstation.characterSprite,

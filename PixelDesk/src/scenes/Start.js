@@ -3,6 +3,7 @@ import { Player } from "../entities/Player.js"
 import { WashroomManager } from "../logic/WashroomManager.js"
 import { ZoomControl } from "../components/ZoomControl.js"
 import { WorkstationBindingUI } from "../components/WorkstationBindingUI.js"
+import { ChunkManager } from "../logic/ChunkManager.js"
 
 // ===== 性能优化配置 =====
 const PERFORMANCE_CONFIG = {
@@ -25,6 +26,7 @@ export class Start extends Phaser.Scene {
     super("Start")
     this.workstationManager = null
     this.washroomManager = null // 添加洗手间管理器
+    this.chunkManager = null // 区块管理器
     this.player = null
     this.cursors = null
     this.wasdKeys = null
@@ -33,8 +35,10 @@ export class Start extends Phaser.Scene {
     this.bindingUI = null
     this.otherPlayers = new Map() // 存储其他玩家
     this.myStatus = null // 我的状态
-    
-    // 已删除无用的优化系统属性
+
+    // 工位对象缓存（用于区块加载）
+    this.workstationObjects = []
+    this.loadedWorkstations = new Map() // 已加载的工位: id -> sprite
   }
 
   preload() {
@@ -869,16 +873,26 @@ export class Start extends Phaser.Scene {
     // 创建桌子碰撞组
     this.deskColliders = this.physics.add.staticGroup()
 
-    objectLayer.objects.forEach((obj) => this.renderObject(obj))
-
-    // 在所有工位创建完成后更新deskCount - 只对desk_objs图层执行
+    // 对于desk_objs图层，使用区块管理系统
     if (layerName === "desk_objs") {
-      this.userData.deskCount =
-        this.workstationManager.getWorkstationsByType("desk").length
-      // Desk count updated
+      debugLog(`📦 收集工位对象，总数: ${objectLayer.objects.length}`)
 
-      // 发送更新到UI
+      // 收集所有工位对象（不立即创建精灵）
+      objectLayer.objects.forEach((obj) => {
+        if (this.isDeskObject(obj)) {
+          this.workstationObjects.push(obj)
+        }
+      })
+
+      // 初始化区块管理器
+      this.initializeChunkSystem()
+
+      // 更新工位总数
+      this.userData.deskCount = this.workstationObjects.length
       this.sendUserDataToUI()
+    } else {
+      // 其他图层正常渲染
+      objectLayer.objects.forEach((obj) => this.renderObject(obj))
     }
   }
 
@@ -1014,6 +1028,106 @@ export class Start extends Phaser.Scene {
       sprite.setX(rotatedX)
       sprite.setY(rotatedY)
     }
+  }
+
+  // ===== 区块系统方法 =====
+  initializeChunkSystem() {
+    debugLog('🚀 初始化区块管理系统')
+
+    // 创建区块管理器
+    this.chunkManager = new ChunkManager(this, {
+      chunkSize: 1000,      // 1000像素一个区块
+      loadRadius: 1,        // 加载当前区块及周围1圈区块
+      unloadDelay: 3000,    // 3秒后卸载
+      updateInterval: 500   // 500ms检查一次
+    })
+
+    // 初始化区块（分配工位到区块）
+    this.chunkManager.initializeChunks(this.workstationObjects)
+
+    // 设置区块事件监听
+    this.setupChunkEvents()
+
+    // 添加全局函数获取区块统计
+    if (typeof window !== 'undefined') {
+      window.getChunkStats = () => this.chunkManager.getStats()
+    }
+
+    debugLog('✅ 区块管理系统初始化完成')
+  }
+
+  setupChunkEvents() {
+    // 监听区块加载事件
+    this.events.on('chunk-load', (data) => {
+      debugLog(`📥 加载区块，工位数: ${data.workstations.length}`)
+      data.workstations.forEach(obj => {
+        this.loadWorkstation(obj)
+      })
+    })
+
+    // 监听区块卸载事件
+    this.events.on('chunk-unload', (data) => {
+      debugLog(`📤 卸载区块，工位数: ${data.workstations.length}`)
+      data.workstations.forEach(obj => {
+        this.unloadWorkstation(obj)
+      })
+    })
+  }
+
+  loadWorkstation(obj) {
+    // 如果已加载，跳过
+    if (this.loadedWorkstations.has(obj.id)) {
+      return
+    }
+
+    // 创建工位精灵
+    const adjustedY = obj.y - obj.height
+    const sprite = this.createWorkstationSprite(obj, adjustedY)
+
+    if (sprite) {
+      // 保存引用
+      this.loadedWorkstations.set(obj.id, sprite)
+
+      // 使用WorkstationManager创建工位
+      this.workstationManager.createWorkstation(obj, sprite)
+
+      // 添加碰撞
+      this.addDeskCollision(sprite, obj)
+    }
+  }
+
+  unloadWorkstation(obj) {
+    const sprite = this.loadedWorkstations.get(obj.id)
+    if (!sprite) return
+
+    // 从碰撞组移除
+    if (this.deskColliders) {
+      this.deskColliders.remove(sprite, true, true) // 移除并销毁
+    }
+
+    // 从WorkstationManager移除
+    // 注意：我们保留workstation数据，只销毁精灵
+    const workstation = this.workstationManager.getWorkstation(obj.id)
+    if (workstation) {
+      // 移除精灵引用，但保留数据
+      workstation.sprite = null
+
+      // 移除交互图标和其他视觉元素
+      this.workstationManager.removeInteractionIcon(workstation)
+      this.workstationManager.removeOccupiedIcon(workstation)
+    }
+
+    // 从缓存移除
+    this.loadedWorkstations.delete(obj.id)
+  }
+
+  createWorkstationSprite(obj, adjustedY) {
+    const imageKey = obj.name || "desk_image"
+    if (!imageKey) return null
+
+    const sprite = this.add.image(obj.x, adjustedY, imageKey)
+    this.configureSprite(sprite, obj)
+    return sprite
   }
 
   // ===== 辅助方法 =====
@@ -2226,7 +2340,13 @@ export class Start extends Phaser.Scene {
       this.uiUpdateTimer.remove()
       this.uiUpdateTimer = null
     }
-    
+
+    // 清理区块管理器
+    if (this.chunkManager) {
+      this.chunkManager.destroy()
+      this.chunkManager = null
+    }
+
     // 清理工位和UI管理器
     if (this.workstationManager) {
       this.workstationManager.destroy()
@@ -2239,6 +2359,10 @@ export class Start extends Phaser.Scene {
     this.otherPlayers.forEach((player) => player.destroy())
     this.otherPlayers.clear()
 
+    // 清理工位缓存
+    this.workstationObjects = []
+    this.loadedWorkstations.clear()
+
     // 清理全局函数
     if (typeof window !== "undefined") {
       delete window.onPlayerCollisionStart
@@ -2246,6 +2370,7 @@ export class Start extends Phaser.Scene {
       delete window.getCurrentCollisions
       delete window.getCollisionHistory
       delete window.setCollisionSensitivity
+      delete window.getChunkStats
       delete window.gameScene
     }
 
