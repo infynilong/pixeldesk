@@ -37,6 +37,7 @@ export class ChunkManager {
 
     // 相机追踪
     this.lastCameraChunk = null
+    this.lastCameraZoom = null  // 追踪zoom变化
     this.updateTimer = null
 
     // 统计数据
@@ -129,7 +130,7 @@ export class ChunkManager {
   }
 
   /**
-   * 更新活跃区块（根据相机位置）
+   * 更新活跃区块（根据相机位置和缩放级别）
    */
   updateActiveChunks() {
     if (!this.scene.cameras || !this.scene.cameras.main) return
@@ -137,18 +138,32 @@ export class ChunkManager {
     const camera = this.scene.cameras.main
     const centerX = camera.scrollX + camera.width / 2
     const centerY = camera.scrollY + camera.height / 2
+    const currentZoom = camera.zoom
 
     const currentChunkKey = this.getChunkKey(centerX, centerY)
 
-    // 如果相机仍在同一区块内，跳过更新
-    if (currentChunkKey === this.lastCameraChunk) {
+    // 🔧 修复：检查相机区块或zoom是否变化
+    const zoomChanged = this.lastCameraZoom !== null &&
+                        Math.abs(currentZoom - this.lastCameraZoom) > 0.01
+
+    // 如果相机仍在同一区块内且zoom没变化，跳过更新
+    if (currentChunkKey === this.lastCameraChunk && !zoomChanged) {
       return
     }
 
+    if (zoomChanged) {
+      debugLog(`🔍 Zoom变化检测: ${this.lastCameraZoom?.toFixed(2)} -> ${currentZoom.toFixed(2)}`)
+    }
+
     this.lastCameraChunk = currentChunkKey
+    this.lastCameraZoom = currentZoom
+
+    // 🔧 根据zoom动态调整加载半径
+    // zoom越小（地图缩小），视野越大，需要加载更多区块
+    const dynamicLoadRadius = this.calculateLoadRadius(currentZoom)
 
     // 计算需要激活的区块
-    const newActiveChunks = this.getChunksInRadius(centerX, centerY, this.config.loadRadius)
+    const newActiveChunks = this.getChunksInRadius(centerX, centerY, dynamicLoadRadius)
 
     // 找出需要加载和卸载的区块
     const toLoad = newActiveChunks.filter(key => !this.activeChunks.has(key))
@@ -169,6 +184,26 @@ export class ChunkManager {
 
     // 更新统计
     this.updateStats()
+  }
+
+  /**
+   * 🔧 新增：根据zoom级别计算合适的加载半径
+   */
+  calculateLoadRadius(zoom) {
+    // zoom范围通常在 0.5 - 2.0
+    // zoom = 2.0 (放大): 视野小，加载1圈区块
+    // zoom = 1.0 (标准): 加载1圈区块
+    // zoom = 0.5 (缩小): 视野大，加载2圈区块
+
+    if (zoom >= 1.5) {
+      return 1  // 放大时只加载1圈
+    } else if (zoom >= 1.0) {
+      return 1  // 标准缩放加载1圈
+    } else if (zoom >= 0.7) {
+      return 2  // 缩小一些，加载2圈
+    } else {
+      return 2  // 缩小很多，加载2圈（避免加载太多）
+    }
   }
 
   /**

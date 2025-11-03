@@ -1268,6 +1268,12 @@ export class Start extends Phaser.Scene {
       onComplete: () => {
         // 缩放完成后重新计算死区
         this.updateDeadzone()
+
+        // 🔧 关键修复：zoom变化后立即更新区块加载
+        if (this.chunkManager) {
+          debugLog(`🔍 Zoom调整完成 (${currentZoom.toFixed(2)} -> ${newZoom.toFixed(2)})，触发区块更新`)
+          this.chunkManager.updateActiveChunks()
+        }
       },
     })
 
