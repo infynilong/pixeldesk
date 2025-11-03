@@ -10,7 +10,7 @@
 
 // ===== 性能优化配置 =====
 const PERFORMANCE_CONFIG = {
-  ENABLE_DEBUG_LOGGING: true,  // 🔧 临时开启调试
+  ENABLE_DEBUG_LOGGING: false,  // 🔧 关闭调试日志，console.log也消耗CPU
   ENABLE_ERROR_LOGGING: true
 }
 
