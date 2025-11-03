@@ -39,6 +39,9 @@ export class Start extends Phaser.Scene {
     // 工位对象缓存（用于区块加载）
     this.workstationObjects = []
     this.loadedWorkstations = new Map() // 已加载的工位: id -> sprite
+
+    // 🔧 碰撞器管理
+    this.playerDeskCollider = null // 玩家与工位group的碰撞器
   }
 
   preload() {
@@ -575,12 +578,8 @@ export class Start extends Phaser.Scene {
         treeLayer?.setCollisionByProperty({ solid: true })
       }
 
-      // 🔧 性能优化：创建一个针对整个deskColliders group的碰撞器
-      // 这样无论有多少工位，都只有1个碰撞器，而不是成百上千个
-      if (this.player && this.deskColliders) {
-        this.physics.add.collider(this.player, this.deskColliders)
-        debugLog('✅ 玩家与工位group碰撞器已创建（1个碰撞器管理所有工位）')
-      }
+      // 🔧 移除：group碰撞器会在第一次加载工位后创建，不在这里创建
+      // 原因：此时deskColliders可能还是空的（区块异步加载）
 
       // 添加玩家碰撞边界调试显示
       if (this.player.body) {
@@ -1074,6 +1073,10 @@ export class Start extends Phaser.Scene {
       data.workstations.forEach(obj => {
         this.loadWorkstation(obj)
       })
+
+      // 🔧 性能优化：在第一次加载工位后，创建玩家与deskColliders的group碰撞器
+      // 确保此时deskColliders中已有工位，碰撞才能生效
+      this.ensurePlayerDeskCollider()
     })
 
     // 监听区块卸载事件
@@ -1083,6 +1086,29 @@ export class Start extends Phaser.Scene {
         this.unloadWorkstation(obj)
       })
     })
+  }
+
+  // 🔧 新增：确保玩家与工位group碰撞器已创建（只创建一次）
+  ensurePlayerDeskCollider() {
+    // 如果已创建，跳过
+    if (this.playerDeskCollider) {
+      return
+    }
+
+    // 检查前提条件
+    if (!this.player || !this.deskColliders) {
+      return
+    }
+
+    // 检查deskColliders中是否有工位
+    if (this.deskColliders.getLength() === 0) {
+      debugLog('⏸️ deskColliders为空，等待下次加载')
+      return
+    }
+
+    // 创建group碰撞器（只有1个）
+    this.playerDeskCollider = this.physics.add.collider(this.player, this.deskColliders)
+    debugLog(`✅ 玩家与工位group碰撞器已创建 (1个碰撞器管理${this.deskColliders.getLength()}个工位)`)
   }
 
   loadWorkstation(obj) {
