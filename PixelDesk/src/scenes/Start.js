@@ -411,6 +411,14 @@ export class Start extends Phaser.Scene {
     // 设置相机
     this.setupCamera(map)
 
+    // 🔧 关键修复：相机设置完成后，立即更新区块（确保加载玩家周围的工位）
+    if (this.chunkManager) {
+      debugLog('🎯 相机设置完成，强制更新区块')
+      this.time.delayedCall(50, () => {
+        this.chunkManager.updateActiveChunks()
+      })
+    }
+
     // 设置社交功能
     this.setupSocialFeatures()
 
@@ -1042,11 +1050,11 @@ export class Start extends Phaser.Scene {
       updateInterval: 500   // 500ms检查一次
     })
 
+    // 设置区块事件监听（必须在初始化区块之前）
+    this.setupChunkEvents()
+
     // 初始化区块（分配工位到区块）
     this.chunkManager.initializeChunks(this.workstationObjects)
-
-    // 设置区块事件监听
-    this.setupChunkEvents()
 
     // 添加全局函数获取区块统计
     if (typeof window !== 'undefined') {
@@ -1089,10 +1097,32 @@ export class Start extends Phaser.Scene {
       this.loadedWorkstations.set(obj.id, sprite)
 
       // 使用WorkstationManager创建工位
-      this.workstationManager.createWorkstation(obj, sprite)
+      const workstation = this.workstationManager.createWorkstation(obj, sprite)
 
       // 添加碰撞
       this.addDeskCollision(sprite, obj)
+
+      // 🔧 关键修复：如果工位已有绑定，需要重新应用视觉效果和角色
+      if (workstation && workstation.isOccupied) {
+        debugLog(`📥 加载已绑定工位 ${obj.id}, 用户: ${workstation.userId}`)
+
+        // 重新应用绑定的视觉效果
+        this.workstationManager.setupInteraction(workstation)
+
+        // 重新创建角色精灵
+        if (workstation.userId && workstation.userInfo) {
+          this.workstationManager.addCharacterToWorkstation(
+            workstation,
+            workstation.userId,
+            workstation.userInfo
+          )
+
+          // 🔧 关键修复：为新创建的角色设置碰撞检测
+          if (workstation.characterSprite) {
+            this.addCollisionForWorkstationCharacter(workstation.characterSprite)
+          }
+        }
+      }
     }
   }
 
@@ -1109,12 +1139,20 @@ export class Start extends Phaser.Scene {
     // 注意：我们保留workstation数据，只销毁精灵
     const workstation = this.workstationManager.getWorkstation(obj.id)
     if (workstation) {
+      // 🔧 修复：移除角色精灵（如果有）
+      if (workstation.characterSprite) {
+        workstation.characterSprite.destroy()
+        workstation.characterSprite = null
+        debugLog(`🗑️ 卸载工位 ${obj.id} 的角色精灵`)
+      }
+
       // 移除精灵引用，但保留数据
       workstation.sprite = null
 
       // 移除交互图标和其他视觉元素
       this.workstationManager.removeInteractionIcon(workstation)
       this.workstationManager.removeOccupiedIcon(workstation)
+      this.workstationManager.removeUserWorkstationHighlight(workstation)
     }
 
     // 从缓存移除

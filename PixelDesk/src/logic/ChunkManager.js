@@ -86,6 +86,10 @@ export class ChunkManager {
 
     // 启动定时更新
     this.startUpdating()
+
+    // 🔧 关键修复：立即触发一次更新，加载初始区块
+    debugLog('🎯 立即触发初始区块加载')
+    this.updateActiveChunks()
   }
 
   /**
