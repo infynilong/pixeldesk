@@ -969,8 +969,8 @@ export class Start extends Phaser.Scene {
         )
       }
 
-      // 确保是静止的
-      sprite.body.setImmovable(true)
+      // 🔧 移除setImmovable调用：StaticBody默认就是immovable，没有这个方法
+      // sprite.body.setImmovable(true)  // ❌ StaticBody没有这个方法
     }
 
     // 🔧 性能优化：不单独创建碰撞器
