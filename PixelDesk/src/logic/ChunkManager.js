@@ -10,7 +10,7 @@
 
 // ===== 性能优化配置 =====
 const PERFORMANCE_CONFIG = {
-  ENABLE_DEBUG_LOGGING: false,
+  ENABLE_DEBUG_LOGGING: true,  // 🔧 临时开启调试
   ENABLE_ERROR_LOGGING: true
 }
 
@@ -40,7 +40,7 @@ export class ChunkManager {
     this.lastCameraZoom = null  // 追踪zoom变化
     this.updateTimer = null
     this.lastUpdateTime = 0     // 🔧 防抖：记录上次更新时间
-    this.minUpdateInterval = 200 // 🔧 防抖：最小更新间隔（毫秒）
+    this.minUpdateInterval = 500 // 🔧 防抖：从200ms增加到500ms，进一步降低更新频率
 
     // 统计数据
     this.stats = {
@@ -190,8 +190,8 @@ export class ChunkManager {
 
     debugLog(`🔄 区块更新: 加载${toLoad.length}个, 卸载${toUnload.length}个`)
 
-    // 🔧 批量加载：限制每次最多加载的区块数，避免卡顿
-    const MAX_LOAD_PER_UPDATE = 20
+    // 🔧 批量加载：大幅降低每次加载数量，避免CPU飙升
+    const MAX_LOAD_PER_UPDATE = 3  // 从20降到3，避免瞬时创建太多对象
     const chunksToLoadNow = toLoad.slice(0, MAX_LOAD_PER_UPDATE)
 
     // 加载新区块
@@ -199,16 +199,32 @@ export class ChunkManager {
       this.loadChunk(chunkKey)
     })
 
-    // 如果还有更多区块需要加载，延迟加载
+    // 如果还有更多区块需要加载，分批延迟加载
     if (toLoad.length > MAX_LOAD_PER_UPDATE) {
       const remainingChunks = toLoad.slice(MAX_LOAD_PER_UPDATE)
-      debugLog(`📦 剩余${remainingChunks.length}个区块将延迟加载`)
+      debugLog(`📦 剩余${remainingChunks.length}个区块将分批延迟加载`)
 
-      this.scene.time.delayedCall(100, () => {
-        remainingChunks.forEach(chunkKey => {
-          this.loadChunk(chunkKey)
-        })
-      })
+      // 分成多批，每批3个，每批间隔300ms
+      let batchIndex = 0
+      const batchSize = 3
+      const loadNextBatch = () => {
+        const start = batchIndex * batchSize
+        const batch = remainingChunks.slice(start, start + batchSize)
+
+        if (batch.length > 0) {
+          batch.forEach(chunkKey => {
+            this.loadChunk(chunkKey)
+          })
+          batchIndex++
+
+          // 继续加载下一批
+          if (start + batchSize < remainingChunks.length) {
+            this.scene.time.delayedCall(300, loadNextBatch)
+          }
+        }
+      }
+
+      this.scene.time.delayedCall(300, loadNextBatch)
     }
 
     // 延迟卸载区块（避免频繁加载/卸载）
@@ -227,24 +243,17 @@ export class ChunkManager {
    * 🔧 新增：根据zoom级别计算合适的加载半径
    */
   calculateLoadRadius(zoom) {
-    // zoom范围通常在 0.1 - 2.0
-    // zoom = 2.0 (放大): 视野小，加载1圈区块 (3x3=9个区块)
-    // zoom = 1.0 (标准): 加载1-2圈区块 (3x3 or 5x5)
-    // zoom = 0.5 (缩小): 视野大，加载3圈区块 (7x7=49个区块)
-    // zoom = 0.1 (极度缩小): 加载4圈区块 (9x9=81个区块)
+    // 🔧 更保守的加载策略，避免CPU占用过高
+    // 区块大小已增加到2000，所以即使1-2圈也能覆盖足够大的范围
 
-    if (zoom >= 1.5) {
+    if (zoom >= 1.2) {
       return 1  // 放大时只加载1圈 (9个区块)
-    } else if (zoom >= 1.0) {
-      return 2  // 标准缩放加载2圈 (25个区块)
-    } else if (zoom >= 0.7) {
-      return 3  // 缩小一些，加载3圈 (49个区块)
+    } else if (zoom >= 0.8) {
+      return 1  // 标准缩放也只加载1圈 (9个区块)
     } else if (zoom >= 0.5) {
-      return 3  // 缩小较多，加载3圈 (49个区块)
-    } else if (zoom >= 0.3) {
-      return 4  // 极度缩小，加载4圈 (81个区块)
+      return 2  // 缩小时加载2圈 (25个区块)
     } else {
-      return 4  // 最小zoom，加载4圈（避免加载太多）
+      return 2  // 极度缩小也只加载2圈（避免加载太多）
     }
   }
 
