@@ -420,6 +420,11 @@ export class Start extends Phaser.Scene {
       this.time.delayedCall(50, () => {
         this.chunkManager.updateActiveChunks()
       })
+
+      // 🔧 双保险：区块加载后再次确保碰撞器已创建
+      this.time.delayedCall(500, () => {
+        this.ensurePlayerDeskCollider()
+      })
     }
 
     // 设置社交功能
@@ -884,8 +889,11 @@ export class Start extends Phaser.Scene {
       return
     }
 
-    // 创建桌子碰撞组
-    this.deskColliders = this.physics.add.staticGroup()
+    // 🔧 性能优化：只在第一次创建deskColliders，避免覆盖
+    if (!this.deskColliders) {
+      this.deskColliders = this.physics.add.staticGroup()
+      debugLog('✅ deskColliders group已创建')
+    }
 
     // 对于desk_objs图层，使用区块管理系统
     if (layerName === "desk_objs") {
@@ -1090,25 +1098,35 @@ export class Start extends Phaser.Scene {
 
   // 🔧 新增：确保玩家与工位group碰撞器已创建（只创建一次）
   ensurePlayerDeskCollider() {
+    console.log('🔍 [ensurePlayerDeskCollider] 调用', {
+      已创建碰撞器: !!this.playerDeskCollider,
+      玩家存在: !!this.player,
+      Group存在: !!this.deskColliders,
+      Group中工位数: this.deskColliders?.getLength() || 0
+    })
+
     // 如果已创建，跳过
     if (this.playerDeskCollider) {
+      console.log('⏭️ 碰撞器已存在，跳过')
       return
     }
 
     // 检查前提条件
     if (!this.player || !this.deskColliders) {
+      console.warn('⚠️ 玩家或deskColliders不存在')
       return
     }
 
     // 检查deskColliders中是否有工位
-    if (this.deskColliders.getLength() === 0) {
-      debugLog('⏸️ deskColliders为空，等待下次加载')
+    const groupLength = this.deskColliders.getLength()
+    if (groupLength === 0) {
+      console.log('⏸️ deskColliders为空，等待下次加载')
       return
     }
 
     // 创建group碰撞器（只有1个）
     this.playerDeskCollider = this.physics.add.collider(this.player, this.deskColliders)
-    debugLog(`✅ 玩家与工位group碰撞器已创建 (1个碰撞器管理${this.deskColliders.getLength()}个工位)`)
+    console.log(`✅✅✅ 玩家与工位group碰撞器已创建！(1个碰撞器管理${groupLength}个工位)`)
   }
 
   loadWorkstation(obj) {
@@ -1130,6 +1148,7 @@ export class Start extends Phaser.Scene {
 
       // 🔧 性能优化：使用group碰撞器，避免为每个工位创建独立碰撞器
       this.addDeskCollision(sprite, obj)
+      console.log(`📦 工位 ${obj.id} 已添加到碰撞组，当前group大小: ${this.deskColliders?.getLength()}`)
 
       // 🔧 关键修复：如果工位已有绑定，需要重新应用视觉效果和角色
       if (workstation && workstation.isOccupied) {
