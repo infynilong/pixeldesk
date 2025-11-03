@@ -12,25 +12,14 @@ const debugWarn = PERFORMANCE_CONFIG.ENABLE_ERROR_LOGGING ? console.warn.bind(co
 
 export class Player extends Phaser.GameObjects.Container {
     constructor(scene, x, y, spriteKey = 'characters_list_image', enableMovement = true, enableStateSave = true, isOtherPlayer = false, playerData = null) {
-        // 尝试从存储中恢复位置（仅当启用状态保存时）
-        let savedState = null;
-        if (enableStateSave && !isOtherPlayer) {
-            try {
-                const state = localStorage.getItem('playerState');
-                savedState = state ? JSON.parse(state) : null;
-                if (savedState) {
-                    x = savedState.x;
-                    y = savedState.y;
-                }
-            } catch (e) {
-                // 忽略localStorage错误
-            }
-        }
-        
+        // 🔧 位置恢复逻辑已移至 Start.js 的 loadPlayerPosition()
+        // 这里不再从localStorage读取，而是接收从数据库或localStorage传来的坐标
+        // 原因：需要在创建Player前先从数据库获取位置（异步操作）
+
         super(scene, x, y);
-        
+
         this.spriteKey = spriteKey;
-        this.currentDirection = savedState?.direction || 'down';
+        this.currentDirection = 'down'; // 默认朝向，会在Start.js中根据保存的状态更新
         this.speed = 200;
         this.enableMovement = enableMovement;
         this.enableStateSave = enableStateSave;
@@ -51,6 +40,7 @@ export class Player extends Phaser.GameObjects.Container {
         this.dbSaveTimer = null;
         this.lastDbSave = 0;
         this.dbSaveInterval = 5000; // 每5秒保存一次到数据库
+        this.dbSaveEnabled = true; // 启用数据库保存（跨设备同步）
 
         // 初始化碰撞检测状态
         this.isColliding = false;
@@ -166,36 +156,72 @@ export class Player extends Phaser.GameObjects.Container {
         }
     }
     
-    // 保存玩家状态到localStorage - 优化防抖以大幅减少CPU消耗
+    // 保存玩家状态到localStorage和数据库
     saveState() {
         // 如果状态保存功能被禁用，直接返回
         if (!this.enableStateSave) {
             return;
         }
 
-        // 高效防抖机制：只在没有pending timer时才创建，避免每帧clearTimeout操作
-        // 保存到 localStorage（高频率，200ms防抖）
+        const state = {
+            x: this.x,
+            y: this.y,
+            direction: this.currentDirection
+        };
+
+        // 保存到 localStorage（高频率，200ms防抖）- 用于快速本地缓存
         if (!this.saveStateTimer) {
             this.saveStateTimer = setTimeout(() => {
-                const state = {
-                    x: this.x,
-                    y: this.y,
-                    direction: this.currentDirection
-                };
                 localStorage.setItem('playerState', JSON.stringify(state));
                 this.saveStateTimer = null;
-            }, 200); // 200ms防抖延迟
+            }, 200);
         }
 
-        // 🔧 性能优化：禁用数据库保存，避免频繁HTTP请求消耗CPU
-        // 玩家位置已保存到localStorage，数据库同步不是必需的
-        // 保存到数据库（低频率，每5秒）- 已禁用
-        // const now = Date.now();
-        // if (now - this.lastDbSave > this.dbSaveInterval && !this.dbSaveTimer) {
-        //     this.dbSaveTimer = setTimeout(async () => {
-        //         // ... 数据库保存代码已禁用
-        //     }, 100);
-        // }
+        // 保存到数据库（低频率，5秒防抖）- 用于跨设备同步
+        if (this.dbSaveEnabled && !this.isOtherPlayer) {
+            const now = Date.now();
+            if (now - this.lastDbSave > this.dbSaveInterval) {
+                // 清除之前的定时器
+                if (this.dbSaveTimer) {
+                    clearTimeout(this.dbSaveTimer);
+                }
+
+                // 设置新的定时器（移动结束后保存）
+                this.dbSaveTimer = setTimeout(async () => {
+                    try {
+                        const response = await fetch('/api/player', {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                currentX: Math.round(this.x),
+                                currentY: Math.round(this.y),
+                                playerState: {
+                                    direction: this.currentDirection,
+                                    lastSaved: new Date().toISOString()
+                                }
+                            }),
+                            credentials: 'include'
+                        });
+
+                        if (response.ok) {
+                            this.lastDbSave = Date.now();
+                            debugLog('✅ 玩家位置已保存到数据库:', Math.round(this.x), Math.round(this.y));
+                        } else if (response.status === 401) {
+                            debugLog('⚠️ 未登录，跳过数据库保存');
+                            this.dbSaveEnabled = false; // 未登录时禁用数据库保存
+                        } else {
+                            debugWarn('❌ 保存玩家位置失败:', response.status);
+                        }
+                    } catch (error) {
+                        debugWarn('❌ 保存玩家位置出错:', error);
+                    } finally {
+                        this.dbSaveTimer = null;
+                    }
+                }, 5000); // 5秒后保存（移动结束后）
+            }
+        }
     }
     
     // 从localStorage获取保存的玩家状态

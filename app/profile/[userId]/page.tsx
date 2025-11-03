@@ -15,7 +15,6 @@ interface UserProfile {
   email: string | null
   createdAt: string
   points: number
-  gold: number
   postsCount: number
   likesCount: number
 }

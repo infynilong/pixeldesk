@@ -10,7 +10,6 @@ interface User {
   email: string
   avatar?: string
   points?: number
-  gold?: number
   emailVerified?: boolean
 }
 

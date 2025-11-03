@@ -62,7 +62,6 @@ export async function POST(request: NextRequest) {
         email: email.toLowerCase().trim(),
         password: hashedPassword,
         points: 50,  // 初始积分
-        gold: 50,    // 初始金币
         emailVerified: false,
         isActive: true
       }
@@ -102,7 +101,6 @@ export async function POST(request: NextRequest) {
       email: user.email,
       avatar: user.avatar,
       points: user.points,
-      gold: user.gold,
       emailVerified: user.emailVerified,
       createdAt: user.createdAt
     }

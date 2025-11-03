@@ -27,8 +27,8 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { id, name, email, avatar, points, gold } = await request.json()
-    
+    const { id, name, email, avatar, points } = await request.json()
+
     if (!id || !name) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
@@ -37,7 +37,6 @@ export async function POST(request: NextRequest) {
     const updateData: any = {
       name,
       points: points || 0,
-      gold: gold || 0,
       updatedAt: new Date()
     }
 
@@ -63,8 +62,7 @@ export async function POST(request: NextRequest) {
         name,
         email,
         avatar: avatar || null, // 创建时允许设置角色名称作为默认头像
-        points: points || 0,
-        gold: gold || 0
+        points: points || 0
       }
     })
 

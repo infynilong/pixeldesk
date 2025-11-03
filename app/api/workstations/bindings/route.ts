@@ -86,7 +86,6 @@ export async function POST(request: NextRequest) {
         where: { id: userId },
         data: {
           points: { decrement: cost },
-          gold: { decrement: cost },
           updatedAt: new Date()
         }
       })

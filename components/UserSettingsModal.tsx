@@ -281,9 +281,6 @@ export default function UserSettingsModal({ isOpen, onClose }: UserSettingsModal
                 <p className="text-retro-textMuted text-sm">
                   <span className="font-medium">积分:</span> {user.points || 0}
                 </p>
-                <p className="text-retro-textMuted text-sm">
-                  <span className="font-medium">金币:</span> {user.gold || 0}
-                </p>
               </div>
               
               <form onSubmit={handleProfileUpdate} className="space-y-4">

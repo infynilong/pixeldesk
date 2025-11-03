@@ -110,7 +110,7 @@ const WorkstationBindingModal = memo(({
   }
 
   // 计算用户可用积分
-  const userPoints = user.points || user.gold || 0
+  const userPoints = user.points || 0
   const canAfford = userPoints >= bindCost
 
   return (

@@ -202,7 +202,6 @@ export default function Home() {
             email: user.email,
             avatar: user.avatar,
             points: user.points || gameUser.points || 50,
-            gold: user.gold || gameUser.gold || 50,
             // 保留游戏相关数据
             username: gameUser.username || user.name,
             character: gameUser.character,
@@ -217,7 +216,6 @@ export default function Home() {
             email: user.email,
             avatar: user.avatar,
             points: user.points || 50,
-            gold: user.gold || 50,
             username: user.name,
             workstationId: prev?.workstationId, // 保留现有的工位绑定
             workstations: []
@@ -232,7 +230,6 @@ export default function Home() {
           email: user.email,
           avatar: user.avatar,
           points: user.points || 50,
-          gold: user.gold || 50,
           username: user.name,
           workstationId: prev?.workstationId, // 保留现有的工位绑定
           workstations: []

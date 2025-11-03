@@ -130,9 +130,6 @@ export default function AuthenticationHeader() {
               <span className="text-gray-400 font-mono">
                 P:{user.points || 0}
               </span>
-              <span className="text-gray-400 font-mono">
-                G:{user.gold || 0}
-              </span>
             </div>
           </div>
         </div>

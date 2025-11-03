@@ -78,7 +78,6 @@ export class DataMigration {
               email: user.email,
               avatar: user.avatar,
               points: user.points || 0,
-              gold: user.gold || 0,
               updatedAt: new Date()
             },
             create: {
@@ -86,8 +85,7 @@ export class DataMigration {
               name: user.name,
               email: user.email,
               avatar: user.avatar,
-              points: user.points || 0,
-              gold: user.gold || 0
+              points: user.points || 0
             }
           })
           results.users.success++

@@ -7,7 +7,6 @@ interface TempPlayer {
   username: string
   character: string
   points: number
-  gold: number
   isTemporary: true
   createdAt: string
   lastActiveAt: string
@@ -98,7 +97,6 @@ export function createTempPlayer(): TempPlayerData {
       username: generateTempUsername(),
       character: generateRandomCharacter(),
       points: 50,
-      gold: 50,
       isTemporary: true,
       createdAt: now,
       lastActiveAt: now
@@ -222,7 +220,6 @@ export function getTempPlayerGameData() {
     username: tempPlayer.user.username,
     character: tempPlayer.user.character,
     points: tempPlayer.user.points,
-    gold: tempPlayer.user.gold,
     workstations: [], // 临时玩家没有工位绑定
     isTemporary: true,
     // 兼容Phaser游戏期望的格式

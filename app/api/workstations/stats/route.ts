@@ -39,8 +39,7 @@ export async function GET() {
           select: {
             id: true,
             name: true,
-            points: true,
-            gold: true
+            points: true
           }
         }
       }

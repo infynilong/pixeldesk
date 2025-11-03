@@ -129,7 +129,6 @@ export async function PUT(request: NextRequest) {
       email: updatedUser.email,
       avatar: updatedUser.avatar,
       points: updatedUser.points,
-      gold: updatedUser.gold,
       emailVerified: updatedUser.emailVerified,
       updatedAt: updatedUser.updatedAt
     }
@@ -168,7 +167,6 @@ export async function GET(request: NextRequest) {
       email: authResult.user.email,
       avatar: authResult.user.avatar,
       points: authResult.user.points,
-      gold: authResult.user.gold,
       emailVerified: authResult.user.emailVerified
     }
 

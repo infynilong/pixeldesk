@@ -9,12 +9,11 @@ datasource db {
 
 model User {
   id                       String                    @id @default(cuid())
-  points                   Int                       @default(50)
+  points                   Int                       @default(50)  // 唯一的积分字段，用于所有积分操作
   createdAt                DateTime                  @default(now())
   updatedAt                DateTime                  @updatedAt
   avatar                   String?
   email                    String?                   @unique
-  gold                     Int                       @default(50)
   name                     String
   emailVerified            Boolean                   @default(false)
   isActive                 Boolean                   @default(true)
@@ -259,8 +258,6 @@ model Player {
   userId          String   @unique
   playerName      String
   characterSprite String
-  gamePoints      Int      @default(50)
-  gameGold        Int      @default(50)
   currentX        Int      @default(400)
   currentY        Int      @default(300)
   currentScene    String   @default("Start")

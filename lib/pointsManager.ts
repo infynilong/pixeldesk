@@ -99,8 +99,7 @@ export async function rewardPoints(
     const updatedUser = await prisma.user.update({
       where: { id: userId },
       data: {
-        points: { increment: points },
-        gold: { increment: points }
+        points: { increment: points }
       }
     })
 
@@ -169,8 +168,7 @@ export async function deductPoints(
     const updatedUser = await prisma.user.update({
       where: { id: userId },
       data: {
-        points: { decrement: points },
-        gold: { decrement: points }
+        points: { decrement: points }
       }
     })
 

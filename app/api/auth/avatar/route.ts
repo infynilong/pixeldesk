@@ -110,8 +110,7 @@ export async function POST(request: NextRequest) {
           name: updatedUser.name,
           email: updatedUser.email,
           avatar: updatedUser.avatar,
-          points: updatedUser.points,
-          gold: updatedUser.gold
+          points: updatedUser.points
         }
       },
       message: 'Avatar uploaded successfully'
@@ -181,8 +180,7 @@ export async function DELETE(request: NextRequest) {
           name: updatedUser.name,
           email: updatedUser.email,
           avatar: updatedUser.avatar,
-          points: updatedUser.points,
-          gold: updatedUser.gold
+          points: updatedUser.points
         }
       },
       message: 'Avatar removed successfully'

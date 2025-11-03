@@ -26,7 +26,6 @@ interface UserInfo {
   email?: string
   avatar?: string
   points: number
-  gold: number
   createdAt: string
   updatedAt: string
 }
