@@ -7,7 +7,7 @@
     "file.lastUsedOpenFilter": "全部文件 (*)",
     "fileStates": {
         "": {
-            "scaleInDock": 1,
+            "scaleInDock": 0.25,
             "scaleInEditor": 1
         },
         "#tileset": {
@@ -39,14 +39,11 @@
             "scaleInDock": 1
         },
         "/Users/jiangyilong/project/PixelDesk/public/assets/officemap.json": {
-            "expandedGroupLayers": [
-                11
-            ],
-            "scale": 0.125,
-            "selectedLayer": 1,
+            "scale": 0.25,
+            "selectedLayer": 0,
             "viewCenter": {
-                "x": 5608,
-                "y": 2092
+                "x": -1202,
+                "y": -1788
             }
         },
         "/Users/jiangyilong/project/PixelDesk/public/assets/officemap.json#bathroom": {
@@ -190,8 +187,8 @@
     "project": "pixelDeskMap.tiled-project",
     "property.type": "string",
     "recentFiles": [
-        "/Users/jiangyilong/project/PixelDesk/public/assets/officemap.tmx",
         "/Users/jiangyilong/project/PixelDesk/public/assets/officemap.json",
+        "/Users/jiangyilong/project/PixelDesk/public/assets/officemap.tmx",
         "officemap.tmx",
         "industial-map/town.tmx",
         "/Users/jiangyilong/project/Game/PixelTest/PixelTest/assets/foxyLayer.tmx"

@@ -9,7 +9,6 @@ interface CurrentUser {
   email?: string
   avatar?: string
   points?: number
-  gold?: number
   workstationId?: string | null
 }
 

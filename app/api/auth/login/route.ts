@@ -106,7 +106,6 @@ export async function POST(request: NextRequest) {
       email: user.email,
       avatar: user.avatar,
       points: user.points,
-      gold: user.gold,
       emailVerified: user.emailVerified,
       lastLogin: new Date()
     }

@@ -5,6 +5,7 @@ import { z } from 'zod'
 
 // 角色精灵键列表
 const validCharacterSprites = [
+  'hangli',
   'Premade_Character_48x48_01', 'Premade_Character_48x48_02', 'Premade_Character_48x48_03',
   'Premade_Character_48x48_04', 'Premade_Character_48x48_05', 'Premade_Character_48x48_06',
   'Premade_Character_48x48_07', 'Premade_Character_48x48_08', 'Premade_Character_48x48_09',
@@ -24,8 +25,6 @@ const createPlayerSchema = z.object({
 const updatePlayerSchema = z.object({
   playerName: z.string().min(1).max(50).optional(),
   characterSprite: z.enum(validCharacterSprites as [string, ...string[]]).optional(),
-  gamePoints: z.number().int().min(0).optional(),
-  gameGold: z.number().int().min(0).optional(),
   currentX: z.number().int().optional(),
   currentY: z.number().int().optional(),
   currentScene: z.string().optional(),
@@ -70,8 +69,6 @@ export async function GET(request: NextRequest) {
           id: player.id,
           playerName: player.playerName,
           characterSprite: player.characterSprite,
-          gamePoints: player.gamePoints,
-          gameGold: player.gameGold,
           currentX: player.currentX,
           currentY: player.currentY,
           currentScene: player.currentScene,
@@ -122,8 +119,6 @@ export async function POST(request: NextRequest) {
         userId: user.id,
         playerName: validatedData.playerName,
         characterSprite: validatedData.characterSprite,
-        gamePoints: 50,
-        gameGold: 50,
         currentX: 400,
         currentY: 300,
         currentScene: 'Start'
@@ -147,8 +142,6 @@ export async function POST(request: NextRequest) {
           id: player.id,
           playerName: player.playerName,
           characterSprite: player.characterSprite,
-          gamePoints: player.gamePoints,
-          gameGold: player.gameGold,
           currentX: player.currentX,
           currentY: player.currentY,
           currentScene: player.currentScene,
@@ -191,31 +184,52 @@ export async function PUT(request: NextRequest) {
     })
 
     if (!existingPlayer) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Player not found' 
+      return NextResponse.json({
+        success: false,
+        error: 'Player not found'
       }, { status: 404 })
     }
 
     const body = await request.json()
+
+    console.log('🔴 [API /api/player PUT] 收到请求:', { userId: user.id, body })
+
     const validatedData = updatePlayerSchema.parse(body)
 
+    // 构建更新数据
+    const updateData: any = {
+      lastActiveAt: new Date()
+    }
+
+    // 直接设置字段（不再有gameGold/gamePoints）
+    if (validatedData.playerName !== undefined) updateData.playerName = validatedData.playerName
+    if (validatedData.characterSprite !== undefined) updateData.characterSprite = validatedData.characterSprite
+    if (validatedData.currentX !== undefined) updateData.currentX = validatedData.currentX
+    if (validatedData.currentY !== undefined) updateData.currentY = validatedData.currentY
+    if (validatedData.currentScene !== undefined) updateData.currentScene = validatedData.currentScene
+    if (validatedData.playerState !== undefined) updateData.playerState = validatedData.playerState
+
+    console.log('🔴 [API /api/player PUT] 开始更新数据库...')
     const updatedPlayer = await prisma.player.update({
       where: { userId: user.id },
-      data: {
-        ...validatedData,
-        lastActiveAt: new Date()
-      },
+      data: updateData,
       include: {
         user: {
           select: {
             id: true,
             name: true,
             email: true,
-            avatar: true
+            avatar: true,
+            points: true  // 返回User.points用于前端显示
           }
         }
       }
+    })
+
+    console.log('✅ [API /api/player PUT] 数据库更新成功！', {
+      userId: user.id,
+      currentX: updatedPlayer.currentX,
+      currentY: updatedPlayer.currentY
     })
 
     return NextResponse.json({
@@ -225,8 +239,6 @@ export async function PUT(request: NextRequest) {
           id: updatedPlayer.id,
           playerName: updatedPlayer.playerName,
           characterSprite: updatedPlayer.characterSprite,
-          gamePoints: updatedPlayer.gamePoints,
-          gameGold: updatedPlayer.gameGold,
           currentX: updatedPlayer.currentX,
           currentY: updatedPlayer.currentY,
           currentScene: updatedPlayer.currentScene,
@@ -235,22 +247,22 @@ export async function PUT(request: NextRequest) {
           createdAt: updatedPlayer.createdAt,
           updatedAt: updatedPlayer.updatedAt
         },
-        user: updatedPlayer.user
+        user: updatedPlayer.user  // user对象包含points字段
       }
     })
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ 
-        success: false, 
+      return NextResponse.json({
+        success: false,
         error: 'Invalid input data',
         details: error.issues
       }, { status: 400 })
     }
-    
-    console.error('Update player error:', error)
-    return NextResponse.json({ 
-      success: false, 
-      error: 'Internal server error' 
+
+    console.error('❌ [API /api/player PUT] 更新失败:', error)
+    return NextResponse.json({
+      success: false,
+      error: 'Internal server error'
     }, { status: 500 })
   }
 }

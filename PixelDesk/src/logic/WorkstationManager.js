@@ -803,45 +803,55 @@ export class WorkstationManager {
     }
 
     async updateUserPoints(userId, pointsChange) {
-        // 只调用后端API，不使用localStorage缓存
+        // 调用 User API 更新 points，真正同步到数据库
         try {
+            console.log('🔵 [updateUserPoints] 开始更新用户积分:', {
+                userId,
+                pointsChange,
+                url: '/api/users'
+            });
+
             const response = await fetch('/api/users', {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                 },
+                credentials: 'include', // 包含认证信息
                 body: JSON.stringify({
                     userId: userId,
-                    points: pointsChange,
-                    gold: pointsChange
+                    points: pointsChange // 使用增量更新
                 })
             });
 
+            console.log('🔵 [updateUserPoints] API响应状态:', response.status);
+
             const result = await response.json();
+            console.log('🔵 [updateUserPoints] API响应结果:', result);
 
             if (result.success) {
-                debugLog(`用户 ${userId} 积分已更新到服务器: ${pointsChange > 0 ? '+' : ''}${pointsChange}, 新积分: ${result.data.points}`);
+                const newPoints = result.data.points;
+                console.log(`✅ [updateUserPoints] 用户 ${userId} 积分已更新到数据库: ${pointsChange > 0 ? '+' : ''}${pointsChange}, 新积分: ${newPoints}`);
 
                 // 触发积分更新事件，通知前端UI更新
                 if (typeof window !== 'undefined') {
                     const event = new CustomEvent('user-points-updated', {
                         detail: {
                             userId: userId,
-                            points: result.data.points,
+                            points: newPoints,
                             change: pointsChange
                         }
                     });
                     window.dispatchEvent(event);
-                    debugLog(`已触发积分更新事件: 用户 ${userId}, 新积分: ${result.data.points}`);
+                    console.log(`✅ [updateUserPoints] 已触发积分更新事件: 用户 ${userId}, 新积分: ${newPoints}`);
                 }
 
-                return { success: true, newPoints: result.data.points };
+                return { success: true, newPoints: newPoints };
             } else {
-                console.error('更新用户积分失败:', result.error);
+                console.error('❌ [updateUserPoints] 更新用户积分失败:', result.error);
                 return { success: false, error: result.error };
             }
         } catch (error) {
-            console.error('调用更新用户积分API失败:', error);
+            console.error('❌ [updateUserPoints] 调用更新用户积分API失败:', error);
             return { success: false, error: error.message };
         }
     }
@@ -1411,31 +1421,36 @@ export class WorkstationManager {
         // 从配置获取传送所需积分
         let teleportCost = 3; // 默认值
         try {
+            console.log('🟢 [teleportToWorkstation] 获取传送积分配置...');
             const configResponse = await fetch('/api/points-config?key=teleport_workstation_cost');
             if (configResponse.ok) {
                 const configData = await configResponse.json();
                 if (configData.success && configData.data) {
                     teleportCost = configData.data.value;
+                    console.log('🟢 [teleportToWorkstation] 传送费用:', teleportCost);
                 }
             }
         } catch (error) {
-            console.error('获取传送积分配置失败，使用默认值:', error);
+            console.error('❌ [teleportToWorkstation] 获取传送积分配置失败，使用默认值:', error);
         }
 
-        // 扣除积分
+        // 扣除积分（调用User API，真正更新数据库）
+        console.log('🟢 [teleportToWorkstation] 开始扣除积分:', { userId, teleportCost: -teleportCost });
         const pointsResult = await this.updateUserPoints(userId, -teleportCost);
+        console.log('🟢 [teleportToWorkstation] 积分扣除结果:', pointsResult);
+
         if (!pointsResult.success) {
-            console.error('扣除积分失败:', pointsResult.error);
-            return { success: false, error: '积分扣除失败' };
+            console.error('❌ [teleportToWorkstation] 扣除积分失败:', pointsResult.error);
+            return { success: false, error: '积分扣除失败: ' + (pointsResult.error || '未知错误') };
         }
 
         // 执行传送
         if (player && typeof player.teleportTo === 'function') {
-            debugLog(`执行传送: 玩家当前位置 (${player.x}, ${player.y}) -> 目标位置 (${teleportPosition.x}, ${teleportPosition.y})`);
+            console.log(`🟢 [teleportToWorkstation] 执行传送: (${player.x}, ${player.y}) -> (${teleportPosition.x}, ${teleportPosition.y})`);
             player.teleportTo(teleportPosition.x, teleportPosition.y, teleportPosition.direction);
         }
 
-        debugLog(`用户 ${userId} 快速回到工位，扣除${teleportCost}积分，剩余积分: ${pointsResult.newPoints}`);
+        console.log(`✅ [teleportToWorkstation] 用户 ${userId} 快速回到工位，扣除${teleportCost}积分，剩余积分: ${pointsResult.newPoints}`);
 
         // 触发事件
         this.scene.events.emit('teleport-to-workstation', {

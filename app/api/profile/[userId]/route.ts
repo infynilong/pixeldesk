@@ -27,7 +27,6 @@ export async function GET(
         email: true,
         createdAt: true,
         points: true,
-        gold: true,
         _count: {
           select: {
             posts: {

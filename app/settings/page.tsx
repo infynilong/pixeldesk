@@ -12,7 +12,6 @@ interface UserSettings {
   email: string | null
   avatar: string | null
   points: number
-  gold: number
   emailVerified: boolean
 }
 

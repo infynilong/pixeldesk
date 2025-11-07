@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { id, name, email, avatar, points, gold } = await request.json()
+    const { id, name, email, avatar, points } = await request.json()
     
     if (!id || !name) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -41,7 +41,6 @@ export async function POST(request: NextRequest) {
     const updateData: any = {
       name,
       points: points || 0,
-      gold: gold || 0,
       updatedAt: new Date()
     }
 
@@ -68,8 +67,7 @@ export async function POST(request: NextRequest) {
         name,
         email,
         avatar: avatar || null, // 创建时允许设置角色名称作为默认头像
-        points: points || 0,
-        gold: gold || 0
+        points: points || 0
       }
     })
 
@@ -82,27 +80,46 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const { userId, points, gold } = await request.json()
-    
+    const { userId, points } = await request.json()
+
+    console.log('🔴 [API /api/users PUT] 收到请求:', { userId, points })
+
     if (!userId) {
+      console.error('❌ [API /api/users PUT] 缺少userId')
       return NextResponse.json({ error: 'User ID required' }, { status: 400 })
     }
 
+    // 先查询当前积分
+    const currentUser = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { points: true }
+    })
+
+    console.log('🔴 [API /api/users PUT] 当前用户积分:', currentUser)
+
     // 更新用户积分
+    console.log('🔴 [API /api/users PUT] 开始更新数据库...')
     const user = await prisma.user.update({
       where: { id: userId },
       data: {
         points: { increment: points || 0 },
-        gold: { increment: gold || 0 },
         updatedAt: new Date()
       }
+    })
+
+    console.log('✅ [API /api/users PUT] 数据库更新成功！', {
+      userId: user.id,
+      旧积分: currentUser?.points,
+      增量: points,
+      新积分: user.points,
+      差值: user.points - (currentUser?.points || 0)
     })
 
     // Redis已禁用，跳过缓存操作
 
     return NextResponse.json({ success: true, data: user })
   } catch (error) {
-    console.error('Error updating user:', error)
+    console.error('❌ [API /api/users PUT] 更新失败:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

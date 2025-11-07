@@ -2,6 +2,7 @@
 
 import { useState, memo, useCallback, ChangeEvent, useEffect } from 'react'
 import { statusHistoryManager, formatTimestamp, getStatusBadge } from '../lib/statusHistory'
+import { usePointsConfig } from '../lib/hooks/usePointsConfig'
 
 const statusOptions = [
   { id: 'working', label: '工作中', emoji: '💼', color: 'from-retro-blue to-retro-cyan' },
@@ -30,6 +31,10 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
   const [isExpanded, setIsExpanded] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
   const [statusHistory, setStatusHistory] = useState<any[]>([])
+
+  // 获取积分配置
+  const { getConfig } = usePointsConfig()
+  const teleportCost = getConfig('teleport_workstation_cost') || 3
 
   // 初始化时加载状态历史，添加防抖避免重复调用
   useEffect(() => {
@@ -251,14 +256,14 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
                           }
                         }}
                         className="group relative overflow-hidden bg-gradient-to-r from-retro-blue/80 to-retro-cyan/80 hover:from-retro-blue hover:to-retro-cyan text-white font-bold px-2 py-1 rounded text-xs   shadow-sm hover:shadow-md border border-white/20 hover:border-white/40"
-                        title="快速回到工位 (消耗1积分)"
+                        title={`快速回到工位 (消耗${teleportCost}积分)`}
                       >
                         <div className="flex items-center gap-1">
                           <span className="text-xs">⚡</span>
                           <span className="font-pixel text-xs tracking-wide">
                             GO
                           </span>
-                          <div className="text-xs opacity-75">💎1</div>
+                          <div className="text-xs opacity-75">💎{teleportCost}</div>
                         </div>
                       </button>
                     </>

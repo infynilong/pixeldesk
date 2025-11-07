@@ -8,7 +8,6 @@ export interface AuthenticatedUser {
   email: string
   avatar?: string
   points?: number
-  gold?: number
   emailVerified?: boolean
 }
 
@@ -69,7 +68,6 @@ export async function verifyAuthFromRequest(request: NextRequest): Promise<AuthR
       email: user.email!,
       avatar: user.avatar || undefined,
       points: user.points,
-      gold: user.gold,
       emailVerified: user.emailVerified
     }
 
@@ -118,7 +116,6 @@ export async function getBasicUserFromRequest(request: NextRequest): Promise<Aut
       email: user.email!,
       avatar: user.avatar || undefined,
       points: user.points,
-      gold: user.gold,
       emailVerified: user.emailVerified
     }
 

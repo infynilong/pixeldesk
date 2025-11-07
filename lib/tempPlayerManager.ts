@@ -7,7 +7,6 @@ interface TempPlayer {
   username: string
   character: string
   points: number
-  gold: number
   isTemporary: true
   createdAt: string
   lastActiveAt: string
@@ -76,6 +75,7 @@ function generateTempUsername(): string {
  */
 function generateRandomCharacter(): string {
   const characters = [
+    'hangli',
     'Premade_Character_48x48_01', 'Premade_Character_48x48_02', 'Premade_Character_48x48_03',
     'Premade_Character_48x48_04', 'Premade_Character_48x48_05', 'Premade_Character_48x48_06',
     'Premade_Character_48x48_07', 'Premade_Character_48x48_08', 'Premade_Character_48x48_09',
@@ -98,7 +98,6 @@ export function createTempPlayer(): TempPlayerData {
       username: generateTempUsername(),
       character: generateRandomCharacter(),
       points: 50,
-      gold: 50,
       isTemporary: true,
       createdAt: now,
       lastActiveAt: now
@@ -222,7 +221,6 @@ export function getTempPlayerGameData() {
     username: tempPlayer.user.username,
     character: tempPlayer.user.character,
     points: tempPlayer.user.points,
-    gold: tempPlayer.user.gold,
     workstations: [], // 临时玩家没有工位绑定
     isTemporary: true,
     // 兼容Phaser游戏期望的格式

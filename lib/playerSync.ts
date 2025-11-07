@@ -10,7 +10,6 @@ export interface GamePlayerData {
   username: string
   character: string
   points: number
-  gold: number
   registeredAt: string
   workstations: any[]
   // Additional game state
@@ -46,7 +45,6 @@ export async function fetchPlayerData(): Promise<PlayerSyncResult> {
         username: data.data.player.playerName,
         character: data.data.player.characterSprite,
         points: data.data.player.gamePoints,
-        gold: data.data.player.gameGold,
         registeredAt: data.data.player.createdAt,
         workstations: [],
         x: data.data.player.currentX,
@@ -88,7 +86,6 @@ export async function fetchPlayerData(): Promise<PlayerSyncResult> {
  */
 export async function updatePlayerData(updates: Partial<{
   gamePoints: number
-  gameGold: number
   currentX: number
   currentY: number
   currentScene: string
@@ -171,12 +168,9 @@ export async function syncLocalStorageToServer(): Promise<{ success: boolean; er
 
     const updates: any = {}
 
-    // Sync points and gold if changed
+    // Sync points if changed
     if (typeof playerData.points === 'number') {
       updates.gamePoints = playerData.points
-    }
-    if (typeof playerData.gold === 'number') {
-      updates.gameGold = playerData.gold
     }
 
     // Sync position if available

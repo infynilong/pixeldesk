@@ -305,7 +305,7 @@ export class Start extends Phaser.Scene {
       this.currentUser = {
         id: 'temp_user',
         username: 'Guest',
-        character: 'Premade_Character_48x48_01',
+        character: 'hangli',
         points: 50,
         gold: 50
       }
@@ -384,9 +384,10 @@ export class Start extends Phaser.Scene {
     // 创建floor图层
     this.renderObjectLayer(map, "floor")
 
-    // 从数据库加载玩家保存的位置
+    // 从数据库加载玩家保存的位置和状态
     let playerStartX = null
     let playerStartY = null
+    let playerDirection = null
 
     try {
       debugLog('🔍 Loading player position from database...')
@@ -402,7 +403,9 @@ export class Start extends Phaser.Scene {
         if (data.success && data.hasPlayer && data.data?.player) {
           playerStartX = data.data.player.currentX
           playerStartY = data.data.player.currentY
-          debugLog('✅ Loaded player position from database:', playerStartX, playerStartY)
+          playerDirection = data.data.player.playerState?.direction || null
+          debugLog('✅ Loaded player position from database:',
+            playerStartX, playerStartY, 'direction:', playerDirection)
         } else {
           debugLog('ℹ️ No saved position found, will use Tiled map default')
         }
@@ -413,8 +416,8 @@ export class Start extends Phaser.Scene {
       debugWarn('⚠️ Failed to load player position from database, using default:', error)
     }
 
-    // 创建玩家 - 传入保存的位置（如果有）
-    this.createPlayer(map, playerStartX, playerStartY)
+    // 创建玩家 - 传入保存的位置和朝向（如果有）
+    this.createPlayer(map, playerStartX, playerStartY, playerDirection)
 
     // 设置输入
     this.setupInput()
@@ -519,7 +522,7 @@ export class Start extends Phaser.Scene {
   // 已删除无用的优化碰撞检测函数
 
   // ===== 玩家相关方法 =====
-  createPlayer(map, savedX = null, savedY = null) {
+  createPlayer(map, savedX = null, savedY = null, savedDirection = null) {
     // 从对象层获取玩家位置（作为默认fallback）
     const userLayer = map.getObjectLayer("player_objs")
     if (!userLayer) {
@@ -533,8 +536,9 @@ export class Start extends Phaser.Scene {
     // 使用保存的位置，如果没有则使用Tiled地图的默认位置
     const startX = savedX !== null ? savedX : userBody.x
     const startY = savedY !== null ? savedY : (userBody.y - userBody.height)
+    const startDirection = savedDirection || 'down'
 
-    debugLog('🎮 Creating player at position:', startX, startY,
+    debugLog('🎮 Creating player at position:', startX, startY, 'direction:', startDirection,
       savedX !== null ? '(from database)' : '(from Tiled map default)')
 
     // 创建玩家实例，启用移动和状态保存
@@ -565,6 +569,11 @@ export class Start extends Phaser.Scene {
       mainPlayerData
     )
     this.add.existing(this.player)
+
+    // 设置保存的朝向
+    if (savedDirection) {
+      this.player.setDirectionFrame(startDirection)
+    }
 
     // 确保玩家移动是启用的
     this.time.delayedCall(50, () => {
@@ -723,6 +732,7 @@ export class Start extends Phaser.Scene {
 
     // 加载角色图片（每个都包含4个方向的帧）
     const characterAssets = [
+      "hangli.png",
       "Premade_Character_48x48_01.png",
       "Premade_Character_48x48_02.png",
       "Premade_Character_48x48_03.png",
