@@ -10,30 +10,51 @@ interface AdminInfo {
   role: string
 }
 
+interface DashboardStats {
+  totalPlayers: number
+  activePlayers: number
+  totalCharacters: number
+  totalWorkstations: number
+  occupiedWorkstations: number
+  occupancyRate: number
+}
+
 export default function AdminDashboard() {
   const router = useRouter()
   const [admin, setAdmin] = useState<AdminInfo | null>(null)
+  const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    async function fetchAdminInfo() {
+    async function fetchData() {
       try {
-        const response = await fetch('/api/admin/auth/me')
-        if (response.ok) {
-          const data = await response.json()
-          setAdmin(data.admin)
+        // 并行获取管理员信息和统计数据
+        const [adminResponse, statsResponse] = await Promise.all([
+          fetch('/api/admin/auth/me'),
+          fetch('/api/admin/dashboard/stats'),
+        ])
+
+        if (adminResponse.ok) {
+          const adminData = await adminResponse.json()
+          setAdmin(adminData.admin)
         } else {
           router.push('/admin/login')
+          return
+        }
+
+        if (statsResponse.ok) {
+          const statsData = await statsResponse.json()
+          setStats(statsData.data)
         }
       } catch (error) {
-        console.error('Failed to fetch admin info:', error)
+        console.error('Failed to fetch data:', error)
         router.push('/admin/login')
       } finally {
         setLoading(false)
       }
     }
 
-    fetchAdminInfo()
+    fetchData()
   }, [router])
 
   if (loading) {
@@ -61,7 +82,14 @@ export default function AdminDashboard() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-purple-200 text-sm">总玩家数</p>
-              <p className="text-3xl font-bold text-white mt-2">-</p>
+              <p className="text-3xl font-bold text-white mt-2">
+                {stats ? stats.totalPlayers.toLocaleString() : '-'}
+              </p>
+              {stats && stats.activePlayers > 0 && (
+                <p className="text-purple-200 text-xs mt-1">
+                  活跃: {stats.activePlayers}
+                </p>
+              )}
             </div>
             <div className="text-4xl">👥</div>
           </div>
@@ -71,7 +99,10 @@ export default function AdminDashboard() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-blue-200 text-sm">角色形象</p>
-              <p className="text-3xl font-bold text-white mt-2">21</p>
+              <p className="text-3xl font-bold text-white mt-2">
+                {stats ? stats.totalCharacters : '-'}
+              </p>
+              <p className="text-blue-200 text-xs mt-1">已启用</p>
             </div>
             <div className="text-4xl">🎭</div>
           </div>
@@ -81,7 +112,14 @@ export default function AdminDashboard() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-green-200 text-sm">总工位数</p>
-              <p className="text-3xl font-bold text-white mt-2">1000</p>
+              <p className="text-3xl font-bold text-white mt-2">
+                {stats ? stats.totalWorkstations.toLocaleString() : '-'}
+              </p>
+              {stats && (
+                <p className="text-green-200 text-xs mt-1">
+                  已占用: {stats.occupiedWorkstations}
+                </p>
+              )}
             </div>
             <div className="text-4xl">💼</div>
           </div>
@@ -91,7 +129,14 @@ export default function AdminDashboard() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-orange-200 text-sm">工位占用率</p>
-              <p className="text-3xl font-bold text-white mt-2">-</p>
+              <p className="text-3xl font-bold text-white mt-2">
+                {stats ? `${stats.occupancyRate}%` : '-'}
+              </p>
+              {stats && (
+                <p className="text-orange-200 text-xs mt-1">
+                  {stats.occupiedWorkstations} / {stats.totalWorkstations}
+                </p>
+              )}
             </div>
             <div className="text-4xl">📊</div>
           </div>
