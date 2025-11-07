@@ -12,6 +12,7 @@ interface CharacterCreationModalProps {
 
 // 可选的角色精灵列表
 const characterSprites = [
+  'hangli',
   'Premade_Character_48x48_01', 'Premade_Character_48x48_02', 'Premade_Character_48x48_03',
   'Premade_Character_48x48_04', 'Premade_Character_48x48_05', 'Premade_Character_48x48_06',
   'Premade_Character_48x48_07', 'Premade_Character_48x48_08', 'Premade_Character_48x48_09',

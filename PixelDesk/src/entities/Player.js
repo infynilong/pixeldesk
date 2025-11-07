@@ -46,16 +46,25 @@ export class Player extends Phaser.GameObjects.Container {
         this.isColliding = false;
         this.collisionStartTime = null;
         this.collisionDebounceTimer = null;
-        
-        // 创建身体和头部精灵
+
+        // 🔧 检测是否为紧凑8帧格式（如 hangli：192×96，2行4列）
+        this.isCompactFormat = this.spriteKey === 'hangli';
+
+        // 创建分离的身体和头部精灵（两种格式都使用这个结构）
         this.bodySprite = scene.add.image(0, 48, this.spriteKey);
         this.headSprite = scene.add.image(0, 0, this.spriteKey);
-        
         this.add([this.headSprite, this.bodySprite]);
-        
-        // 设置纹理区域（从tileset中提取正确的帧）
-        this.bodySprite.setFrame(56); // user_body对应的帧
-        this.headSprite.setFrame(0);  // user_head对应的帧
+
+        if (this.isCompactFormat) {
+            // 紧凑格式（hangli）：第一行是头部（0-3），第二行是身体（4-7）
+            // 列顺序：右、上、左、下
+            this.headSprite.setFrame(3);  // 默认朝下的头部（第四列）
+            this.bodySprite.setFrame(7);  // 默认朝下的身体（第四列）
+        } else {
+            // 传统格式：使用原有的帧编号
+            this.bodySprite.setFrame(56); // user_body对应的帧
+            this.headSprite.setFrame(0);  // user_head对应的帧
+        }
 
         // 启用物理特性
         scene.physics.world.enable(this);
@@ -82,27 +91,51 @@ export class Player extends Phaser.GameObjects.Container {
     
     setDirectionFrame(direction) {
         this.currentDirection = direction;
-        
-        // 根据方向设置不同的帧（假设帧布局）
-        switch (direction) {
-            case 'up':
-                this.headSprite.setFrame(1);
-                this.bodySprite.setFrame(57);
-                break;
-            case 'left':
-                this.headSprite.setFrame(2);
-                this.bodySprite.setFrame(58);
-                break;
-            case 'down': 
-                this.headSprite.setFrame(3);
-                this.bodySprite.setFrame(59);
-                break;
-            case 'right':
-                this.headSprite.setFrame(0);
-                this.bodySprite.setFrame(56);
-                break;
+
+        if (this.isCompactFormat) {
+            // 紧凑格式（hangli）：192×96像素，2行4列
+            // 第一行（帧0-3）：头部的 右、上、左、下
+            // 第二行（帧4-7）：身体的 右、上、左、下
+            switch (direction) {
+                case 'right':
+                    this.headSprite.setFrame(0);  // 第一行第一列：向右
+                    this.bodySprite.setFrame(4);  // 第二行第一列：向右
+                    break;
+                case 'up':
+                    this.headSprite.setFrame(1);  // 第一行第二列：背面（上）
+                    this.bodySprite.setFrame(5);  // 第二行第二列：背面（上）
+                    break;
+                case 'left':
+                    this.headSprite.setFrame(2);  // 第一行第三列：向左
+                    this.bodySprite.setFrame(6);  // 第二行第三列：向左
+                    break;
+                case 'down':
+                    this.headSprite.setFrame(3);  // 第一行第四列：正面（下）
+                    this.bodySprite.setFrame(7);  // 第二行第四列：正面（下）
+                    break;
+            }
+        } else {
+            // 传统格式：分离的头部和身体帧
+            switch (direction) {
+                case 'up':
+                    this.headSprite.setFrame(1);
+                    this.bodySprite.setFrame(57);
+                    break;
+                case 'left':
+                    this.headSprite.setFrame(2);
+                    this.bodySprite.setFrame(58);
+                    break;
+                case 'down':
+                    this.headSprite.setFrame(3);
+                    this.bodySprite.setFrame(59);
+                    break;
+                case 'right':
+                    this.headSprite.setFrame(0);
+                    this.bodySprite.setFrame(56);
+                    break;
+            }
         }
-        
+
         // 保存方向变化
         this.saveState();
     }

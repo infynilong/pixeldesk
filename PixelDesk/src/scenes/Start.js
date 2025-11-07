@@ -305,7 +305,7 @@ export class Start extends Phaser.Scene {
       this.currentUser = {
         id: 'temp_user',
         username: 'Guest',
-        character: 'Premade_Character_48x48_01',
+        character: 'hangli',
         points: 50,
         gold: 50
       }
@@ -732,6 +732,7 @@ export class Start extends Phaser.Scene {
 
     // 加载角色图片（每个都包含4个方向的帧）
     const characterAssets = [
+      "hangli.png",
       "Premade_Character_48x48_01.png",
       "Premade_Character_48x48_02.png",
       "Premade_Character_48x48_03.png",
