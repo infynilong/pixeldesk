@@ -36,6 +36,9 @@ export default function CharactersPage() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState<any>(null)
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [deleting, setDeleting] = useState(false)
+  const [deleteResult, setDeleteResult] = useState<any>(null)
 
   useEffect(() => {
     fetchCharacters()
@@ -99,6 +102,85 @@ export default function CharactersPage() {
     }
   }
 
+  const handleDelete = async (id: string, name: string) => {
+    if (!confirm(`确定要删除角色「${name}」吗？\n\n此操作不可恢复！`)) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/admin/characters/${id}`, {
+        method: 'DELETE'
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        alert(data.message)
+        fetchCharacters()
+      } else {
+        alert(`删除失败: ${data.error}`)
+      }
+    } catch (error) {
+      console.error('删除失败:', error)
+      alert('删除失败，请重试')
+    }
+  }
+
+  const handleBatchDelete = async () => {
+    if (selectedIds.length === 0) {
+      alert('请先选择要删除的角色')
+      return
+    }
+
+    if (!confirm(`确定要删除选中的 ${selectedIds.length} 个角色吗？\n\n此操作不可恢复！`)) {
+      return
+    }
+
+    setDeleting(true)
+    setDeleteResult(null)
+
+    try {
+      const response = await fetch('/api/admin/characters/batch-delete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ ids: selectedIds })
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        setDeleteResult(data)
+        setSelectedIds([])
+        fetchCharacters()
+      } else {
+        alert(`批量删除失败: ${data.error}`)
+      }
+    } catch (error) {
+      console.error('批量删除失败:', error)
+      alert('批量删除失败，请重试')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  const toggleSelectAll = () => {
+    if (selectedIds.length === characters.length) {
+      setSelectedIds([])
+    } else {
+      setSelectedIds(characters.map(c => c.id))
+    }
+  }
+
+  const toggleSelect = (id: string) => {
+    if (selectedIds.includes(id)) {
+      setSelectedIds(selectedIds.filter(sid => sid !== id))
+    } else {
+      setSelectedIds([...selectedIds, id])
+    }
+  }
+
   if (loading && !characters.length) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -122,6 +204,15 @@ export default function CharactersPage() {
             </p>
           </div>
           <div className="flex gap-3">
+            {selectedIds.length > 0 && (
+              <button
+                onClick={handleBatchDelete}
+                disabled={deleting}
+                className="px-6 py-3 bg-gradient-to-r from-red-600 to-pink-600 text-white font-semibold rounded-lg hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {deleting ? '⏳ 删除中...' : `🗑️ 删除选中 (${selectedIds.length})`}
+              </button>
+            )}
             <button
               onClick={handleBatchImport}
               disabled={importing}
@@ -137,6 +228,32 @@ export default function CharactersPage() {
             </button>
           </div>
         </div>
+
+        {/* 批量选择工具栏 */}
+        {characters.length > 0 && (
+          <div className="mb-4 flex items-center gap-4 bg-gray-900 p-3 rounded-lg border border-gray-800">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={selectedIds.length === characters.length && characters.length > 0}
+                onChange={toggleSelectAll}
+                className="w-5 h-5 rounded border-gray-600 text-purple-600 focus:ring-purple-500 focus:ring-offset-gray-900"
+              />
+              <span className="text-gray-300 text-sm">全选</span>
+            </label>
+            <span className="text-gray-500 text-sm">
+              已选择 {selectedIds.length} 个角色
+            </span>
+            {selectedIds.length > 0 && (
+              <button
+                onClick={() => setSelectedIds([])}
+                className="ml-auto text-gray-400 hover:text-white text-sm"
+              >
+                清空选择
+              </button>
+            )}
+          </div>
+        )}
 
         {/* 导入结果提示 */}
         {importResult && (
@@ -224,6 +341,69 @@ export default function CharactersPage() {
           </div>
         )}
 
+        {/* 删除结果提示 */}
+        {deleteResult && (
+          <div className="mb-4 p-4 bg-gray-900 border border-gray-800 rounded-lg">
+            <div className="flex items-start justify-between mb-3">
+              <div>
+                <h3 className="text-lg font-semibold text-white mb-1">批量删除完成</h3>
+                <p className="text-gray-400 text-sm">{deleteResult.message}</p>
+              </div>
+              <button
+                onClick={() => setDeleteResult(null)}
+                className="text-gray-400 hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="grid grid-cols-3 gap-4 mb-3">
+              <div className="bg-emerald-900/30 border border-emerald-800/50 p-3 rounded-lg">
+                <div className="text-emerald-400 text-sm mb-1">成功删除</div>
+                <div className="text-2xl font-bold text-emerald-400">{deleteResult.data.summary.deleted}</div>
+              </div>
+              <div className="bg-yellow-900/30 border border-yellow-800/50 p-3 rounded-lg">
+                <div className="text-yellow-400 text-sm mb-1">已跳过</div>
+                <div className="text-2xl font-bold text-yellow-400">{deleteResult.data.summary.skipped}</div>
+              </div>
+              <div className="bg-red-900/30 border border-red-800/50 p-3 rounded-lg">
+                <div className="text-red-400 text-sm mb-1">失败</div>
+                <div className="text-2xl font-bold text-red-400">{deleteResult.data.summary.failed}</div>
+              </div>
+            </div>
+
+            {deleteResult.data.deleted.length > 0 && (
+              <details className="mb-2">
+                <summary className="cursor-pointer text-emerald-400 hover:text-emerald-300 text-sm font-medium mb-2">
+                  ✓ 成功删除 ({deleteResult.data.deleted.length})
+                </summary>
+                <div className="bg-gray-800 p-3 rounded max-h-40 overflow-y-auto">
+                  <ul className="text-sm text-gray-300 space-y-1">
+                    {deleteResult.data.deleted.map((name: string, idx: number) => (
+                      <li key={idx}>• {name}</li>
+                    ))}
+                  </ul>
+                </div>
+              </details>
+            )}
+
+            {deleteResult.data.skipped.length > 0 && (
+              <details className="mb-2">
+                <summary className="cursor-pointer text-yellow-400 hover:text-yellow-300 text-sm font-medium mb-2">
+                  ⊘ 已跳过 ({deleteResult.data.skipped.length})
+                </summary>
+                <div className="bg-gray-800 p-3 rounded max-h-40 overflow-y-auto">
+                  <ul className="text-sm text-gray-300 space-y-1">
+                    {deleteResult.data.skipped.map((item: any, idx: number) => (
+                      <li key={idx}>• {item.name} <span className="text-gray-500">({item.reason})</span></li>
+                    ))}
+                  </ul>
+                </div>
+              </details>
+            )}
+          </div>
+        )}
+
         {/* Search & Filters */}
         <div className="flex items-center gap-4 bg-gray-900 p-4 rounded-lg border border-gray-800">
           <div className="flex-1">
@@ -265,11 +445,26 @@ export default function CharactersPage() {
           {characters.map((character) => (
             <div
               key={character.id}
-              className="bg-gray-900 rounded-lg border border-gray-800 overflow-hidden hover:border-purple-500 transition-all cursor-pointer"
-              onClick={() => router.push(`/admin/characters/${character.id}`)}
+              className={`bg-gray-900 rounded-lg border ${selectedIds.includes(character.id) ? 'border-purple-500 ring-2 ring-purple-500/50' : 'border-gray-800'} overflow-hidden hover:border-purple-500 transition-all relative`}
             >
+              {/* 选择框 */}
+              <div className="absolute top-3 left-3 z-10">
+                <input
+                  type="checkbox"
+                  checked={selectedIds.includes(character.id)}
+                  onChange={(e) => {
+                    e.stopPropagation()
+                    toggleSelect(character.id)
+                  }}
+                  className="w-5 h-5 rounded border-gray-600 text-purple-600 focus:ring-purple-500 focus:ring-offset-gray-900 cursor-pointer"
+                />
+              </div>
+
               {/* Image */}
-              <div className="aspect-square bg-gray-800 flex items-center justify-center p-4 relative">
+              <div
+                className="aspect-square bg-gray-800 flex items-center justify-center p-4 relative cursor-pointer"
+                onClick={() => router.push(`/admin/characters/${character.id}`)}
+              >
                 <Image
                   src={character.imageUrl}
                   alt={character.displayName}
@@ -283,7 +478,7 @@ export default function CharactersPage() {
                   </div>
                 )}
                 {!character.isActive && (
-                  <div className="absolute top-2 left-2 bg-red-500 text-white text-xs px-2 py-1 rounded">
+                  <div className="absolute top-2 right-2 bg-red-500 text-white text-xs px-2 py-1 rounded">
                     禁用
                   </div>
                 )}
@@ -309,12 +504,23 @@ export default function CharactersPage() {
                 </div>
 
                 {/* Stats */}
-                <div className="flex items-center justify-between text-sm text-gray-400">
+                <div className="flex items-center justify-between text-sm text-gray-400 mb-3">
                   <span>👥 {character.userCount} 人使用</span>
                   {character.purchaseCount > 0 && (
                     <span>🛒 {character.purchaseCount} 次购买</span>
                   )}
                 </div>
+
+                {/* 删除按钮 */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleDelete(character.id, character.displayName)
+                  }}
+                  className="w-full px-3 py-2 bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white border border-red-600/50 rounded transition-all text-sm font-medium"
+                >
+                  🗑️ 删除
+                </button>
               </div>
             </div>
           ))}
