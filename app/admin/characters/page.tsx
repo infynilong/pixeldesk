@@ -34,6 +34,8 @@ export default function CharactersPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+  const [importing, setImporting] = useState(false)
+  const [importResult, setImportResult] = useState<any>(null)
 
   useEffect(() => {
     fetchCharacters()
@@ -67,6 +69,36 @@ export default function CharactersPage() {
     fetchCharacters(1, search)
   }
 
+  const handleBatchImport = async () => {
+    if (!confirm('确定要批量导入 /public/assets/characters 目录中的所有图片吗？\n\n已存在的角色将被跳过。')) {
+      return
+    }
+
+    setImporting(true)
+    setImportResult(null)
+
+    try {
+      const response = await fetch('/api/admin/characters/batch-import', {
+        method: 'POST'
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        setImportResult(data)
+        // 刷新角色列表
+        fetchCharacters()
+      } else {
+        alert(`批量导入失败: ${data.error}`)
+      }
+    } catch (error) {
+      console.error('批量导入失败:', error)
+      alert('批量导入失败，请重试')
+    } finally {
+      setImporting(false)
+    }
+  }
+
   if (loading && !characters.length) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -89,13 +121,108 @@ export default function CharactersPage() {
               共 {pagination?.total || 0} 个角色形象
             </p>
           </div>
-          <button
-            onClick={() => router.push('/admin/characters/create')}
-            className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-lg hover:opacity-90 transition-all"
-          >
-            ➕ 创建新角色
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={handleBatchImport}
+              disabled={importing}
+              className="px-6 py-3 bg-gradient-to-r from-cyan-600 to-teal-600 text-white font-semibold rounded-lg hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {importing ? '⏳ 导入中...' : '📥 批量导入'}
+            </button>
+            <button
+              onClick={() => router.push('/admin/characters/create')}
+              className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-lg hover:opacity-90 transition-all"
+            >
+              ➕ 创建新角色
+            </button>
+          </div>
         </div>
+
+        {/* 导入结果提示 */}
+        {importResult && (
+          <div className="mb-4 p-4 bg-gray-900 border border-gray-800 rounded-lg">
+            <div className="flex items-start justify-between mb-3">
+              <div>
+                <h3 className="text-lg font-semibold text-white mb-1">批量导入完成</h3>
+                <p className="text-gray-400 text-sm">{importResult.message}</p>
+              </div>
+              <button
+                onClick={() => setImportResult(null)}
+                className="text-gray-400 hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="grid grid-cols-4 gap-4 mb-3">
+              <div className="bg-gray-800 p-3 rounded-lg">
+                <div className="text-gray-400 text-sm mb-1">总计</div>
+                <div className="text-2xl font-bold text-white">{importResult.data.summary.total}</div>
+              </div>
+              <div className="bg-emerald-900/30 border border-emerald-800/50 p-3 rounded-lg">
+                <div className="text-emerald-400 text-sm mb-1">成功导入</div>
+                <div className="text-2xl font-bold text-emerald-400">{importResult.data.summary.imported}</div>
+              </div>
+              <div className="bg-yellow-900/30 border border-yellow-800/50 p-3 rounded-lg">
+                <div className="text-yellow-400 text-sm mb-1">已跳过</div>
+                <div className="text-2xl font-bold text-yellow-400">{importResult.data.summary.skipped}</div>
+              </div>
+              <div className="bg-red-900/30 border border-red-800/50 p-3 rounded-lg">
+                <div className="text-red-400 text-sm mb-1">失败</div>
+                <div className="text-2xl font-bold text-red-400">{importResult.data.summary.failed}</div>
+              </div>
+            </div>
+
+            {/* 详细信息 */}
+            {importResult.data.imported.length > 0 && (
+              <details className="mb-2">
+                <summary className="cursor-pointer text-emerald-400 hover:text-emerald-300 text-sm font-medium mb-2">
+                  ✓ 成功导入 ({importResult.data.imported.length})
+                </summary>
+                <div className="bg-gray-800 p-3 rounded max-h-40 overflow-y-auto">
+                  <ul className="text-sm text-gray-300 space-y-1">
+                    {importResult.data.imported.map((file: string, idx: number) => (
+                      <li key={idx}>• {file}</li>
+                    ))}
+                  </ul>
+                </div>
+              </details>
+            )}
+
+            {importResult.data.skipped.length > 0 && (
+              <details className="mb-2">
+                <summary className="cursor-pointer text-yellow-400 hover:text-yellow-300 text-sm font-medium mb-2">
+                  ⊘ 已跳过 ({importResult.data.skipped.length})
+                </summary>
+                <div className="bg-gray-800 p-3 rounded max-h-40 overflow-y-auto">
+                  <ul className="text-sm text-gray-300 space-y-1">
+                    {importResult.data.skipped.map((file: string, idx: number) => (
+                      <li key={idx}>• {file} <span className="text-gray-500">(已存在)</span></li>
+                    ))}
+                  </ul>
+                </div>
+              </details>
+            )}
+
+            {importResult.data.errors.length > 0 && (
+              <details>
+                <summary className="cursor-pointer text-red-400 hover:text-red-300 text-sm font-medium mb-2">
+                  ✗ 失败 ({importResult.data.errors.length})
+                </summary>
+                <div className="bg-gray-800 p-3 rounded max-h-40 overflow-y-auto">
+                  <ul className="text-sm text-gray-300 space-y-2">
+                    {importResult.data.errors.map((error: any, idx: number) => (
+                      <li key={idx}>
+                        <span className="text-red-400">• {error.file}</span>
+                        <div className="text-gray-500 ml-4">{error.error}</div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </details>
+            )}
+          </div>
+        )}
 
         {/* Search & Filters */}
         <div className="flex items-center gap-4 bg-gray-900 p-4 rounded-lg border border-gray-800">
