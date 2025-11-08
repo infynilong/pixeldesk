@@ -100,6 +100,110 @@ export async function DELETE(
 }
 
 /**
+ * PUT /api/admin/characters/[id]
+ * 更新角色信息并记录日志
+ */
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const admin = await requirePermission('characters.edit')
+
+    const { id } = params
+    const body = await request.json()
+    const { displayName, price, isDefault } = body
+
+    // 获取原始角色信息
+    const originalCharacter = await prisma.character.findUnique({
+      where: { id }
+    })
+
+    if (!originalCharacter) {
+      return NextResponse.json(
+        { success: false, error: '角色不存在' },
+        { status: 404 }
+      )
+    }
+
+    // 记录变更内容
+    const changes: any = {}
+
+    if (displayName !== undefined && displayName !== originalCharacter.displayName) {
+      changes.displayName = {
+        from: originalCharacter.displayName,
+        to: displayName
+      }
+    }
+
+    if (price !== undefined && price !== originalCharacter.price) {
+      changes.price = {
+        from: originalCharacter.price,
+        to: price
+      }
+    }
+
+    if (isDefault !== undefined && isDefault !== originalCharacter.isDefault) {
+      changes.isDefault = {
+        from: originalCharacter.isDefault,
+        to: isDefault
+      }
+    }
+
+    // 如果没有变更，直接返回
+    if (Object.keys(changes).length === 0) {
+      return NextResponse.json({
+        success: true,
+        message: '没有需要更新的内容',
+        data: originalCharacter
+      })
+    }
+
+    // 使用事务更新角色信息并记录日志
+    const result = await prisma.$transaction(async (tx) => {
+      // 更新角色信息
+      const updatedCharacter = await tx.character.update({
+        where: { id },
+        data: {
+          ...(displayName !== undefined && { displayName }),
+          ...(price !== undefined && { price }),
+          ...(isDefault !== undefined && { isDefault })
+        }
+      })
+
+      // 创建日志记录
+      const log = await tx.characterLog.create({
+        data: {
+          characterId: id,
+          adminId: admin.id,
+          action: 'UPDATE',
+          changes,
+          ipAddress: request.headers.get('x-forwarded-for') ||
+                     request.headers.get('x-real-ip') ||
+                     'unknown',
+          userAgent: request.headers.get('user-agent') || undefined
+        }
+      })
+
+      return { character: updatedCharacter, log }
+    })
+
+    return NextResponse.json({
+      success: true,
+      message: '角色信息已更新',
+      data: result.character,
+      changes
+    })
+  } catch (error) {
+    console.error('更新角色失败:', error)
+    return NextResponse.json(
+      { success: false, error: '更新角色失败' },
+      { status: 500 }
+    )
+  }
+}
+
+/**
  * GET /api/admin/characters/[id]
  * 获取角色详情
  */
@@ -119,6 +223,12 @@ export async function GET(
           select: {
             purchases: true
           }
+        },
+        logs: {
+          orderBy: {
+            createdAt: 'desc'
+          },
+          take: 50 // 最多返回50条日志
         }
       }
     })

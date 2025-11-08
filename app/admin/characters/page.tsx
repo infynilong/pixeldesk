@@ -20,6 +20,15 @@ interface Character {
   createdAt: string
 }
 
+interface CharacterLog {
+  id: string
+  action: string
+  changes: any
+  createdAt: string
+  adminId: string
+  ipAddress?: string
+}
+
 interface Pagination {
   page: number
   pageSize: number
@@ -39,6 +48,14 @@ export default function CharactersPage() {
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [deleting, setDeleting] = useState(false)
   const [deleteResult, setDeleteResult] = useState<any>(null)
+  const [editingCharacter, setEditingCharacter] = useState<Character | null>(null)
+  const [characterLogs, setCharacterLogs] = useState<CharacterLog[]>([])
+  const [editForm, setEditForm] = useState({
+    displayName: '',
+    price: 0,
+    isDefault: false
+  })
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     fetchCharacters()
@@ -178,6 +195,68 @@ export default function CharactersPage() {
       setSelectedIds(selectedIds.filter(sid => sid !== id))
     } else {
       setSelectedIds([...selectedIds, id])
+    }
+  }
+
+  const handleOpenEdit = async (character: Character) => {
+    setEditingCharacter(character)
+    setEditForm({
+      displayName: character.displayName,
+      price: character.price,
+      isDefault: character.isDefault
+    })
+
+    // 获取角色详情和历史日志
+    try {
+      const response = await fetch(`/api/admin/characters/${character.id}`)
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success) {
+          setCharacterLogs(data.data.logs || [])
+        }
+      }
+    } catch (error) {
+      console.error('获取角色详情失败:', error)
+    }
+  }
+
+  const handleCloseEdit = () => {
+    setEditingCharacter(null)
+    setCharacterLogs([])
+    setEditForm({
+      displayName: '',
+      price: 0,
+      isDefault: false
+    })
+  }
+
+  const handleSaveEdit = async () => {
+    if (!editingCharacter) return
+
+    setSaving(true)
+    try {
+      const response = await fetch(`/api/admin/characters/${editingCharacter.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(editForm)
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        alert(data.message)
+        handleCloseEdit()
+        fetchCharacters()
+      } else {
+        alert(`保存失败: ${data.error}`)
+      }
+    } catch (error) {
+      console.error('保存失败:', error)
+      alert('保存失败，请重试')
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -463,7 +542,7 @@ export default function CharactersPage() {
               {/* Image */}
               <div
                 className="aspect-square bg-gray-800 flex items-center justify-center p-4 relative cursor-pointer"
-                onClick={() => router.push(`/admin/characters/${character.id}`)}
+                onClick={() => handleOpenEdit(character)}
               >
                 <Image
                   src={character.imageUrl}
@@ -558,7 +637,7 @@ export default function CharactersPage() {
                 <tr
                   key={character.id}
                   className="hover:bg-gray-800 cursor-pointer transition-all"
-                  onClick={() => router.push(`/admin/characters/${character.id}`)}
+                  onClick={() => handleOpenEdit(character)}
                 >
                   <td className="px-6 py-4">
                     <Image
@@ -628,6 +707,182 @@ export default function CharactersPage() {
             >
               下一页
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* 编辑弹窗 */}
+      {editingCharacter && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-900 rounded-xl border border-gray-800 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-800 sticky top-0 bg-gray-900 z-10">
+              <h2 className="text-2xl font-bold text-white">编辑角色形象</h2>
+              <button
+                onClick={handleCloseEdit}
+                className="text-gray-400 hover:text-white text-2xl"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-6">
+              {/* 大图预览 */}
+              <div className="mb-6 bg-gray-800 rounded-lg p-8 flex items-center justify-center">
+                <Image
+                  src={editingCharacter.imageUrl}
+                  alt={editingCharacter.displayName}
+                  width={384}
+                  height={editingCharacter.isCompactFormat ? 192 : 384}
+                  className="object-contain pixelated"
+                />
+              </div>
+
+              {/* 基本信息 */}
+              <div className="mb-6 grid grid-cols-2 gap-4 p-4 bg-gray-800 rounded-lg">
+                <div>
+                  <span className="text-gray-400 text-sm">Key (数据库标识)</span>
+                  <p className="text-white font-mono">{editingCharacter.name}</p>
+                </div>
+                <div>
+                  <span className="text-gray-400 text-sm">格式</span>
+                  <p className="text-white">
+                    {editingCharacter.isCompactFormat ? '紧凑格式 (2行4列)' : '标准格式 (4行2列)'}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-gray-400 text-sm">使用人数</span>
+                  <p className="text-white">{editingCharacter.userCount} 人</p>
+                </div>
+                <div>
+                  <span className="text-gray-400 text-sm">购买次数</span>
+                  <p className="text-white">{editingCharacter.purchaseCount} 次</p>
+                </div>
+              </div>
+
+              {/* 编辑表单 */}
+              <div className="mb-6 space-y-4">
+                <div>
+                  <label className="block text-gray-300 mb-2">
+                    显示名称（别名）<span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={editForm.displayName}
+                    onChange={(e) => setEditForm({ ...editForm, displayName: e.target.value })}
+                    className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:border-purple-500 focus:ring-2 focus:ring-purple-500/50 outline-none"
+                    placeholder="例如：寒黎"
+                  />
+                  <p className="text-gray-500 text-sm mt-1">
+                    这是用户在前端看到的名称，key ({editingCharacter.name}) 仅作为数据库映射使用
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-gray-300 mb-2">
+                    价格（积分）<span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={editForm.price}
+                    onChange={(e) => setEditForm({ ...editForm, price: parseInt(e.target.value) || 0 })}
+                    className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:border-purple-500 focus:ring-2 focus:ring-purple-500/50 outline-none"
+                  />
+                  <p className="text-gray-500 text-sm mt-1">
+                    设置为 0 表示免费角色
+                  </p>
+                </div>
+
+                <div>
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={editForm.isDefault}
+                      onChange={(e) => setEditForm({ ...editForm, isDefault: e.target.checked })}
+                      className="w-5 h-5 rounded border-gray-600 text-purple-600 focus:ring-purple-500 focus:ring-offset-gray-900"
+                    />
+                    <div>
+                      <span className="text-gray-300">设为免费默认角色</span>
+                      <p className="text-gray-500 text-sm">
+                        免费角色无需购买，所有用户都可以使用
+                      </p>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              {/* 历史修改记录 */}
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold text-white mb-3">📋 历史修改记录</h3>
+                {characterLogs.length === 0 ? (
+                  <div className="bg-gray-800 rounded-lg p-4 text-center text-gray-500">
+                    暂无修改记录
+                  </div>
+                ) : (
+                  <div className="bg-gray-800 rounded-lg overflow-hidden">
+                    <div className="max-h-80 overflow-y-auto">
+                      {characterLogs.map((log) => (
+                        <div
+                          key={log.id}
+                          className="p-4 border-b border-gray-700 last:border-b-0"
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-purple-400 text-sm font-medium">
+                              {log.action === 'UPDATE' ? '✏️ 更新' : log.action}
+                            </span>
+                            <span className="text-gray-500 text-xs">
+                              {new Date(log.createdAt).toLocaleString('zh-CN')}
+                            </span>
+                          </div>
+                          <div className="space-y-2">
+                            {Object.entries(log.changes).map(([field, change]: [string, any]) => (
+                              <div key={field} className="text-sm">
+                                <span className="text-gray-400">
+                                  {field === 'displayName' ? '显示名称' :
+                                   field === 'price' ? '价格' :
+                                   field === 'isDefault' ? '免费默认' : field}:
+                                </span>
+                                <span className="text-red-400 ml-2 line-through">
+                                  {String(change.from)}
+                                </span>
+                                <span className="text-gray-500 mx-2">→</span>
+                                <span className="text-green-400">
+                                  {String(change.to)}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                          {log.ipAddress && (
+                            <div className="text-gray-600 text-xs mt-2">
+                              IP: {log.ipAddress}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* 操作按钮 */}
+              <div className="flex gap-3">
+                <button
+                  onClick={handleSaveEdit}
+                  disabled={saving}
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-lg hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {saving ? '⏳ 保存中...' : '💾 保存修改'}
+                </button>
+                <button
+                  onClick={handleCloseEdit}
+                  disabled={saving}
+                  className="px-6 py-3 bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white font-semibold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  取消
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

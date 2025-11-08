@@ -396,6 +396,7 @@ model Character {
 
   // 关联关系
   purchases       CharacterPurchase[]
+  logs            CharacterLog[]
 
   @@index([isActive, sortOrder])
   @@index([price])
@@ -419,6 +420,23 @@ model CharacterPurchase {
   @@index([characterId])
   @@index([purchasedAt])
   @@map("character_purchases")
+}
+
+// 角色形象修改日志
+model CharacterLog {
+  id          String   @id @default(cuid())
+  characterId String
+  adminId     String   // 修改者（管理员ID）
+  action      String   // 'UPDATE'
+  changes     Json     // 修改内容，如 { "price": { "from": 100, "to": 200 } }
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+
+  @@index([characterId, createdAt])
+  @@index([adminId])
+  @@map("character_logs")
 }
 
 // 工位配置表
