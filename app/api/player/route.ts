@@ -2,29 +2,36 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verifyAuthFromRequest } from '@/lib/serverAuth'
 import prisma from '@/lib/prisma'
 import { z } from 'zod'
+import { enrichPlayerWithCharacterUrl } from '@/lib/characterUtils'
 
-// 角色精灵键列表
-const validCharacterSprites = [
-  'hangli',
-  'Premade_Character_48x48_01', 'Premade_Character_48x48_02', 'Premade_Character_48x48_03',
-  'Premade_Character_48x48_04', 'Premade_Character_48x48_05', 'Premade_Character_48x48_06',
-  'Premade_Character_48x48_07', 'Premade_Character_48x48_08', 'Premade_Character_48x48_09',
-  'Premade_Character_48x48_10', 'Premade_Character_48x48_11', 'Premade_Character_48x48_12',
-  'Premade_Character_48x48_13', 'Premade_Character_48x48_14', 'Premade_Character_48x48_15',
-  'Premade_Character_48x48_16', 'Premade_Character_48x48_17', 'Premade_Character_48x48_18',
-  'Premade_Character_48x48_19', 'Premade_Character_48x48_20'
-]
+/**
+ * 验证角色名称是否在数据库中存在且可用
+ */
+async function validateCharacterSprite(characterName: string): Promise<boolean> {
+  try {
+    const character = await prisma.character.findFirst({
+      where: {
+        name: characterName,
+        isActive: true
+      }
+    })
+    return character !== null
+  } catch (error) {
+    console.error('Error validating character:', error)
+    return false
+  }
+}
 
-// 创建角色的验证模式
+// 创建角色的验证模式（基础验证）
 const createPlayerSchema = z.object({
   playerName: z.string().min(1).max(50),
-  characterSprite: z.enum(validCharacterSprites as [string, ...string[]])
+  characterSprite: z.string().min(1) // 字符串验证，具体角色存在性在函数中验证
 })
 
-// 更新角色的验证模式
+// 更新角色的验证模式（基础验证）
 const updatePlayerSchema = z.object({
   playerName: z.string().min(1).max(50).optional(),
-  characterSprite: z.enum(validCharacterSprites as [string, ...string[]]).optional(),
+  characterSprite: z.string().min(1).optional(), // 字符串验证，具体角色存在性在函数中验证
   currentX: z.number().int().optional(),
   currentY: z.number().int().optional(),
   currentScene: z.string().optional(),
@@ -62,21 +69,24 @@ export async function GET(request: NextRequest) {
       }, { status: 404 })
     }
 
+    // 添加角色图片URL
+    const playerWithUrl = enrichPlayerWithCharacterUrl({
+      id: player.id,
+      playerName: player.playerName,
+      characterSprite: player.characterSprite,
+      currentX: player.currentX,
+      currentY: player.currentY,
+      currentScene: player.currentScene,
+      lastActiveAt: player.lastActiveAt,
+      playerState: player.playerState,
+      createdAt: player.createdAt,
+      updatedAt: player.updatedAt
+    })
+
     return NextResponse.json({
       success: true,
       data: {
-        player: {
-          id: player.id,
-          playerName: player.playerName,
-          characterSprite: player.characterSprite,
-          currentX: player.currentX,
-          currentY: player.currentY,
-          currentScene: player.currentScene,
-          lastActiveAt: player.lastActiveAt,
-          playerState: player.playerState,
-          createdAt: player.createdAt,
-          updatedAt: player.updatedAt
-        },
+        player: playerWithUrl,
         user: player.user
       },
       hasPlayer: true
@@ -113,6 +123,15 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
     const validatedData = createPlayerSchema.parse(body)
+
+    // 验证角色是否存在于数据库中
+    const isValidCharacter = await validateCharacterSprite(validatedData.characterSprite)
+    if (!isValidCharacter) {
+      return NextResponse.json({
+        success: false,
+        error: 'Invalid character sprite. Character not found or inactive.'
+      }, { status: 400 })
+    }
 
     const player = await prisma.player.create({
       data: {
@@ -195,6 +214,17 @@ export async function PUT(request: NextRequest) {
     console.log('🔴 [API /api/player PUT] 收到请求:', { userId: user.id, body })
 
     const validatedData = updatePlayerSchema.parse(body)
+
+    // 如果更新角色精灵，验证其是否存在
+    if (validatedData.characterSprite !== undefined) {
+      const isValidCharacter = await validateCharacterSprite(validatedData.characterSprite)
+      if (!isValidCharacter) {
+        return NextResponse.json({
+          success: false,
+          error: 'Invalid character sprite. Character not found or inactive.'
+        }, { status: 400 })
+      }
+    }
 
     // 构建更新数据
     const updateData: any = {

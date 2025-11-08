@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { getCharacterImageUrl } from '@/lib/characterUtils'
 
 export async function POST(request: Request) {
   try {
@@ -74,9 +75,14 @@ export async function POST(request: Request) {
       }
     })
 
-    // 计算剩余天数
+    // 计算剩余天数并转换avatar为URL
     const bindingsWithDays = visibleBindings.map(binding => ({
       ...binding,
+      user: binding.user ? {
+        ...binding.user,
+        avatar: getCharacterImageUrl(binding.user.avatar),
+        characterKey: binding.user.avatar
+      } : null,
       remainingDays: binding.expiresAt
         ? Math.max(0, Math.ceil((binding.expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
         : 30, // 默认值，兼容旧数据

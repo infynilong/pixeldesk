@@ -12,7 +12,7 @@ model User {
   points                   Int                       @default(50)  // 唯一的积分字段，用于所有积分操作
   createdAt                DateTime                  @default(now())
   updatedAt                DateTime                  @updatedAt
-  avatar                   String?
+  avatar                   String?                   // 角色key（如 'hangli'），API层转换为URL
   email                    String?                   @unique
   name                     String
   emailVerified            Boolean                   @default(false)

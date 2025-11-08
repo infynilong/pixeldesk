@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { getCharacterImageUrl } from '@/lib/characterUtils'
 
 export async function GET(request: NextRequest) {
   try {
@@ -22,7 +23,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    return NextResponse.json({ success: true, data: user })
+    // 转换avatar key为URL
+    const userWithUrl = {
+      ...user,
+      avatar: getCharacterImageUrl(user.avatar),
+      characterKey: user.avatar  // 保留原始key
+    }
+
+    return NextResponse.json({ success: true, data: userWithUrl })
   } catch (error) {
     console.error('Error fetching user:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
@@ -49,13 +57,9 @@ export async function POST(request: NextRequest) {
       updateData.email = email
     }
 
-    // 只有当avatar被明确提供且是有效路径时才更新（避免角色名称覆盖真实头像）
+    // avatar现在存储的是角色key，不是URL
     if (avatar !== undefined && avatar !== null && avatar !== '') {
-      // 检查是否是真实的头像路径（包含/avatars/或以http开头）或者是创建新用户时的角色名称
-      if (avatar.startsWith('/avatars/') || avatar.startsWith('http') || !avatar.startsWith('Premade_Character')) {
-        updateData.avatar = avatar
-      }
-      // 如果是角色名称（Premade_Character），则不更新avatar字段，保留用户原有头像
+      updateData.avatar = avatar  // 直接存储key
     }
 
     // 创建或更新用户
@@ -66,12 +70,19 @@ export async function POST(request: NextRequest) {
         id,
         name,
         email,
-        avatar: avatar || null, // 创建时允许设置角色名称作为默认头像
+        avatar: avatar || null, // 存储角色key
         points: points || 0
       }
     })
 
-    return NextResponse.json({ success: true, data: user })
+    // 返回时转换avatar为URL
+    const userWithUrl = {
+      ...user,
+      avatar: getCharacterImageUrl(user.avatar),
+      characterKey: user.avatar
+    }
+
+    return NextResponse.json({ success: true, data: userWithUrl })
   } catch (error) {
     console.error('Error creating/updating user:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+import { getCharacterImageUrl } from '@/lib/characterUtils'
 
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic'
@@ -45,7 +46,14 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    return NextResponse.json(user)
+    // 转换avatar key为完整URL
+    const userWithUrl = {
+      ...user,
+      avatar: getCharacterImageUrl(user.avatar),
+      characterKey: user.avatar  // 同时保留原始key供需要的地方使用
+    }
+
+    return NextResponse.json(userWithUrl)
 
   } catch (error) {
     console.error('Auth me error:', error)
