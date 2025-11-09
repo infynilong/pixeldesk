@@ -13,6 +13,7 @@ model User {
   createdAt                DateTime                  @default(now())
   updatedAt                DateTime                  @updatedAt
   avatar                   String?                   // 角色key（如 'hangli'），API层转换为URL
+  customAvatar             String?                   // 用户自定义上传的头像URL（优先级高于avatar）
   email                    String?                   @unique
   name                     String
   emailVerified            Boolean                   @default(false)

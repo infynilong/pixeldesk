@@ -8,7 +8,8 @@ import { getCharacterImageUrl } from '@/lib/characterUtils'
 interface UserAvatarProps {
   userId: string
   userName: string
-  userAvatar?: string | null
+  userAvatar?: string | null  // 角色形象key
+  customAvatar?: string | null // 用户自定义上传的头像URL（优先级更高）
   isOnline?: boolean
   lastSeen?: string | null
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl'
@@ -22,6 +23,7 @@ export default function UserAvatar({
   userId,
   userName,
   userAvatar,
+  customAvatar,
   isOnline = false,
   lastSeen,
   size = 'md',
@@ -76,8 +78,14 @@ export default function UserAvatar({
     setImageError(true)
   }
 
-  // 获取头像URL - 如果是角色key则转换为角色图片URL
+  // 获取头像URL - 优先级：customAvatar > userAvatar（角色形象）
   const getAvatarUrl = () => {
+    // 1. 优先使用自定义头像
+    if (customAvatar) {
+      return customAvatar
+    }
+
+    // 2. 如果没有自定义头像，使用角色形象
     if (!userAvatar) return null
 
     // 如果已经是完整URL（http://或/开头），直接使用
@@ -90,7 +98,8 @@ export default function UserAvatar({
   }
 
   const avatarUrl = getAvatarUrl()
-  const isCharacterSprite = avatarUrl && (avatarUrl.includes('/assets/characters/') || !avatarUrl.startsWith('http'))
+  // 只有当使用角色形象且没有自定义头像时，才使用精灵图裁剪
+  const isCharacterSprite = !customAvatar && avatarUrl && (avatarUrl.includes('/assets/characters/') || (!avatarUrl.startsWith('http') && !avatarUrl.startsWith('/')))
 
   return (
     <div

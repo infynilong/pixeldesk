@@ -102,6 +102,7 @@ export default function LeftPanel({
                     userId={currentUser.id}
                     userName={currentUser.name}
                     userAvatar={currentUser.avatar}
+                    customAvatar={currentUser.customAvatar}
                     size="xl"
                     showStatus={true}
                   />

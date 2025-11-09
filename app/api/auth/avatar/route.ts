@@ -90,12 +90,12 @@ export async function POST(request: NextRequest) {
     
     // 构建avatar URL
     const avatarUrl = `/avatars/${fileName}`
-    
-    // 更新用户avatar字段
+
+    // 更新用户customAvatar字段（自定义头像优先级高于角色形象）
     const updatedUser = await prisma.user.update({
       where: { id: payload.userId },
       data: {
-        avatar: avatarUrl,
+        customAvatar: avatarUrl,
         updatedAt: new Date()
       }
     })
@@ -162,11 +162,11 @@ export async function DELETE(request: NextRequest) {
       }, { status: 401 })
     }
     
-    // 删除用户avatar字段（设为null）
+    // 删除用户customAvatar字段（设为null），恢复使用角色形象
     const updatedUser = await prisma.user.update({
       where: { id: payload.userId },
       data: {
-        avatar: null,
+        customAvatar: null,
         updatedAt: new Date()
       }
     })
