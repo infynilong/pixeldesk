@@ -444,11 +444,11 @@ export default function Home() {
         loadWorkstationStats()
       })
 
-      // 监听工位统计数据更新事件
-      window.addEventListener('workstation-stats-updated', (event: any) => {
-        // console.log('Workstation stats updated:', event.detail)
-        setWorkstationStats(event.detail)
-      })
+      // 监听工位统计数据更新事件（已禁用 - 改用后台API）
+      // 注意：工位统计现在完全从后台配置获取，不再使用Phaser游戏的统计
+      // window.addEventListener('workstation-stats-updated', (event: any) => {
+      //   setWorkstationStats(event.detail)
+      // })
     }
     
     checkDeviceType()
