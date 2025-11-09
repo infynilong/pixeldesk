@@ -35,6 +35,7 @@ model User {
   workstations             UserWorkstation[]
   workSessions             WorkSession[]
   ownedCharacters          CharacterPurchase[]       // 拥有的角色形象
+  createdCharacters        Character[]               @relation("CreatedCharacters") // 创建的角色形象
 
   @@index([email])
   @@index([isActive])
@@ -391,11 +392,15 @@ model Character {
   price           Int                   @default(0) // 积分价格，0表示免费
   isDefault       Boolean               @default(false) // 是否为默认角色
   isActive        Boolean               @default(true) // 是否启用
+  isUserGenerated Boolean               @default(false) // 是否为用户上传
+  creatorId       String?               // 创建者ID（用户上传的角色）
+  salesCount      Int                   @default(0) // 销售数量
   sortOrder       Int                   @default(0) // 排序顺序
   createdAt       DateTime              @default(now())
   updatedAt       DateTime              @updatedAt
 
   // 关联关系
+  creator         User?                 @relation("CreatedCharacters", fields: [creatorId], references: [id], onDelete: SetNull)
   purchases       CharacterPurchase[]
   logs            CharacterLog[]
 
@@ -403,6 +408,8 @@ model Character {
   @@index([price])
   @@index([createdAt])
   @@index([isDefault])
+  @@index([isUserGenerated])
+  @@index([creatorId])
   @@map("characters")
 }
 

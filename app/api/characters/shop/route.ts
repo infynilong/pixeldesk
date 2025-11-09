@@ -6,9 +6,17 @@ import { getCharacterImageUrl } from '@/lib/characterUtils'
 /**
  * GET /api/characters/shop
  * 获取商店角色列表，标记用户已拥有的角色
+ * 支持查询参数：
+ * - priceFilter: 'all' | 'free' | 'paid' (筛选免费/收费)
+ * - sourceFilter: 'all' | 'official' | 'user' (筛选官方/用户生成)
  */
 export async function GET(request: NextRequest) {
   try {
+    // 获取查询参数
+    const { searchParams } = new URL(request.url)
+    const priceFilter = searchParams.get('priceFilter') || 'all'
+    const sourceFilter = searchParams.get('sourceFilter') || 'all'
+
     // 获取用户信息（可选，未登录也可以查看商店）
     let user = null
     let token: string | null = null
@@ -35,11 +43,28 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // 构建where条件
+    const whereCondition: any = {
+      isActive: true
+    }
+
+    // 价格筛选
+    if (priceFilter === 'free') {
+      whereCondition.price = 0
+    } else if (priceFilter === 'paid') {
+      whereCondition.price = { gt: 0 }
+    }
+
+    // 来源筛选
+    if (sourceFilter === 'official') {
+      whereCondition.isUserGenerated = false
+    } else if (sourceFilter === 'user') {
+      whereCondition.isUserGenerated = true
+    }
+
     // 获取所有激活的角色
     const characters = await prisma.character.findMany({
-      where: {
-        isActive: true
-      },
+      where: whereCondition,
       orderBy: [
         { sortOrder: 'asc' },
         { createdAt: 'desc' }
@@ -56,7 +81,15 @@ export async function GET(request: NextRequest) {
         isCompactFormat: true,
         price: true,
         isDefault: true,
-        sortOrder: true
+        isUserGenerated: true,
+        salesCount: true,
+        sortOrder: true,
+        creator: {
+          select: {
+            id: true,
+            name: true
+          }
+        }
       }
     })
 
@@ -87,6 +120,9 @@ export async function GET(request: NextRequest) {
       isCompactFormat: character.isCompactFormat,
       price: character.price,
       isDefault: character.isDefault,
+      isUserGenerated: character.isUserGenerated,
+      salesCount: character.salesCount,
+      creator: character.creator,
       isOwned: ownedCharacterIds.includes(character.id) || character.isDefault, // 默认角色视为已拥有
       canPurchase: user ? !ownedCharacterIds.includes(character.id) && !character.isDefault : false
     }))

@@ -59,9 +59,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 查询角色信息
+    // 查询角色信息（包含创建者信息用于分成）
     const character = await prisma.character.findUnique({
-      where: { id: characterId, isActive: true }
+      where: { id: characterId, isActive: true },
+      include: {
+        creator: {
+          select: { id: true, name: true }
+        }
+      }
     })
 
     if (!character) {
@@ -127,27 +132,63 @@ export async function POST(request: NextRequest) {
         }
       })
 
+      // 如果是用户生成的角色，给创建者分成积分
+      let creatorEarned = 0
+      if (character.isUserGenerated && character.creatorId && character.price > 0) {
+        // 给创建者100%的收入
+        await tx.user.update({
+          where: { id: character.creatorId },
+          data: {
+            points: {
+              increment: character.price
+            }
+          }
+        })
+        creatorEarned = character.price
+
+        // 更新角色销量
+        await tx.character.update({
+          where: { id: character.id },
+          data: {
+            salesCount: {
+              increment: 1
+            }
+          }
+        })
+      }
+
       return {
         purchase,
-        remainingPoints: updatedUser.points
+        remainingPoints: updatedUser.points,
+        creatorEarned,
+        creatorName: character.creator?.name
       }
     })
 
     // 发送积分更新事件（客户端监听）
     // 这里可以通过 Server-Sent Events 或 WebSocket 推送，简化起见返回即可
 
+    // 根据是否有创建者分成生成不同的消息
+    let message = `成功购买角色「${character.displayName}」！`
+    if (result.creatorEarned > 0 && result.creatorName) {
+      message += ` 创作者「${result.creatorName}」获得 ${result.creatorEarned} 积分`
+    }
+
     return NextResponse.json({
       success: true,
-      message: `成功购买角色「${character.displayName}」！`,
+      message,
       data: {
         character: {
           id: character.id,
           name: character.name,
-          displayName: character.displayName
+          displayName: character.displayName,
+          isUserGenerated: character.isUserGenerated
         },
         pricePaid: character.price,
         remainingPoints: result.remainingPoints,
-        purchasedAt: result.purchase.purchasedAt
+        purchasedAt: result.purchase.purchasedAt,
+        creatorEarned: result.creatorEarned,
+        creatorName: result.creatorName
       }
     })
   } catch (error) {
