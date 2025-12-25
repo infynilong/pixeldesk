@@ -93,6 +93,15 @@ export class ChunkManager {
     // 🔧 关键修复：立即触发一次更新，加载初始区块
     debugLog('🎯 立即触发初始区块加载')
     this.updateActiveChunks()
+
+    // 输出优化后的统计信息
+    console.log('📊 区块系统初始化统计：')
+    console.log(`   - 区块大小: ${this.config.chunkSize}x${this.config.chunkSize}像素`)
+    console.log(`   - 固定加载半径: 1圈（最多9个区块）`)
+    console.log(`   - 总工位数: ${this.stats.totalWorkstations}`)
+    console.log(`   - 总区块数: ${this.stats.totalChunks}`)
+    console.log(`   - 平均每区块工位数: ${Math.round(this.stats.totalWorkstations / this.stats.totalChunks)}`)
+    console.log(`   - 理论最大同时加载: ${Math.round(this.stats.totalWorkstations / this.stats.totalChunks * 9)}个工位（9个区块）`)
   }
 
   /**
@@ -244,16 +253,14 @@ export class ChunkManager {
    */
   calculateLoadRadius(zoom) {
     // 🔧 更保守的加载策略，避免CPU占用过高
-    // 区块大小已增加到2000，所以即使1-2圈也能覆盖足够大的范围
+    // 区块大小已增加到2000，所以即使1圈也能覆盖足够大的范围（4000x4000像素）
 
-    if (zoom >= 1.2) {
+    if (zoom >= 1.0) {
       return 1  // 放大时只加载1圈 (9个区块)
-    } else if (zoom >= 0.8) {
+    } else if (zoom >= 0.6) {
       return 1  // 标准缩放也只加载1圈 (9个区块)
-    } else if (zoom >= 0.5) {
-      return 2  // 缩小时加载2圈 (25个区块)
     } else {
-      return 2  // 极度缩小也只加载2圈（避免加载太多）
+      return 1  // 🔧 即使缩小也只加载1圈，避免一次性加载太多工位
     }
   }
 
@@ -290,7 +297,7 @@ export class ChunkManager {
       return // 区块已经是加载状态，无需重复加载
     }
 
-    debugLog(`📥 加载区块 ${chunkKey}, 工位数: ${chunk.workstations.length}`)
+    console.log(`📥 加载区块 ${chunkKey}, 工位数: ${chunk.workstations.length}`)
 
     // 触发区块加载事件
     this.scene.events.emit('chunk-load', {
@@ -300,6 +307,10 @@ export class ChunkManager {
 
     chunk.isLoaded = true
     this.activeChunks.add(chunkKey)
+
+    // 输出当前总加载统计
+    this.updateStats()
+    console.log(`📊 当前已加载: ${this.stats.activeChunks}个区块, ${this.stats.activeWorkstations}个工位`)
   }
 
   /**
