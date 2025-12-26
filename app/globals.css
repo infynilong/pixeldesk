@@ -1,13 +1,13 @@
 @import "tailwindcss";
 
-/* 复古像素风格色彩变量 */
+/* 复古像素风格色彩变量 - 深色主题（默认） */
 :root {
   --retro-bg-dark: #1a1b26;
   --retro-bg-darker: #16161e;
   --retro-text: #c0caf5;
   --retro-text-muted: #565f89;
   --retro-border: #414868;
-  
+
   /* 复古游戏机色彩 */
   --retro-red: #ff5c57;
   --retro-orange: #ff9e3b;
@@ -17,7 +17,7 @@
   --retro-purple: #c74ded;
   --retro-pink: #ff6ac1;
   --retro-cyan: #9aedfe;
-  
+
   /* 状态颜色 */
   --status-working: var(--retro-blue);
   --status-break: var(--retro-green);
@@ -28,6 +28,25 @@
   --status-off-work: var(--retro-text-muted);
 }
 
+/* 浅色主题 */
+:root.light {
+  --retro-bg-dark: #f5f7fa;
+  --retro-bg-darker: #ffffff;
+  --retro-text: #1f2937;
+  --retro-text-muted: #6b7280;
+  --retro-border: #d1d5db;
+
+  /* 保持游戏机色彩明亮 */
+  --retro-red: #dc2626;
+  --retro-orange: #ea580c;
+  --retro-yellow: #ca8a04;
+  --retro-green: #16a34a;
+  --retro-blue: #2563eb;
+  --retro-purple: #9333ea;
+  --retro-pink: #db2777;
+  --retro-cyan: #0891b2;
+}
+
 /* 全局样式 */
 body {
   margin: 0;
@@ -36,6 +55,283 @@ body {
   background: var(--retro-bg-dark);
   color: var(--retro-text);
   line-height: 1.4;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* 浅色主题样式覆盖 */
+:root.light body {
+  background: var(--retro-bg-dark);
+  color: var(--retro-text);
+}
+
+/* 浅色主题下的边框方向 */
+:root.light .border-l {
+  border-left-color: #e5e7eb !important;
+}
+
+:root.light .border-r {
+  border-right-color: #e5e7eb !important;
+}
+
+:root.light .border-t {
+  border-top-color: #e5e7eb !important;
+}
+
+:root.light .border-b {
+  border-bottom-color: #e5e7eb !important;
+}
+
+/* 浅色主题下的背景调整 */
+:root.light .bg-gray-950 {
+  background-color: #f5f7fa !important;
+}
+
+:root.light .bg-gray-900 {
+  background-color: #ffffff !important;
+}
+
+:root.light .bg-gray-900\/80 {
+  background-color: rgba(255, 255, 255, 0.8) !important;
+}
+
+:root.light .bg-gray-900\/90 {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+}
+
+:root.light .bg-gray-900\/50 {
+  background-color: rgba(249, 250, 251, 0.8) !important;
+}
+
+:root.light .bg-gray-900\/95 {
+  background-color: rgba(255, 255, 255, 0.98) !important;
+}
+
+:root.light .bg-gray-800 {
+  background-color: #f9fafb !important;
+}
+
+:root.light .bg-gray-800\/50 {
+  background-color: rgba(243, 244, 246, 0.8) !important;
+}
+
+:root.light .bg-gray-800\/60 {
+  background-color: rgba(243, 244, 246, 0.85) !important;
+}
+
+:root.light .bg-gray-800\/70 {
+  background-color: rgba(243, 244, 246, 0.9) !important;
+}
+
+:root.light .bg-gray-800\/80 {
+  background-color: rgba(243, 244, 246, 0.95) !important;
+}
+
+:root.light .bg-gray-700 {
+  background-color: #f3f4f6 !important;
+}
+
+:root.light .bg-gray-700\/20 {
+  background-color: rgba(243, 244, 246, 0.2) !important;
+}
+
+:root.light .bg-gray-700\/50 {
+  background-color: rgba(243, 244, 246, 0.5) !important;
+}
+
+:root.light .bg-gray-600\/30 {
+  background-color: rgba(229, 231, 235, 0.3) !important;
+}
+
+:root.light .bg-gray-600 {
+  background-color: #e5e7eb !important;
+}
+
+:root.light .bg-gray-500 {
+  background-color: #d1d5db !important;
+}
+
+/* 浅色主题下的文字颜色调整 */
+:root.light .text-white {
+  color: #111827 !important;
+}
+
+:root.light .text-gray-100 {
+  color: #1f2937 !important;
+}
+
+:root.light .text-gray-200 {
+  color: #374151 !important;
+}
+
+:root.light .text-gray-300 {
+  color: #4b5563 !important;
+}
+
+:root.light .text-gray-400 {
+  color: #6b7280 !important;
+}
+
+:root.light .text-gray-500 {
+  color: #9ca3af !important;
+}
+
+:root.light .text-gray-600 {
+  color: #d1d5db !important;
+}
+
+/* 浅色主题下的错误/警告颜色 */
+:root.light .bg-red-900\/20 {
+  background-color: rgba(254, 226, 226, 0.8) !important;
+}
+
+:root.light .border-red-800\/50 {
+  border-color: rgba(252, 165, 165, 0.5) !important;
+}
+
+:root.light .text-red-300 {
+  color: #ef4444 !important;
+}
+
+:root.light .text-red-400 {
+  color: #dc2626 !important;
+}
+
+/* 浅色主题下的边框调整 */
+:root.light .border-gray-800 {
+  border-color: #e5e7eb !important;
+}
+
+:root.light .border-gray-800\/50 {
+  border-color: rgba(229, 231, 235, 0.5) !important;
+}
+
+:root.light .border-gray-700 {
+  border-color: #d1d5db !important;
+}
+
+:root.light .border-gray-700\/50 {
+  border-color: rgba(209, 213, 219, 0.5) !important;
+}
+
+:root.light .border-gray-600 {
+  border-color: #9ca3af !important;
+}
+
+:root.light .border-gray-600\/30 {
+  border-color: rgba(156, 163, 175, 0.3) !important;
+}
+
+:root.light .border-gray-600\/50 {
+  border-color: rgba(156, 163, 175, 0.5) !important;
+}
+
+/* 浅色主题下的悬停效果 */
+:root.light .hover\:bg-gray-800:hover {
+  background-color: #f9fafb !important;
+}
+
+:root.light .hover\:bg-gray-800\/40:hover {
+  background-color: rgba(249, 250, 251, 0.4) !important;
+}
+
+:root.light .hover\:bg-gray-700:hover {
+  background-color: #f3f4f6 !important;
+}
+
+:root.light .hover\:bg-gray-700\/50:hover {
+  background-color: rgba(243, 244, 246, 0.5) !important;
+}
+
+:root.light .hover\:text-white:hover {
+  color: #111827 !important;
+}
+
+:root.light .hover\:text-gray-200:hover {
+  color: #374151 !important;
+}
+
+:root.light .hover\:text-gray-100:hover {
+  color: #1f2937 !important;
+}
+
+:root.light .hover\:text-gray-400:hover {
+  color: #6b7280 !important;
+}
+
+/* 浅色主题下的渐变背景 */
+:root.light .from-retro-bg-darker {
+  --tw-gradient-from: #ffffff !important;
+}
+
+:root.light .to-retro-bg-dark {
+  --tw-gradient-to: #f5f7fa !important;
+}
+
+:root.light .from-retro-bg-dark {
+  --tw-gradient-from: #f5f7fa !important;
+}
+
+:root.light .to-retro-bg-darker {
+  --tw-gradient-to: #ffffff !important;
+}
+
+/* 浅色主题下的渐变 - 博客页面 */
+:root.light .from-gray-900 {
+  --tw-gradient-from: #ffffff !important;
+  --tw-gradient-to: rgba(255, 255, 255, 0) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
+}
+
+:root.light .to-gray-800 {
+  --tw-gradient-to: #f9fafb !important;
+}
+
+/* 浅色主题下的 via 渐变 */
+:root.light .via-gray-900 {
+  --tw-gradient-via: #f9fafb !important;
+}
+
+/* 浅色主题下的 backdrop-blur 效果 */
+:root.light .backdrop-blur-sm {
+  backdrop-filter: blur(4px) !important;
+}
+
+:root.light .backdrop-blur-md {
+  backdrop-filter: blur(12px) !important;
+}
+
+:root.light .backdrop-blur-lg {
+  backdrop-filter: blur(16px) !important;
+}
+
+/* 浅色主题下的阴影效果 */
+:root.light .shadow-sm {
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+}
+
+:root.light .shadow {
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06) !important;
+}
+
+:root.light .shadow-lg {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+}
+
+:root.light .shadow-xl {
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+}
+
+:root.light .shadow-2xl {
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+}
+
+:root.light .shadow-inner {
+  box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06) !important;
+}
+
+:root.light .shadow-gray-950\/50 {
+  --tw-shadow-color: rgba(245, 247, 250, 0.5) !important;
+  --tw-shadow: var(--tw-shadow-colored) !important;
 }
 
 /* 游戏容器样式 */

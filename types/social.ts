@@ -2,6 +2,7 @@ export interface SocialUser {
   id: string
   name: string
   avatar?: string | null
+  customAvatar?: string | null
   isOnline?: boolean
   lastSeen?: string | null
   points?: number

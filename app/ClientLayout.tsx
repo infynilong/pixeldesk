@@ -1,6 +1,7 @@
 'use client'
 
 import { UserProvider } from '../contexts/UserContext'
+import { ThemeProvider } from '../contexts/ThemeContext'
 
 export default function ClientLayout({
   children,
@@ -8,8 +9,10 @@ export default function ClientLayout({
   children: React.ReactNode
 }) {
   return (
-    <UserProvider>
-      {children}
-    </UserProvider>
+    <ThemeProvider>
+      <UserProvider>
+        {children}
+      </UserProvider>
+    </ThemeProvider>
   )
 }

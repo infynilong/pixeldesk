@@ -159,7 +159,7 @@ export default async function PostDetailPage({ params }: PageProps) {
     }
 
     return (
-      <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black">
+      <>
         {/* JSON-LD 结构化数据 */}
         <script
           type="application/ld+json"
@@ -167,7 +167,7 @@ export default async function PostDetailPage({ params }: PageProps) {
         />
 
         <PostDetailClient initialPost={postData} />
-      </div>
+      </>
     )
   } catch (error) {
     console.error('Error loading post:', error)

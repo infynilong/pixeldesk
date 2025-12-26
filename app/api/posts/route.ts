@@ -10,7 +10,8 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '10')
     const sortBy = searchParams.get('sortBy') || 'latest' // latest, popular, trending
     const authorId = searchParams.get('authorId')
-    
+    const postType = searchParams.get('type') // 可选：TEXT, IMAGE, MARKDOWN
+
     const skip = (page - 1) * limit
 
     // 构建查询条件
@@ -21,6 +22,11 @@ export async function GET(request: NextRequest) {
 
     if (authorId) {
       where.authorId = authorId
+    }
+
+    // 根据类型筛选
+    if (postType) {
+      where.type = postType
     }
 
     // 构建排序条件

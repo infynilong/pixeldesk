@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react'
 import { initializePlayerSync, clearPlayerFromLocalStorage } from '@/lib/playerSync'
 import { migrateTempPlayerToUser, clearTempPlayer } from '@/lib/tempPlayerManager'
 
@@ -30,9 +30,14 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [playerExists, setPlayerExists] = useState<boolean | null>(null)
+  const authCheckedRef = useRef(false) // 防止 React Strict Mode 重复请求
 
   // Check for existing session on mount
   useEffect(() => {
+    // 防止重复请求（React Strict Mode 会导致 useEffect 执行两次）
+    if (authCheckedRef.current) return
+    authCheckedRef.current = true
+
     const checkAuth = async () => {
       try {
         // Get user info from cookie-based session
@@ -40,7 +45,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
           method: 'GET',
           credentials: 'include', // Include cookies
         })
-        
+
         if (response.ok) {
           const data = await response.json()
           if (data.success && data.data) {

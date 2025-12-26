@@ -18,7 +18,7 @@ export interface JWTPayload {
  */
 export function generateToken(payload: Omit<JWTPayload, 'iat' | 'exp'>): string {
   return jwt.sign(payload, JWT_SECRET, {
-    expiresIn: '24h' // Use a literal string instead of the variable
+    expiresIn: '7d' // 7天，与Cookie和Session过期时间保持一致
   });
 }
 

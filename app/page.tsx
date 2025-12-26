@@ -1068,8 +1068,8 @@ export default function Home() {
 
       {/* 临时玩家的认证模态框 */}
       {showAuthModal && (
-        <AuthModal 
-          isOpen={showAuthModal} 
+        <AuthModal
+          isOpen={showAuthModal}
           onClose={() => setShowAuthModal(false)}
         />
       )}

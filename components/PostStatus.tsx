@@ -177,116 +177,11 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
 
   return (
     <div className="space-y-3 font-pixel">
-      {/* 用户信息卡片 - 现代像素艺术风格 */}
-
-      {userData && (
-        <div className="group relative overflow-hidden">
-          {/* 背景光效 */}
-          <div className="absolute inset-0 bg-gradient-135 from-retro-blue/10 via-retro-purple/15 to-retro-pink/10 opacity-0 group-hover:opacity-100 "></div>
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-retro-cyan/5 to-transparent opacity-0 group-hover:opacity-100  "></div>
-
-          {/* 主卡片 - 紧凑版 */}
-          <div className="relative bg-gradient-to-br from-retro-bg-darker/95 via-retro-bg-darker/90 to-retro-bg-dark/95 backdrop-blur-md border-2 border-retro-border rounded-lg p-3 shadow-xl hover:shadow-2xl  hover:border-retro-blue/50">
-            {/* 用户头像和基本信息 - 紧凑布局 */}
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                {/* 小型像素化头像 */}
-                <div className="relative">
-                  <div className="w-10 h-10 bg-gradient-to-br from-retro-blue via-retro-purple to-retro-pink rounded-lg flex items-center justify-center shadow-lg border-2 border-white/20">
-                    <span className="text-sm font-bold text-white font-pixel">
-                      {userData.username?.charAt(0).toUpperCase() || "U"}
-                    </span>
-                  </div>
-                  {/* 小型在线状态指示器 */}
-                  <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-retro-green rounded-full border border-retro-bg-darker">
-                    <div className="w-full h-full bg-retro-green rounded-full  opacity-75"></div>
-                  </div>
-                </div>
-
-                {/* 紧凑用户信息 */}
-                <div>
-                  <div className="text-white font-bold text-sm font-pixel">
-                    {userData.username || "玩家"}
-                  </div>
-                  <div className="text-retro-textMuted text-xs font-retro">
-                    {userId?.slice(-6).toUpperCase() || "UNKNOWN"}
-                  </div>
-                </div>
-              </div>
-
-              {/* 紧凑积分显示 */}
-              <div className="flex items-center gap-1 text-retro-yellow font-bold text-lg font-pixel">
-                <span className="text-sm">💎</span>
-                <span>{userData.points || 0}</span>
-              </div>
-            </div>
-
-            {/* 紧凑工位信息和快速回到工位 */}
-            <div className="bg-gradient-to-r from-retro-bg-dark/50 to-retro-bg-darker/50 rounded-md p-2 border border-retro-border/50">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-gradient-to-br from-retro-orange to-retro-yellow rounded flex items-center justify-center">
-                    <span className="text-xs">🏢</span>
-                  </div>
-                  <span className="text-retro-text text-xs font-retro">
-                    工位
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  {userData.workstationId ? (
-                    <>
-                      <div className="flex items-center gap-1">
-                        <div className="w-1.5 h-1.5 bg-retro-green rounded-full "></div>
-                        <span className="text-retro-green text-xs font-bold font-pixel">
-                          {userData.workstationId}
-                        </span>
-                      </div>
-                      {/* 快速回到工位按钮 */}
-                      <button
-                        onClick={() => {
-                          if (
-                            typeof window !== "undefined" &&
-                            window.teleportToWorkstation
-                          ) {
-                            window.teleportToWorkstation().then((result) => {
-                              if (result && !result.success) {
-                                console.error("传送失败:", result.error)
-                              }
-                            })
-                          }
-                        }}
-                        className="group relative overflow-hidden bg-gradient-to-r from-retro-blue/80 to-retro-cyan/80 hover:from-retro-blue hover:to-retro-cyan text-white font-bold px-2 py-1 rounded text-xs   shadow-sm hover:shadow-md border border-white/20 hover:border-white/40"
-                        title={`快速回到工位 (消耗${teleportCost}积分)`}
-                      >
-                        <div className="flex items-center gap-1">
-                          <span className="text-xs">⚡</span>
-                          <span className="font-pixel text-xs tracking-wide">
-                            GO
-                          </span>
-                          <div className="text-xs opacity-75">💎{teleportCost}</div>
-                        </div>
-                      </button>
-                    </>
-                  ) : (
-                    <div className="flex items-center gap-1">
-                      <div className="w-1.5 h-1.5 bg-retro-orange rounded-full "></div>
-                      <span className="text-retro-orange text-xs font-bold font-pixel">
-                        未绑定
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* 当前状态显示 - 紧凑版 */}
       {currentStatus && (
         <div className="group relative overflow-hidden">
           {/* 状态卡片 - 紧凑布局 */}
-          <div className="relative bg-gradient-to-br from-retro-bg-darker/90 to-retro-bg-dark/85 backdrop-blur-md border-2 border-retro-border rounded-lg p-3 shadow-xl hover:shadow-2xl  hover:border-retro-purple/60">
+          <div className="relative bg-gradient-to-br from-retro-bg-darker/90 to-retro-bg-dark/85 backdrop-blur-md border border-gray-800 rounded-lg p-3 shadow-xl hover:shadow-2xl  hover:border-retro-purple/60">
             <div className="flex items-center gap-3">
               {/* 紧凑状态图标 */}
               <div className="relative">
@@ -336,7 +231,7 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
         {userId && (
           <button
             onClick={memoizedHandleToggleHistory}
-            className="flex-1 group relative overflow-hidden bg-gradient-to-r from-retro-bg-dark/80 to-retro-bg-darker/80 hover:from-retro-border/60 hover:to-retro-border/80 text-white font-medium py-2.5 px-3 rounded-lg  border border-retro-border hover:border-retro-blue/60 shadow-lg hover:shadow-xl backdrop-blur-sm"
+            className="flex-1 group relative overflow-hidden bg-gradient-to-r from-retro-bg-dark/80 to-retro-bg-darker/80 hover:from-retro-border/60 hover:to-retro-border/80 text-white font-medium py-2.5 px-3 rounded-lg  border border-gray-700 hover:border-retro-blue/60 shadow-lg hover:shadow-xl backdrop-blur-sm"
           >
             {/* 按钮内容 - 紧凑版 */}
             <div className="relative flex items-center justify-center gap-2">
@@ -356,7 +251,7 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
       {/* 详细状态设置 - 超紧凑面板 */}
       {isExpanded && (
         <div
-          className="space-y-2 bg-gradient-to-br from-retro-bg-darker/95 via-retro-bg-dark/90 to-retro-bg-darker/95 backdrop-blur-lg border-2 border-retro-border rounded-lg p-3 shadow-2xl "
+          className="space-y-2 bg-gradient-to-br from-retro-bg-darker/95 via-retro-bg-dark/90 to-retro-bg-darker/95 backdrop-blur-lg border border-gray-800 rounded-lg p-3 shadow-2xl "
           onClick={(e) => {
             // 阻止点击事件冒泡到Phaser游戏
             e.stopPropagation()
@@ -367,7 +262,7 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
           }}
         >
           {/* 超紧凑面板标题 */}
-          <div className="flex items-center gap-2 pb-1 border-b border-retro-border/50">
+          <div className="flex items-center gap-2 pb-1 border-b border-gray-800/50">
             <div className="w-4 h-4 bg-gradient-to-br from-retro-purple to-retro-pink rounded flex items-center justify-center">
               <span className="text-xs">⚙️</span>
             </div>
@@ -389,7 +284,7 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
                   className={`group relative overflow-hidden p-2 rounded-lg border   ${
                     selectedStatus === status.id
                       ? `border-white/40 bg-gradient-to-br ${status.color} text-white shadow-lg`
-                      : "border-retro-border bg-gradient-to-br from-retro-bg-dark/50 to-retro-bg-darker/50 hover:border-retro-purple/50 shadow-md"
+                      : "border-gray-700/50 bg-gradient-to-br from-retro-bg-dark/50 to-retro-bg-darker/50 hover:border-retro-purple/50 shadow-md"
                   }`}
                 >
                   {/* 选择状态的光效 */}
@@ -438,7 +333,7 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
                   e.stopPropagation()
                 }}
                 placeholder="Share what you're doing..."
-                className="relative w-full p-2 bg-gradient-to-br from-retro-bg-dark/80 to-retro-bg-darker/80 border border-retro-border rounded-lg resize-none focus:outline-none focus:border-retro-purple focus:shadow-lg focus:shadow-retro-purple/25 text-white placeholder-retro-textMuted backdrop-blur-md  font-retro text-sm leading-relaxed"
+                className="relative w-full p-2 bg-gradient-to-br from-retro-bg-dark/80 to-retro-bg-darker/80 border border-gray-700 rounded-lg resize-none focus:outline-none focus:border-retro-purple focus:shadow-lg focus:shadow-retro-purple/25 text-white placeholder-retro-textMuted backdrop-blur-md  font-retro text-sm leading-relaxed"
                 rows={3}
               />
               {/* 字符计数器 */}
@@ -469,7 +364,7 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
             {/* 取消按钮 */}
             <button
               onClick={memoizedHandleCancel}
-              className="flex-1 group relative overflow-hidden bg-gradient-to-r from-retro-bg-dark/80 to-retro-bg-darker/80 hover:from-retro-border/60 hover:to-retro-border/80 text-white font-medium py-2 px-3 rounded-lg  border border-retro-border hover:border-retro-red/60 shadow-lg hover:shadow-xl backdrop-blur-sm"
+              className="flex-1 group relative overflow-hidden bg-gradient-to-r from-retro-bg-dark/80 to-retro-bg-darker/80 hover:from-retro-border/60 hover:to-retro-border/80 text-white font-medium py-2 px-3 rounded-lg  border border-gray-700 hover:border-retro-red/60 shadow-lg hover:shadow-xl backdrop-blur-sm"
             >
               {/* 取消按钮内容 */}
               <div className="relative flex items-center justify-center gap-2">
@@ -485,9 +380,9 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
 
       {/* 状态历史显示 - 紧凑像素风格 */}
       {showHistory && userId && (
-        <div className="space-y-3 bg-gradient-to-br from-retro-bg-darker/95 via-retro-bg-dark/90 to-retro-bg-darker/95 backdrop-blur-lg border-2 border-retro-border rounded-lg p-3 shadow-2xl ">
+        <div className="space-y-3 bg-gradient-to-br from-retro-bg-darker/95 via-retro-bg-dark/90 to-retro-bg-darker/95 backdrop-blur-lg border border-gray-800 rounded-lg p-3 shadow-2xl ">
           {/* 历史记录标题 */}
-          <div className="flex items-center justify-between pb-2 border-b border-retro-border/50">
+          <div className="flex items-center justify-between pb-2 border-b border-gray-800/50">
             <div className="flex items-center gap-2">
               <div className="w-5 h-5 bg-gradient-to-br from-retro-cyan to-retro-blue rounded flex items-center justify-center shadow-lg">
                 <span className="text-sm">📊</span>
@@ -508,7 +403,7 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
           <div className="space-y-2 max-h-60 overflow-y-auto scrollbar-hide">
             {statusHistory.length === 0 ? (
               <div className="text-center py-8 space-y-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-retro-purple/20 to-retro-pink/20 rounded-lg flex items-center justify-center mx-auto border border-retro-border/30">
+                <div className="w-12 h-12 bg-gradient-to-br from-retro-purple/20 to-retro-pink/20 rounded-lg flex items-center justify-center mx-auto border border-gray-700/50">
                   <span className="text-2xl">📝</span>
                 </div>
                 <div className="space-y-1">
@@ -524,7 +419,7 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
               statusHistory.map((history, index) => (
                 <div
                   key={history.id || index}
-                  className="group relative overflow-hidden bg-gradient-to-r from-retro-bg-dark/60 to-retro-bg-darker/60 rounded-lg p-2.5 border border-retro-border/50 hover:border-retro-cyan/50  hover:shadow-lg backdrop-blur-sm"
+                  className="group relative overflow-hidden bg-gradient-to-r from-retro-bg-dark/60 to-retro-bg-darker/60 rounded-lg p-2.5 border border-gray-700/50 hover:border-retro-cyan/50  hover:shadow-lg backdrop-blur-sm"
                 >
                   {/* 记录内容 */}
                   <div className="relative space-y-2">
@@ -557,7 +452,7 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
 
           {/* 状态统计仪表板 */}
           {statusHistory.length > 0 && (
-            <div className="pt-2 border-t border-retro-border/50">
+            <div className="pt-2 border-t border-gray-800/50">
               <div className="grid grid-cols-3 gap-2">
                 {/* 今日状态 */}
                 <div className="text-center space-y-1 bg-gradient-to-br from-retro-green/10 to-retro-blue/10 rounded p-2 border border-retro-green/20">

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Post } from '@/types/social'
 import { useCurrentUser } from '@/lib/hooks/useCurrentUser'
@@ -9,6 +9,7 @@ import { usePostReplies } from '@/lib/hooks/usePostReplies'
 import UserAvatar from '@/components/UserAvatar'
 import CreateReplyForm from '@/components/CreateReplyForm'
 import MarkdownRenderer from '@/components/MarkdownRenderer'
+import PostSidebar from '@/components/blog/PostSidebar'
 import Link from 'next/link'
 
 interface PostDetailClientProps {
@@ -19,6 +20,28 @@ export default function PostDetailClient({ initialPost }: PostDetailClientProps)
   const router = useRouter()
   const { userId: currentUserId } = useCurrentUser()
   const { user } = useUser()
+
+  // 本地主题状态管理
+  const [theme, setTheme] = useState<'light' | 'dark'>('dark')
+  const [mounted, setMounted] = useState(false)
+
+  // 初始化主题
+  useEffect(() => {
+    setMounted(true)
+    const savedTheme = localStorage.getItem('pixeldesk-blog-theme') as 'light' | 'dark'
+    if (savedTheme) {
+      setTheme(savedTheme)
+      document.documentElement.classList.toggle('light', savedTheme === 'light')
+    }
+  }, [])
+
+  // 切换主题
+  const toggleTheme = () => {
+    const newTheme = theme === 'dark' ? 'light' : 'dark'
+    setTheme(newTheme)
+    localStorage.setItem('pixeldesk-blog-theme', newTheme)
+    document.documentElement.classList.toggle('light', newTheme === 'light')
+  }
 
   // 正确的登录状态判断：只有 UserContext 的 user 存在才算真正登录
   const isAuthenticated = !!user
@@ -114,7 +137,20 @@ export default function PostDetailClient({ initialPost }: PostDetailClientProps)
   const isAuthor = currentUserId === post.author.id
 
   return (
-    <>
+    <div className="min-h-screen bg-gray-950 relative">
+      {/* 动态背景装饰 */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        {/* 渐变光晕 - 紫色 */}
+        <div className="absolute top-20 -left-20 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl" />
+        {/* 渐变光晕 - 蓝色 */}
+        <div className="absolute top-40 right-20 w-80 h-80 bg-cyan-600/10 rounded-full blur-3xl" />
+        {/* 渐变光晕 - 粉色 */}
+        <div className="absolute bottom-40 left-1/3 w-96 h-96 bg-pink-600/8 rounded-full blur-3xl" />
+
+        {/* 网格背景 */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#4f4f4f2e_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f2e_1px,transparent_1px)] bg-[size:32px_32px]" />
+      </div>
+
       {/* 登录提示模态框 */}
       {showLoginPrompt && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
@@ -156,31 +192,45 @@ export default function PostDetailClient({ initialPost }: PostDetailClientProps)
         </div>
       )}
 
-      {/* 导航栏 */}
+      {/* 导航栏 - 精简高度 */}
       <nav className="bg-gray-900/80 backdrop-blur-sm border-b border-gray-800 sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-4 py-4">
+        <div className="max-w-7xl mx-auto px-4 py-2">
           <div className="flex items-center justify-between">
-            {/* Logo */}
+            {/* Logo - 精简版 */}
             <button
               onClick={() => router.push('/')}
-              className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer"
+              className="flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer"
             >
-              <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-teal-500 rounded-xl flex items-center justify-center shadow-lg shadow-cyan-500/20">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-8 h-8 bg-gradient-to-br from-cyan-500 to-teal-500 rounded-lg flex items-center justify-center shadow-lg shadow-cyan-500/20">
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
               </div>
-              <div className="flex flex-col">
-                <span className="text-white font-bold text-lg">PixelDesk</span>
-                <span className="text-gray-400 text-xs font-mono">Social Platform</span>
-              </div>
+              <span className="text-white font-bold text-base">PixelDesk</span>
             </button>
 
             <div className="flex items-center space-x-2">
+              {/* 主题切换按钮 */}
+              <button
+                onClick={toggleTheme}
+                className="p-1.5 bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white rounded-lg border border-gray-700 transition-all"
+                title={theme === 'dark' ? '切换到浅色模式' : '切换到深色模式'}
+              >
+                {theme === 'dark' ? (
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clipRule="evenodd" />
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+                  </svg>
+                )}
+              </button>
+
               {isAuthor && (
                 <button
                   onClick={() => router.push(`/posts/${post.id}/edit`)}
-                  className="cursor-pointer px-4 py-2 bg-gray-800 hover:bg-gray-700 text-cyan-400 rounded-lg border border-gray-700 hover:border-cyan-500/50 text-sm font-medium transition-all"
+                  className="cursor-pointer px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-cyan-400 rounded-lg border border-gray-700 hover:border-cyan-500/50 text-sm font-medium transition-all"
                 >
                   编辑
                 </button>
@@ -190,9 +240,11 @@ export default function PostDetailClient({ initialPost }: PostDetailClientProps)
         </div>
       </nav>
 
-      {/* 主要内容 */}
-      <main className="max-w-4xl mx-auto px-4 py-8">
-        <div className="space-y-8">
+      {/* 主要内容 - 左右布局 */}
+      <main className="relative z-10 max-w-7xl mx-auto px-4 py-8">
+        <div className="flex gap-8 items-start">
+          {/* 左侧主要内容区 */}
+          <div className="flex-1 min-w-0 space-y-8">
           {/* 帖子内容卡片 */}
           <article className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl overflow-hidden">
             <div className="p-8">
@@ -461,8 +513,17 @@ export default function PostDetailClient({ initialPost }: PostDetailClientProps)
               )}
             </div>
           </section>
+          </div>
+
+          {/* 右侧边栏 */}
+          <aside className="hidden lg:block w-80 flex-shrink-0 sticky top-20">
+            <PostSidebar
+              currentPostId={post.id}
+              currentUserId={currentUserId || undefined}
+            />
+          </aside>
         </div>
       </main>
-    </>
+    </div>
   )
 }

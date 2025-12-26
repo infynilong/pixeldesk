@@ -65,82 +65,82 @@ export default function PostListItem({
       rel="noopener noreferrer"
       className="block group"
     >
-      <div className="px-4 py-3 hover:bg-gray-800/40 border-b border-gray-800/50 transition-colors cursor-pointer">
-        <div className="flex items-start gap-3">
-          {/* 左侧头像 */}
+      <div className="px-3 py-2 hover:bg-gray-800/40 border-b border-gray-800/50 transition-colors cursor-pointer">
+        <div className="flex items-start gap-2">
+          {/* 左侧头像 - 更小 */}
           <div className="flex-shrink-0">
             <UserAvatar
               userId={post.author.id}
               userName={post.author.name}
               userAvatar={post.author.avatar}
-                        customAvatar={post.author.customAvatar}
-              size="sm"
+              customAvatar={post.author.customAvatar}
+              size="xs"
               showStatus={false}
-              className="mt-0.5"
             />
           </div>
 
-          {/* 中间内容区域 */}
+          {/* 右侧内容区域 */}
           <div className="flex-1 min-w-0">
-            {/* 头部信息行 */}
-            <div className="flex items-center gap-2 mb-1">
+            {/* 标题 - 如果有 */}
+            {post.title && (
+              <h4 className="text-gray-100 text-sm font-medium mb-0.5 line-clamp-1 group-hover:text-white transition-colors">
+                {post.title}
+              </h4>
+            )}
+
+            {/* 元信息行：作者 + 时间 + 类型 + 标签 */}
+            <div className="flex items-center gap-1.5 mb-1 text-xs flex-wrap">
               <Link
                 href={`/profile/${post.author.id}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={(e) => e.stopPropagation()}
-                className="text-gray-200 hover:text-cyan-400 text-sm font-medium truncate transition-colors"
+                className="text-gray-400 hover:text-cyan-400 font-mono transition-colors"
               >
                 {post.author.name}
               </Link>
-              <span className="text-gray-600 text-xs">·</span>
-              <span className="text-gray-500 text-xs font-mono flex-shrink-0">
+              <span className="text-gray-600">·</span>
+              <span className="text-gray-500 font-mono flex-shrink-0">
                 {formatTime(post.createdAt)}
               </span>
               {isBlog && (
                 <>
-                  <span className="text-gray-600 text-xs">·</span>
-                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-gradient-to-r from-cyan-600/20 to-teal-600/20 border border-cyan-500/30 rounded text-cyan-400 text-xs font-pixel">
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <span className="text-gray-600">·</span>
+                  <span className="inline-flex items-center gap-0.5 px-1 py-0.5 bg-cyan-600/20 border border-cyan-500/30 rounded text-cyan-400 font-pixel">
+                    <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                     </svg>
-                    BLOG
+                    <span className="text-2xs">博客</span>
                   </span>
+                </>
+              )}
+              {/* 标签 - 内联显示 */}
+              {post.tags && post.tags.length > 0 && (
+                <>
+                  {post.tags.slice(0, 2).map((tag, index) => (
+                    <span
+                      key={index}
+                      className="inline-flex items-center px-1 py-0.5 bg-gray-800/50 border border-gray-700/50 rounded text-gray-400 font-mono"
+                    >
+                      #{tag}
+                    </span>
+                  ))}
+                  {post.tags.length > 2 && (
+                    <span className="text-gray-600">+{post.tags.length - 2}</span>
+                  )}
                 </>
               )}
             </div>
 
-            {/* 标题（如果有） */}
-            {post.title && (
-              <h4 className="text-gray-100 text-sm font-medium mb-1 line-clamp-1 group-hover:text-white transition-colors">
-                {post.title}
-              </h4>
+            {/* 内容预览 - 只显示一行 */}
+            {!post.title && (
+              <p className="text-gray-400 text-xs leading-snug line-clamp-1 mb-1">
+                {getPreview(post.content, 80)}
+              </p>
             )}
 
-            {/* 内容预览 */}
-            <p className="text-gray-400 text-xs leading-relaxed line-clamp-2 mb-2">
-              {getPreview(post.content)}
-            </p>
-
-            {/* 标签（如果有） */}
-            {post.tags && post.tags.length > 0 && (
-              <div className="flex items-center gap-1.5 mb-2 flex-wrap">
-                {post.tags.slice(0, 3).map((tag, index) => (
-                  <span
-                    key={index}
-                    className="inline-flex items-center px-1.5 py-0.5 bg-gray-800/50 border border-gray-700/50 rounded text-gray-400 text-xs font-mono"
-                  >
-                    #{tag}
-                  </span>
-                ))}
-                {post.tags.length > 3 && (
-                  <span className="text-gray-600 text-xs">+{post.tags.length - 3}</span>
-                )}
-              </div>
-            )}
-
-            {/* 互动数据行 */}
-            <div className="flex items-center gap-4 text-xs">
+            {/* 互动数据行 - 更紧凑 */}
+            <div className="flex items-center gap-3 text-xs">
               {/* 点赞 */}
               <button
                 onClick={(e) => {
@@ -149,29 +149,29 @@ export default function PostListItem({
                   handleLike()
                 }}
                 disabled={isOwnPost}
-                className={`flex items-center gap-1.5 group/like transition-colors ${
+                className={`flex items-center gap-1 group/like transition-colors ${
                   isLiked
                     ? 'text-retro-red'
                     : 'text-gray-500 hover:text-retro-red'
                 } ${isOwnPost ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
-                <svg className="w-4 h-4" fill={isLiked ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3.5 h-3.5" fill={isLiked ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                 </svg>
                 <span className="font-mono">{post.likeCount || 0}</span>
               </button>
 
               {/* 回复 */}
-              <div className="flex items-center gap-1.5 text-gray-500">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="flex items-center gap-1 text-gray-500">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                 </svg>
                 <span className="font-mono">{post.replyCount || 0}</span>
               </div>
 
               {/* 阅读量 */}
-              <div className="flex items-center gap-1.5 text-gray-500">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="flex items-center gap-1 text-gray-500">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                 </svg>
