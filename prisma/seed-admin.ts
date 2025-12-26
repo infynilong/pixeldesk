@@ -64,8 +64,8 @@ async function main() {
       imageUrl: `/assets/characters/Premade_Character_48x48_${num}.png`,
       frameWidth: 48,
       frameHeight: 48,
-      totalFrames: 64, // 标准格式有更多帧
-      isCompactFormat: false,
+      totalFrames: 8, // 紧凑格式（2行4列）
+      isCompactFormat: true, // 所有角色都使用紧凑格式
       price: 0,
       isDefault: i === 1, // 第一个作为默认之一
       sortOrder: i,
