@@ -4,6 +4,7 @@ import { WashroomManager } from "../logic/WashroomManager.js"
 import { ZoomControl } from "../components/ZoomControl.js"
 import { WorkstationBindingUI } from "../components/WorkstationBindingUI.js"
 import { ChunkManager } from "../logic/ChunkManager.js"
+import { AiNpcManager } from "../logic/AiNpcManager.js"
 
 // ===== 性能优化配置 =====
 const PERFORMANCE_CONFIG = {
@@ -358,6 +359,9 @@ export class Start extends Phaser.Scene {
     // 初始化工位绑定UI
     this.bindingUI = new WorkstationBindingUI(this)
 
+    // 初始化 AI NPC 管理器
+    this.aiNpcManager = new AiNpcManager(this)
+
     // 为UI更新设置定时器而不是每帧更新
     // 暂时禁用UI更新定时器以排查CPU占用问题
     // this.uiUpdateTimer = this.time.addEvent({
@@ -427,13 +431,9 @@ export class Start extends Phaser.Scene {
     // 设置输入
     this.setupInput()
 
-    // 设置 NPC 碰撞，并添加碰撞回调来触发社交中心互动
-    if (this.player && this.npcGroup) {
-      this.physics.add.collider(this.player, this.npcGroup, (playerObj, npcObj) => {
-        if (typeof this.handlePlayerCollision === 'function') {
-          this.handlePlayerCollision(playerObj, npcObj)
-        }
-      })
+    // 加载 AI NPCs
+    if (this.aiNpcManager) {
+      this.aiNpcManager.init()
     }
 
     // 设置相机
@@ -510,8 +510,7 @@ export class Start extends Phaser.Scene {
     // 保存游戏场景引用，确保工位绑定功能可用
     this.saveGameScene()
 
-    // 加载 AI NPC
-    this.loadAiNpcs()
+    // AI NPC 已经在上方的 aiNpcManager.init() 中加载
 
     console.log('🎮 游戏配置信息:', {
       渲染器: this.game.renderer.type === 0 ? 'CANVAS' : 'WEBGL',
@@ -2006,12 +2005,25 @@ export class Start extends Phaser.Scene {
   handlePlayerCollision(mainPlayer, otherPlayer) {
     const playerId = otherPlayer.playerData.id
 
+    // 🔧 新增：如果对方是 AI NPC，让它面向玩家
+    if (playerId.toString().startsWith('npc_') && typeof otherPlayer.setDirectionFrame === 'function') {
+      const dx = mainPlayer.x - otherPlayer.x
+      const dy = mainPlayer.y - otherPlayer.y
+
+      // 根据位移差判断方向
+      if (Math.abs(dx) > Math.abs(dy)) {
+        otherPlayer.setDirectionFrame(dx > 0 ? 'right' : 'left')
+      } else {
+        otherPlayer.setDirectionFrame(dy > 0 ? 'down' : 'up')
+      }
+    }
+
     // 如果这是一个新的碰撞
     if (!this.collisionManager.activeCollisions.has(playerId)) {
       // 添加到活动碰撞集合
       this.collisionManager.activeCollisions.add(playerId)
 
-      // 触发碰撞开始事件
+      // ... 触发碰撞事件逻辑保持不变 ...
       otherPlayer.handleCollisionStart(mainPlayer)
 
       // 保持向后兼容的碰撞处理
@@ -2552,199 +2564,8 @@ export class Start extends Phaser.Scene {
 
   // ===== 清理方法 =====
 
-  // ===== AI NPC 系统 =====
+  // ===== AI NPC 系统 (由 AiNpcManager.js 管理) =====
 
-  /**
-   * 从 API 加载所有 AI NPC 并在此地图上创建
-   */
-  async loadAiNpcs() {
-    try {
-      console.log('🤖 [AI NPC] 开始加载...')
-
-      const response = await fetch('/api/ai/npcs', {
-        method: 'GET',
-        credentials: 'include'
-      })
-
-      console.log('🤖 [AI NPC] API 响应状态:', response.status)
-
-      if (!response.ok) {
-        console.warn('🤖 [AI NPC] 加载失败:', response.status)
-        return
-      }
-
-      const data = await response.json()
-      console.log('🤖 [AI NPC] 收到数据:', data)
-
-      if (!data.success || !data.data) {
-        console.warn('🤖 [AI NPC] 数据无效')
-        return
-      }
-
-      this.aiNpcs = [] // 存储 NPC 引用
-
-      for (const npcData of data.data) {
-        console.log('🤖 [AI NPC] 创建 NPC:', npcData.name, '位置:', npcData.x, npcData.y)
-        const npc = await this.createAiNpc(npcData)
-        if (npc) {
-          this.aiNpcs.push(npc)
-          console.log('🤖 [AI NPC] 创建成功:', npcData.name)
-        } else {
-          console.error('🤖 [AI NPC] 创建失败:', npcData.name)
-        }
-      }
-
-      debugLog(`✅ 已加载 ${this.aiNpcs.length} 个 AI NPC`)
-
-    } catch (error) {
-      debugError('加载 AI NPC 出错:', error)
-    }
-  }
-
-  /**
-   * 创建单个 AI NPC 精灵 - 使用 Player 类确保正确显示
-   */
-  async createAiNpc(npcData) {
-    try {
-      const { id, name, sprite, x, y, greeting } = npcData
-
-      console.log(`🤖 [AI NPC] 创建: ${name} 位置 (${x}, ${y}) 精灵: ${sprite}`)
-
-      // 检查精灵是否已加载，如果没有则动态加载
-      const textureKey = sprite
-      if (!this.textures.exists(textureKey)) {
-        const spritePath = `/assets/characters/${sprite}.png`
-        console.log(`🤖 [AI NPC] 加载精灵: ${spritePath}`)
-
-        try {
-          await new Promise((resolve, reject) => {
-            this.load.spritesheet(textureKey, spritePath, {
-              frameWidth: 48,
-              frameHeight: 48
-            })
-            this.load.once('complete', resolve)
-            this.load.once('loaderror', (file) => {
-              console.error(`🤖 [AI NPC] 加载精灵失败: ${file.key}`)
-              reject(new Error(`Failed to load sprite: ${spritePath}`))
-            })
-            this.load.start()
-          })
-        } catch (loadError) {
-          console.error(`🤖 [AI NPC] 精灵加载失败`, loadError)
-          return null
-        }
-      }
-
-      // 动态检测是否为紧凑8帧格式 (参考 WorkstationManager 逻辑)
-      const texture = this.textures.get(textureKey);
-      const frameCount = texture ? texture.frameTotal : 0;
-      // 只有正好是 8 帧的才被认为是紧凑格式，Sarah (Premade_Character) 通常是 50+ 帧
-      const isCompactFormat = true;
-      const characterConfig = { isCompactFormat };
-
-      console.log(`🤖 [AI NPC] 角色: ${name}, 帧数: ${frameCount}, 格式: ${isCompactFormat ? '紧凑' : '传统'}`)
-
-      // 使用 Player 类创建 NPC
-      const playerData = {
-        id: `npc_${id}`,
-        name: name,
-        currentStatus: {
-          type: 'available',
-          status: 'AI助手',
-          emoji: '🤖',
-          message: greeting || '有什么可以帮你的吗？',
-          timestamp: new Date().toISOString()
-        }
-      }
-
-      // 创建 Player 实例 - 关键：最后两个参数决定了外观解析
-      const npcCharacter = new Player(
-        this,           // scene
-        x,              // x
-        y,              // y
-        textureKey,     // spriteKey
-        false,          // enableMovement
-        false,          // enableStateSave
-        true,           // isOtherPlayer
-        playerData,     // playerData
-        characterConfig // 传入检测到的配置
-      )
-
-      // 强制设置一次朝向，触发帧更新
-      if (typeof npcCharacter.setDirectionFrame === 'function') {
-        npcCharacter.setDirectionFrame('down');
-      }
-
-      // 设置缩放：其他玩家通常是 0.8
-      npcCharacter.setScale(0.8)
-
-      // 设置深度：确保在层级正确
-      npcCharacter.setDepth(1000)
-
-      // 存储数据
-      npcCharacter.npcId = id
-      npcCharacter.npcName = name
-      npcCharacter.npcGreeting = greeting
-
-      // 添加到场景
-      this.add.existing(npcCharacter)
-
-      // 🔧 关键：添加到碰撞组以实现碰撞效果
-      if (this.npcGroup) {
-        this.npcGroup.add(npcCharacter)
-
-        // 彻底锁定 NPC，防止被推走
-        if (npcCharacter.body) {
-          npcCharacter.body.setSize(32, 24) // 较扁的碰撞盒，更符合透视
-          npcCharacter.body.setOffset(-16, 60) // 移至脚部
-          npcCharacter.body.setImmovable(true) // 不可移动
-          npcCharacter.body.moves = false      // 物理引擎不再更新其位置
-        }
-        console.log(`🤖 [AI NPC] 已物理锁定: ${name}`)
-      }
-
-      // 同时添加到其他玩家组（用于点击互动等逻辑）
-      if (this.otherPlayersGroup) {
-        this.otherPlayersGroup.add(npcCharacter)
-      }
-
-      // 创建 AI 图标 (头顶小图标，区分于普通玩家)
-      const aiIcon = this.add.text(x + 25, y - 50, '🤖', {
-        fontSize: '16px'
-      })
-      aiIcon.setOrigin(0.5)
-      aiIcon.setDepth(1100)
-      npcCharacter.aiIcon = aiIcon
-
-      // 添加悬浮动画（只对图标）
-      this.tweens.add({
-        targets: aiIcon,
-        y: '-=5',
-        duration: 1000,
-        ease: 'Sine.easeInOut',
-        yoyo: true,
-        repeat: -1
-      })
-
-      // 鼠标悬停效果
-      npcCharacter.on('pointerover', () => {
-        npcCharacter.setScale(0.85)
-        this.input.setDefaultCursor('pointer')
-      })
-
-      npcCharacter.on('pointerout', () => {
-        npcCharacter.setScale(0.8)
-        this.input.setDefaultCursor('default')
-      })
-
-      console.log(`🤖 [AI NPC] 创建完成: ${name}`)
-      return npcCharacter
-
-    } catch (error) {
-      console.error(`🤖 [AI NPC] 创建失败:`, error)
-      return null
-    }
-  }
 
   shutdown() {
     // 清理定时器
