@@ -5,13 +5,10 @@ import { statusHistoryManager, formatTimestamp, getStatusBadge } from '../lib/st
 import { usePointsConfig } from '../lib/hooks/usePointsConfig'
 
 const statusOptions = [
-  { id: 'working', label: '工作中', emoji: '💼', color: 'from-retro-blue to-retro-cyan' },
-  { id: 'break', label: '休息中', emoji: '☕', color: 'from-retro-green to-retro-blue' },
-  { id: 'reading', label: '阅读中', emoji: '📚', color: 'from-retro-purple to-retro-pink' },
-  { id: 'restroom', label: '洗手间', emoji: '🚻', color: 'from-retro-yellow to-retro-orange' },
-  { id: 'meeting', label: '会议中', emoji: '👥', color: 'from-retro-red to-retro-pink' },
-  { id: 'lunch', label: '午餐时间', emoji: '🍽️', color: 'from-retro-orange to-retro-yellow' },
-  { id: 'off_work', label: '下班了', emoji: '🏠', color: 'from-retro-textMuted to-retro-border' }
+  { id: 'working', label: '工作中', emoji: '💼', color: 'from-cyan-500 to-teal-500' },
+  { id: 'break', label: '休息中', emoji: '☕', color: 'from-emerald-500 to-teal-500' },
+  { id: 'meeting', label: '会议中', emoji: '👥', color: 'from-blue-500 to-cyan-500' },
+  { id: 'off_work', label: '下班了', emoji: '🏠', color: 'from-gray-500 to-gray-600' }
 ]
 
 interface PostStatusProps {
@@ -201,12 +198,12 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
             <div className="flex items-center gap-3">
               {/* 紧凑状态图标 */}
               <div className="relative">
-                <div className="w-10 h-10 bg-gradient-to-br from-retro-purple via-retro-pink to-retro-blue rounded-lg flex items-center justify-center shadow-lg border border-white/20">
+                <div className="w-10 h-10 bg-gradient-to-br from-cyan-600 via-teal-600 to-emerald-600 rounded-lg flex items-center justify-center shadow-lg border border-white/20">
                   <span className="text-lg">{currentStatus.emoji}</span>
                 </div>
                 {/* 小型活跃指示器 */}
-                <div className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-retro-green rounded-full border border-retro-bg-darker">
-                  <div className="w-full h-full bg-retro-green rounded-full "></div>
+                <div className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-gray-900">
+                  <div className="w-full h-full bg-emerald-400 rounded-full animate-pulse"></div>
                 </div>
               </div>
 
@@ -229,16 +226,16 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
 
       {/* 紧凑操作按钮区域 - 并排布局 */}
       <div className="flex gap-2">
-        {/* 更新状态按钮 - 紧凑版 */}
+        {/* 更新状态按钮 */}
         <button
           onClick={memoizedHandleToggle}
-          className="flex-1 group relative overflow-hidden bg-gradient-to-r from-retro-purple via-retro-pink to-retro-blue hover:from-retro-blue hover:via-retro-cyan hover:to-retro-green text-white font-bold py-2.5 px-3 rounded-lg   shadow-lg hover:shadow-xl border border-white/20 hover:border-white/40"
+          className="flex-1 group relative overflow-hidden bg-gradient-to-r from-cyan-600 via-teal-600 to-emerald-600 hover:from-cyan-500 hover:via-teal-500 hover:to-emerald-500 text-white font-bold py-2.5 px-3 rounded-lg shadow-lg hover:shadow-cyan-500/20 border border-white/20 transition-all active:scale-[0.98]"
         >
-          {/* 按钮内容 - 紧凑版 */}
+          {/* 按钮内容 */}
           <div className="relative flex items-center justify-center gap-2">
             <span className="text-sm">{isExpanded ? "✕" : "📝"}</span>
             <span className="font-pixel text-xs tracking-wide">
-              {isExpanded ? "CANCEL" : "UPDATE"}
+              {isExpanded ? "CANCEL" : "UPDATE STATUS"}
             </span>
           </div>
         </button>
@@ -256,7 +253,7 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
                 {showHistory ? "HIDE" : "HISTORY"}
               </span>
               {/* 小型计数器 */}
-              <span className="text-xs bg-retro-purple/50 text-white px-1.5 py-0.5 rounded-full font-pixel">
+              <span className="text-xs bg-cyan-500/50 text-white px-1.5 py-0.5 rounded-full font-pixel">
                 {statusHistory.length}
               </span>
             </div>
@@ -277,10 +274,10 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
             e.stopPropagation()
           }}
         >
-          {/* 超紧凑面板标题 */}
+          {/* 面板标题 */}
           <div className="flex items-center gap-2 pb-1 border-b border-gray-800/50">
-            <div className="w-4 h-4 bg-gradient-to-br from-retro-purple to-retro-pink rounded flex items-center justify-center">
-              <span className="text-xs">⚙️</span>
+            <div className="w-4 h-4 bg-gradient-to-br from-cyan-500 to-teal-500 rounded flex items-center justify-center shadow-lg shadow-cyan-500/20">
+              <span className="text-[10px]">⚙️</span>
             </div>
             <h3 className="text-white font-bold text-xs font-pixel tracking-wide">
               STATUS CONFIG
@@ -297,9 +294,9 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
                 <button
                   key={status.id}
                   onClick={() => memoizedHandleStatusSelect(status.id)}
-                  className={`group relative overflow-hidden p-2 rounded-lg border   ${selectedStatus === status.id
-                      ? `border-white/40 bg-gradient-to-br ${status.color} text-white shadow-lg`
-                      : "border-gray-700/50 bg-gradient-to-br from-retro-bg-dark/50 to-retro-bg-darker/50 hover:border-retro-purple/50 shadow-md"
+                  className={`group relative overflow-hidden p-2 rounded-lg border transition-all ${selectedStatus === status.id
+                    ? `border-white/40 bg-gradient-to-br ${status.color} text-white shadow-lg shadow-cyan-500/10`
+                    : "border-gray-700/50 bg-gray-800/40 hover:border-cyan-500/50 hover:bg-gray-800/60 shadow-md"
                     }`}
                 >
                   {/* 选择状态的光效 */}
@@ -318,7 +315,7 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
                   {/* 选中指示器 */}
                   {selectedStatus === status.id && (
                     <div className="absolute top-1 right-1 w-2 h-2 bg-white rounded-full shadow-lg">
-                      <div className="w-full h-full bg-retro-green rounded-full  opacity-75"></div>
+                      <div className="w-full h-full bg-emerald-400 rounded-full animate-pulse"></div>
                     </div>
                   )}
                 </button>
@@ -348,7 +345,7 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
                   e.stopPropagation()
                 }}
                 placeholder="Share what you're doing..."
-                className="relative w-full p-2 bg-gradient-to-br from-retro-bg-dark/80 to-retro-bg-darker/80 border border-gray-700 rounded-lg resize-none focus:outline-none focus:border-retro-purple focus:shadow-lg focus:shadow-retro-purple/25 text-white placeholder-retro-textMuted backdrop-blur-md  font-retro text-sm leading-relaxed"
+                className="relative w-full p-2 bg-gray-800/50 border border-gray-700 rounded-lg resize-none focus:outline-none focus:border-cyan-500/50 focus:bg-gray-800/80 focus:shadow-lg focus:shadow-cyan-500/10 text-white placeholder-gray-500 backdrop-blur-md font-retro text-sm leading-relaxed transition-all"
                 rows={3}
               />
               {/* 字符计数器 */}
@@ -363,7 +360,7 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
             {/* 发布按钮 */}
             <button
               onClick={memoizedHandleSubmit}
-              className="flex-1 group relative overflow-hidden bg-gradient-to-r from-retro-green via-retro-blue to-retro-cyan hover:from-retro-blue hover:via-retro-cyan hover:to-retro-green text-white font-bold py-2 px-3 rounded-lg   shadow-lg hover:shadow-xl border border-white/20 hover:border-white/40"
+              className="flex-1 group relative overflow-hidden bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold py-2 px-3 rounded-lg shadow-lg hover:shadow-emerald-500/20 border border-white/20 transition-all active:scale-[0.98]"
             >
               {/* 发布按钮内容 */}
               <div className="relative flex items-center justify-center gap-2">
@@ -379,11 +376,11 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
             {/* 取消按钮 */}
             <button
               onClick={memoizedHandleCancel}
-              className="flex-1 group relative overflow-hidden bg-gradient-to-r from-retro-bg-dark/80 to-retro-bg-darker/80 hover:from-retro-border/60 hover:to-retro-border/80 text-white font-medium py-2 px-3 rounded-lg  border border-gray-700 hover:border-retro-red/60 shadow-lg hover:shadow-xl backdrop-blur-sm"
+              className="flex-1 group relative overflow-hidden bg-gray-800/80 hover:bg-gray-700/80 text-white font-medium py-2 px-3 rounded-lg border border-gray-700 hover:border-gray-600 shadow-lg transition-all active:scale-[0.98]"
             >
               {/* 取消按钮内容 */}
-              <div className="relative flex items-center justify-center gap-2">
-                <div className="w-4 h-4 bg-retro-red/20 rounded flex items-center justify-center group-hover:bg-retro-red/30 ">
+              <div className="relative flex items-center justify-center gap-2 text-gray-400 group-hover:text-gray-200">
+                <div className="w-4 h-4 bg-gray-700 rounded flex items-center justify-center group-hover:bg-gray-600">
                   <span className="text-xs">✕</span>
                 </div>
                 <span className="font-pixel text-xs tracking-wide">CANCEL</span>

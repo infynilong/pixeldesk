@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, memo, useEffect } from 'react'
+import { useState, useCallback, memo, useEffect, useMemo } from 'react'
 
 interface WorkstationBindingModalProps {
   isVisible: boolean
@@ -9,6 +9,54 @@ interface WorkstationBindingModalProps {
   onConfirm: () => Promise<any>
   onCancel: () => void
   onClose: () => void
+}
+
+// i18n 翻译
+const translations = {
+  'zh-CN': {
+    title: '工位绑定',
+    subtitle: '租赁确认',
+    stationInfo: '工位信息',
+    stationId: '工位 ID',
+    position: '位置',
+    type: '类型',
+    rentalCost: '租赁费用',
+    bindingFee: '绑定费用',
+    duration: '30 天',
+    points: '积分',
+    yourBalance: '您的账户余额',
+    currentPoints: '当前积分',
+    afterRental: '租赁后',
+    insufficientPoints: '积分不足',
+    insufficientPointsMsg: '您需要至少 {cost} 积分来绑定此工位',
+    confirm: '确认绑定',
+    cancel: '取消',
+    processing: '处理中...',
+    success: '绑定成功！',
+    failed: '绑定失败，请重试',
+  },
+  'en': {
+    title: 'Workstation Binding',
+    subtitle: 'Rental Confirmation',
+    stationInfo: 'Station Info',
+    stationId: 'Station ID',
+    position: 'Position',
+    type: 'Type',
+    rentalCost: 'Rental Cost',
+    bindingFee: 'Binding Fee',
+    duration: '30 Days',
+    points: 'Points',
+    yourBalance: 'Your Balance',
+    currentPoints: 'Current Points',
+    afterRental: 'After Rental',
+    insufficientPoints: 'Insufficient Points',
+    insufficientPointsMsg: 'Need at least {cost} points to bind workstation',
+    confirm: 'Confirm Binding',
+    cancel: 'Cancel',
+    processing: 'Processing...',
+    success: 'Binding Successful!',
+    failed: 'Binding failed, please retry',
+  }
 }
 
 const WorkstationBindingModal = memo(({
@@ -22,7 +70,23 @@ const WorkstationBindingModal = memo(({
   const [isProcessing, setIsProcessing] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [messageType, setMessageType] = useState<'info' | 'success' | 'error'>('info')
-  const [bindCost, setBindCost] = useState(10) // 默认10积分，从配置加载
+  const [bindCost, setBindCost] = useState(10)
+  const [language, setLanguage] = useState<'zh-CN' | 'en'>('zh-CN')
+
+  // 获取翻译
+  const t = useCallback((key: keyof typeof translations['zh-CN']) => {
+    return translations[language][key] || key
+  }, [language])
+
+  // 加载语言设置
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedLang = localStorage.getItem('pixeldesk-language') as 'zh-CN' | 'en'
+      if (savedLang && (savedLang === 'zh-CN' || savedLang === 'en')) {
+        setLanguage(savedLang)
+      }
+    }
+  }, [isVisible])
 
   // 加载积分配置
   useEffect(() => {
@@ -33,12 +97,10 @@ const WorkstationBindingModal = memo(({
           const data = await response.json()
           if (data.success && data.data) {
             setBindCost(data.data.value)
-            console.log('✅ 加载绑定工位积分配置:', data.data.value)
           }
         }
       } catch (error) {
-        console.error('加载积分配置失败:', error)
-        // 使用默认值
+        console.error('Failed to load points config:', error)
       }
     }
 
@@ -57,40 +119,37 @@ const WorkstationBindingModal = memo(({
   // 处理确认绑定
   const handleConfirm = useCallback(async () => {
     if (isProcessing) return
-    
+
     setIsProcessing(true)
     setMessage(null)
-    
+
     try {
-      // 调用确认回调
       const result = await onConfirm()
-      
+
       if (result.success) {
         setMessageType('success')
-        setMessage('绑定成功！')
-        
-        // 延迟关闭弹窗
+        setMessage(t('success'))
+
         setTimeout(() => {
           onClose()
           resetState()
         }, 1500)
       } else {
         setMessageType('error')
-        setMessage(result.error || '绑定失败')
+        setMessage(result.error || t('failed'))
       }
     } catch (error) {
       setMessageType('error')
-      setMessage('绑定失败，请重试')
-      console.error('绑定失败:', error)
+      setMessage(t('failed'))
+      console.error('Binding failed:', error)
     } finally {
       setIsProcessing(false)
     }
-  }, [onConfirm, onClose, resetState, isProcessing])
+  }, [onConfirm, onClose, resetState, isProcessing, t])
 
   // 处理取消
   const handleCancel = useCallback(() => {
     if (isProcessing) return
-    
     onCancel()
     onClose()
     resetState()
@@ -99,7 +158,6 @@ const WorkstationBindingModal = memo(({
   // 处理关闭
   const handleClose = useCallback(() => {
     if (isProcessing) return
-    
     onClose()
     resetState()
   }, [onClose, resetState, isProcessing])
@@ -109,271 +167,186 @@ const WorkstationBindingModal = memo(({
     return null
   }
 
-  // 计算用户可用积分
   const userPoints = user.points || 0
   const canAfford = userPoints >= bindCost
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md bg-black/40"
       onMouseDown={(e) => e.stopPropagation()}
       onMouseUp={(e) => e.stopPropagation()}
       onClick={(e) => e.stopPropagation()}
     >
-      {/* 深色背景蒙板 */}
+      {/* 蒙层 */}
       <div
-        className="absolute inset-0 bg-black/70"
+        className="absolute inset-0 cursor-default"
         onClick={handleClose}
-        onMouseDown={(e) => e.stopPropagation()}
-        onMouseUp={(e) => e.stopPropagation()}
       />
 
-      {/* 模态框容器 - 现代像素艺术设计 */}
+      {/* 模态框容器 */}
       <div
-        className="relative bg-retro-bg-darker border-2 border-retro-border rounded-2xl p-8 w-full max-w-md shadow-2xl shadow-retro-blue/20 "
+        className="relative bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300"
         onMouseDown={(e) => e.stopPropagation()}
         onMouseUp={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* 装饰性光效 */}
-        <div className="absolute inset-0 bg-gradient-to-br from-retro-blue/5 via-retro-purple/8 to-retro-cyan/5 rounded-2xl"></div>
-        <div className="absolute inset-0 border border-retro-blue/20 rounded-2xl"></div>
-        
-        {/* 关闭按钮 - 像素化设计 */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation()
-            handleClose()
-          }}
-          onMouseDown={(e) => e.stopPropagation()}
-          onMouseUp={(e) => e.stopPropagation()}
-          disabled={isProcessing}
-          className="absolute top-4 right-4 w-8 h-8 bg-gradient-to-br from-retro-red/20 to-retro-orange/20 hover:from-retro-red/30 hover:to-retro-orange/30 disabled:from-retro-textMuted/20 disabled:to-retro-border/20 text-white/80 hover:text-white disabled:text-retro-textMuted rounded-lg border-2 border-retro-red/30 hover:border-retro-red/50 disabled:border-retro-textMuted/20  flex items-center justify-center shadow-lg group disabled:cursor-not-allowed"
-        >
-          <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 group-disabled:opacity-0  rounded-lg"></div>
-          <span className="relative font-bold">✕</span>
-        </button>
+        {/* 顶部环境光效 */}
+        <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-cyan-500 to-teal-500 shadow-[0_0_20px_rgba(6,182,212,0.5)]"></div>
 
-        {/* 标题区域 - 现代像素艺术风格 */}
-        <div className="relative mb-8">
-          <div className="flex items-center gap-4 mb-4">
-            {/* 绑定图标 */}
-            <div className="w-12 h-12 bg-gradient-to-br from-retro-blue via-retro-purple to-retro-cyan rounded-xl flex items-center justify-center shadow-xl border-2 border-white/20">
-              <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-white/5 rounded-xl"></div>
-              <span className="relative text-2xl drop-shadow-lg">🔗</span>
+        {/* 背景装饰渐变 */}
+        <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 via-transparent to-teal-500/5 pointer-events-none"></div>
+
+        {/* 内容区域 */}
+        <div className="relative p-7 md:p-8">
+          {/* 关闭按钮 */}
+          <button
+            onClick={handleClose}
+            disabled={isProcessing}
+            className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center text-gray-500 hover:text-white hover:bg-gray-800 rounded-full transition-colors disabled:opacity-0"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+
+          {/* 标题区域 */}
+          <div className="flex items-center gap-5 mb-8">
+            <div className="w-14 h-14 bg-gradient-to-br from-cyan-500 to-teal-500 rounded-2xl flex items-center justify-center shadow-lg shadow-cyan-500/20 transform rotate-3 hover:rotate-0 transition-transform duration-300">
+              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+              </svg>
             </div>
-            
-            {/* 标题文本 */}
-            <div className="flex-1">
-              <h2 className="text-white text-xl font-bold font-pixel tracking-wide drop-shadow-sm">
-                WORKSTATION BINDING
+            <div>
+              <h2 className="text-white text-2xl font-bold tracking-tight">
+                {t('title')}
               </h2>
-              <div className="flex items-center gap-2 mt-1">
-                <div className="w-2 h-2 bg-retro-blue rounded-full"></div>
-                <span className="text-retro-textMuted text-xs font-retro tracking-wide">RENTAL CONFIRMATION</span>
-              </div>
+              <p className="text-cyan-400/80 text-xs font-mono tracking-widest uppercase mt-0.5">
+                {t('subtitle')}
+              </p>
             </div>
           </div>
-          
-          {/* 装饰性分割线 */}
-          <div className="w-16 h-2 bg-gradient-to-r from-retro-blue via-retro-purple to-retro-cyan rounded-full shadow-lg"></div>
-        </div>
 
-        {/* 工位信息 - 现代像素风格信息卡片 */}
-        <div className="relative space-y-5 mb-8 max-h-[50vh] overflow-y-auto pr-2 scrollbar-hide">
-          {/* 背景装饰 */}
-          <div className="absolute inset-0 bg-gradient-to-br from-retro-blue/2 via-retro-purple/4 to-retro-cyan/2 rounded-xl opacity-60 pointer-events-none"></div>
-          
-          {/* 工位基本信息卡片 */}
-          <div className="relative group">
-            <div className="absolute inset-0 bg-gradient-to-r from-retro-blue/5 to-retro-cyan/5 rounded-xl opacity-0 group-hover:opacity-100 "></div>
-            <div className="relative bg-retro-bg-dark/80 backdrop-blur-sm border-2 border-retro-border/50 rounded-xl p-5 shadow-lg hover:border-retro-blue/40 ">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-6 h-6 bg-gradient-to-br from-retro-blue/30 to-retro-cyan/30 rounded-lg flex items-center justify-center shadow-lg">
-                  <span className="text-sm">🏢</span>
-                </div>
-                <h3 className="text-white font-bold text-sm font-pixel tracking-wide">WORKSTATION INFO</h3>
+          {/* 信息面板 */}
+          <div className="space-y-4 mb-8">
+            {/* 工位基本信息 */}
+            <div className="bg-gray-800/50 border border-gray-700/50 rounded-xl p-5 hover:border-cyan-500/30 transition-colors group">
+              <div className="flex items-center gap-2 mb-3 text-gray-400">
+                <svg className="w-4 h-4 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+                <span className="text-xs font-bold uppercase tracking-wider">{t('stationInfo')}</span>
               </div>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between bg-gradient-to-r from-retro-bg-darker/30 to-retro-bg-dark/30 rounded-lg p-3 border border-retro-border/30">
-                  <span className="text-retro-textMuted text-xs font-pixel tracking-wide">STATION ID</span>
-                  <span className="text-white text-sm font-bold font-retro">{workstation.id}</span>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-gray-900/50 rounded-lg p-3 border border-gray-800">
+                  <p className="text-[10px] text-gray-500 uppercase tracking-tighter mb-1">{t('stationId')}</p>
+                  <p className="text-white font-mono font-bold">#{workstation.id}</p>
                 </div>
-                <div className="flex items-center justify-between bg-gradient-to-r from-retro-bg-darker/30 to-retro-bg-dark/30 rounded-lg p-3 border border-retro-border/30">
-                  <span className="text-retro-textMuted text-xs font-pixel tracking-wide">POSITION</span>
-                  <span className="text-white text-sm font-retro">
-                    ({Math.floor(workstation.position.x)}, {Math.floor(workstation.position.y)})
+                <div className="bg-gray-900/50 rounded-lg p-3 border border-gray-800">
+                  <p className="text-[10px] text-gray-500 uppercase tracking-tighter mb-1">{t('position')}</p>
+                  <p className="text-white font-mono">({Math.floor(workstation.position.x)}, {Math.floor(workstation.position.y)})</p>
+                </div>
+              </div>
+            </div>
+
+            {/* 费用信息 */}
+            <div className="bg-gray-800/50 border border-gray-700/50 rounded-xl p-5 hover:border-emerald-500/30 transition-colors group">
+              <div className="flex items-center gap-2 mb-3 text-gray-400">
+                <svg className="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="text-xs font-bold uppercase tracking-wider">{t('rentalCost')}</span>
+              </div>
+              <div className="flex items-center justify-between bg-gray-900/50 rounded-lg p-4 border border-gray-800">
+                <div className="flex flex-col">
+                  <span className="text-[10px] text-gray-500 uppercase tracking-tighter">{t('bindingFee')}</span>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <span className="text-emerald-400 font-bold text-xl">{bindCost}</span>
+                    <span className="text-gray-500 text-xs">{t('points')}</span>
+                  </div>
+                </div>
+                <div className="h-10 w-[1px] bg-gray-800"></div>
+                <div className="flex flex-col text-right">
+                  <span className="text-[10px] text-gray-500 uppercase tracking-tighter">{t('duration')}</span>
+                  <span className="text-white font-bold mt-0.5">30 DAYS</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 余额状态 */}
+            <div className="bg-gray-800/50 border border-gray-700/50 rounded-xl p-5 hover:border-cyan-500/30 transition-colors group">
+              <div className="flex items-center gap-2 mb-3 text-gray-400">
+                <svg className="w-4 h-4 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a2 2 0 002-2V5a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <span className="text-xs font-bold uppercase tracking-wider">{t('yourBalance')}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col">
+                  <span className="text-[10px] text-gray-500 uppercase tracking-tighter">{t('currentPoints')}</span>
+                  <span className={`text-lg font-bold mt-0.5 ${canAfford ? 'text-gray-100' : 'text-red-400'}`}>
+                    {userPoints} <span className="text-[10px] font-normal text-gray-500">{t('points')}</span>
                   </span>
                 </div>
-                <div className="flex items-center justify-between bg-gradient-to-r from-retro-bg-darker/30 to-retro-bg-dark/30 rounded-lg p-3 border border-retro-border/30">
-                  <span className="text-retro-textMuted text-xs font-pixel tracking-wide">TYPE</span>
-                  <span className="text-white text-sm font-retro">{workstation.type}</span>
+                <div className="flex flex-col text-right">
+                  <span className="text-[10px] text-gray-500 uppercase tracking-tighter">{t('afterRental')}</span>
+                  <span className="text-emerald-400 text-lg font-bold mt-0.5">
+                    {Math.max(0, userPoints - bindCost)} <span className="text-[10px] font-normal text-gray-500">{t('points')}</span>
+                  </span>
                 </div>
               </div>
-            </div>
-          </div>
 
-          {/* 费用信息卡片 - 像素化设计 */}
-          <div className="relative group">
-            <div className="absolute inset-0 bg-gradient-to-r from-retro-yellow/5 to-retro-orange/5 rounded-xl opacity-0 group-hover:opacity-100 "></div>
-            <div className="relative bg-retro-bg-dark/80 backdrop-blur-sm border-2 border-retro-border/50 rounded-xl p-5 shadow-lg hover:border-retro-yellow/40 ">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-6 h-6 bg-gradient-to-br from-retro-yellow/30 to-retro-orange/30 rounded-lg flex items-center justify-center shadow-lg">
-                  <span className="text-sm">💰</span>
-                </div>
-                <h3 className="text-white font-bold text-sm font-pixel tracking-wide">RENTAL COST</h3>
-              </div>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between bg-gradient-to-r from-retro-bg-darker/30 to-retro-bg-dark/30 rounded-lg p-3 border border-retro-border/30">
-                  <span className="text-retro-textMuted text-xs font-pixel tracking-wide">BINDING FEE</span>
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 bg-retro-yellow/30 rounded flex items-center justify-center">
-                      <span className="text-xs">💎</span>
-                    </div>
-                    <span className="text-retro-yellow font-bold text-sm font-pixel">{bindCost}</span>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between bg-gradient-to-r from-retro-bg-darker/30 to-retro-bg-dark/30 rounded-lg p-3 border border-retro-border/30">
-                  <span className="text-retro-textMuted text-xs font-pixel tracking-wide">DURATION</span>
-                  <span className="text-retro-green text-sm font-bold font-pixel">30 DAYS</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* 用户积分信息 - 像素化积分卡片 */}
-          <div className="relative group">
-            <div className="absolute inset-0 bg-gradient-to-r from-retro-purple/5 to-retro-pink/5 rounded-xl opacity-0 group-hover:opacity-100 "></div>
-            <div className="relative bg-retro-bg-dark/80 backdrop-blur-sm border-2 border-retro-border/50 rounded-xl p-5 shadow-lg hover:border-retro-purple/40 ">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-6 h-6 bg-gradient-to-br from-retro-purple/30 to-retro-pink/30 rounded-lg flex items-center justify-center shadow-lg">
-                  <span className="text-sm">👤</span>
-                </div>
-                <h3 className="text-white font-bold text-sm font-pixel tracking-wide">YOUR BALANCE</h3>
-              </div>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between bg-gradient-to-r from-retro-bg-darker/30 to-retro-bg-dark/30 rounded-lg p-3 border border-retro-border/30">
-                  <span className="text-retro-textMuted text-xs font-pixel tracking-wide">CURRENT POINTS</span>
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 bg-retro-cyan/30 rounded flex items-center justify-center">
-                      <span className="text-xs">💎</span>
-                    </div>
-                    <span className={`font-bold text-sm font-pixel ${canAfford ? 'text-retro-green' : 'text-retro-red'}`}>
-                      {userPoints}
-                    </span>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between bg-gradient-to-br from-retro-green/15 to-retro-cyan/15 rounded-lg p-3 border-2 border-retro-green/30 shadow-lg">
-                  <span className="text-retro-green text-xs font-bold font-pixel tracking-wide">AFTER RENTAL</span>
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 bg-retro-green/30 rounded flex items-center justify-center">
-                      <span className="text-xs">✓</span>
-                    </div>
-                    <span className="text-retro-green font-bold text-sm font-pixel">{Math.max(0, userPoints - bindCost)}</span>
-                  </div>
-                </div>
-              </div>
-              
-              {/* 积分不足警告 - 像素化警告面板 */}
               {!canAfford && (
-                <div className="relative mt-4 ">
-                  <div className="absolute inset-0 bg-gradient-to-r from-retro-red/10 to-retro-orange/10 rounded-xl opacity-60 pointer-events-none"></div>
-                  <div className="relative bg-retro-red/40 backdrop-blur-sm border-2 border-retro-red/50 rounded-xl p-4 shadow-lg">
-                    <div className="absolute inset-0 bg-retro-red/5 rounded-xl"></div>
-                    <div className="relative flex items-center justify-center gap-3">
-                      <div className="w-8 h-8 bg-gradient-to-br from-retro-red to-retro-orange rounded-lg flex items-center justify-center shadow-lg">
-                        <span className="text-lg">⚠️</span>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-retro-red font-bold text-sm font-pixel tracking-wide">INSUFFICIENT POINTS</div>
-                        <p className="text-retro-red/80 text-xs font-retro mt-1">
-                          Need at least {bindCost} points to bind workstation
-                        </p>
-                      </div>
-                    </div>
+                <div className="mt-4 p-3 bg-red-900/20 border border-red-900/30 rounded-lg flex items-center gap-3 animate-pulse">
+                  <div className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center shrink-0">
+                    <span className="text-white text-xs font-bold">!</span>
                   </div>
+                  <p className="text-red-400 text-xs font-medium">
+                    {t('insufficientPointsMsg').replace('{cost}', bindCost.toString())}
+                  </p>
                 </div>
               )}
             </div>
           </div>
-        </div>
 
-        {/* 消息显示 */}
-        {message && (
-          <div className={`mb-4 p-3 rounded-lg border ${
-            messageType === 'success' 
-              ? 'bg-green-500/20 border-green-500/30 text-green-400' 
-              : 'bg-red-500/20 border-red-500/30 text-red-400'
-          }`}>
-            <p className="text-sm font-medium">{message}</p>
-          </div>
-        )}
+          {/* 操作反馈消息 */}
+          {message && (
+            <div className={`mb-6 p-4 rounded-xl border flex items-center gap-3 ${messageType === 'success'
+                ? 'bg-emerald-900/20 border-emerald-500/30 text-emerald-400'
+                : 'bg-red-900/20 border-red-500/30 text-red-400'
+              }`}>
+              <div className={`w-2 h-2 rounded-full ${messageType === 'success' ? 'bg-emerald-400' : 'bg-red-400'} animate-ping`}></div>
+              <p className="text-sm font-medium">{message}</p>
+            </div>
+          )}
 
-        {/* 操作按钮组 - 现代像素风格 */}
-        <div className="relative flex gap-4">
-          {/* 背景装饰 */}
-          <div className="absolute inset-0 bg-gradient-to-r from-retro-blue/3 via-retro-purple/5 to-retro-cyan/3 opacity-60 pointer-events-none rounded-xl"></div>
-          
-          {/* 确认绑定按钮 */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              handleConfirm()
-            }}
-            onMouseDown={(e) => e.stopPropagation()}
-            onMouseUp={(e) => e.stopPropagation()}
-            disabled={isProcessing || !canAfford}
-            className="relative flex-1 group overflow-hidden bg-gradient-to-r from-retro-blue via-retro-purple to-retro-cyan hover:from-retro-cyan hover:via-retro-blue hover:to-retro-green disabled:from-retro-textMuted/60 disabled:to-retro-border/60 text-white font-bold py-4 px-6 rounded-xl border-2 border-white/20 hover:border-white/40 disabled:border-retro-textMuted/20  shadow-lg hover:shadow-2xl disabled:shadow-none  disabled:scale-100 backdrop-blur-sm disabled:cursor-not-allowed"
-          >
-            {/* 按钮光效 */}
-            <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-white/20 to-white/10 opacity-0 group-hover:opacity-100 group-disabled:opacity-0 "></div>
-            
-            {/* 按钮内容 */}
-            <div className="relative flex items-center justify-center gap-3">
+          {/* 按钮组 */}
+          <div className="flex gap-4">
+            <button
+              onClick={handleCancel}
+              disabled={isProcessing}
+              className="flex-1 px-6 py-4 bg-gray-800 hover:bg-gray-700 border border-gray-700 text-white rounded-xl transition-all font-bold active:scale-95 disabled:opacity-50"
+            >
+              {t('cancel')}
+            </button>
+            <button
+              onClick={handleConfirm}
+              disabled={isProcessing || !canAfford}
+              className="flex-1 px-6 py-4 bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-white rounded-xl transition-all font-bold shadow-lg shadow-cyan-500/20 active:scale-95 disabled:from-gray-700 disabled:to-gray-800 disabled:text-gray-500 disabled:shadow-none flex items-center justify-center"
+            >
               {isProcessing ? (
-                <>
-                  <div className="w-5 h-5 bg-white/20 rounded-lg flex items-center justify-center">
-                    <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full "></div>
-                  </div>
-                  <span className="font-pixel text-base tracking-wide">PROCESSING...</span>
-                </>
-              ) : (
-                <>
-                  <div className="w-6 h-6 bg-white/20 rounded-lg flex items-center justify-center group-disabled:bg-retro-textMuted/20">
-                    <span className="text-sm">🔗</span>
-                  </div>
-                  <span className="font-pixel text-base tracking-wide drop-shadow-lg">CONFIRM BINDING</span>
-                </>
-              )}
-            </div>
-          </button>
-          
-          {/* 取消按钮 */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              handleCancel()
-            }}
-            onMouseDown={(e) => e.stopPropagation()}
-            onMouseUp={(e) => e.stopPropagation()}
-            disabled={isProcessing}
-            className="relative flex-1 group overflow-hidden bg-retro-bg-dark/80 hover:bg-retro-border/80 disabled:bg-retro-textMuted/60 text-white font-medium py-4 px-6 rounded-xl border-2 border-retro-border hover:border-retro-red/60 disabled:border-retro-textMuted/20  shadow-lg hover:shadow-xl disabled:shadow-none backdrop-blur-sm disabled:cursor-not-allowed  disabled:scale-100"
-          >
-            {/* 取消按钮光效 */}
-            <div className="absolute inset-0 bg-gradient-to-r from-retro-red/5 to-retro-orange/5 opacity-0 group-hover:opacity-100 group-disabled:opacity-0 "></div>
-            
-            {/* 取消按钮内容 */}
-            <div className="relative flex items-center justify-center gap-3">
-              <div className="w-5 h-5 bg-retro-red/20 rounded-lg flex items-center justify-center group-hover:bg-retro-red/30 group-disabled:bg-retro-textMuted/20 ">
-                <span className="text-sm">✕</span>
-              </div>
-              <span className="font-pixel text-base tracking-wide">CANCEL</span>
-            </div>
-          </button>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  <span>{t('processing')}</span>
+                </div>
+              ) : t('confirm')}
+            </button>
+          </div>
         </div>
       </div>
     </div>
   )
 })
+
+WorkstationBindingModal.displayName = 'WorkstationBindingModal'
 
 export default WorkstationBindingModal

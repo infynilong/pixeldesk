@@ -100,6 +100,11 @@ const AiChatModal = dynamic(() => import('@/components/AiChatModal'), {
   ssr: false
 })
 
+// 工位状态更新弹窗 (碰到自己工位时弹出)
+const WorkstationStatusPopup = dynamic(() => import('@/components/WorkstationStatusPopup'), {
+  ssr: false
+})
+
 export default function Home() {
   // 认证相关状态
   const { user, isLoading, playerExists, setPlayerExists } = useUser()
@@ -196,33 +201,31 @@ export default function Home() {
     greeting: ''
   })
 
+  // 工位状态更新弹窗状态
+  const [showStatusPopup, setShowStatusPopup] = useState(false)
+
   // 同步认证用户数据到currentUser状态，支持临时玩家
   const syncAuthenticatedUser = useCallback(async () => {
     if (user) {
       // 用户已登录 - 确保设置为非临时用户状态
-      // (临时玩家数据迁移已在UserContext中处理)
       setIsTemporaryPlayer(false)
 
-      // 从localStorage获取游戏相关数据（如角色、积分等）
       try {
         const gameUserData = localStorage.getItem('pixelDeskUser')
         if (gameUserData) {
           const gameUser = JSON.parse(gameUserData)
-          // 合并认证用户数据和游戏数据
           setCurrentUser({
             id: user.id,
             name: user.name,
             email: user.email,
             avatar: user.avatar,
             points: user.points || gameUser.points || 50,
-            // 保留游戏相关数据
             username: gameUser.username || user.name,
             character: gameUser.character,
             workstationId: gameUser.workstationId,
             workstations: gameUser.workstations || []
           })
         } else {
-          // 如果没有游戏数据，使用认证数据
           setCurrentUser((prev: any) => ({
             id: user.id,
             name: user.name,
@@ -230,22 +233,18 @@ export default function Home() {
             avatar: user.avatar,
             points: user.points || 50,
             username: user.name,
-            workstationId: prev?.workstationId, // 保留现有的工位绑定
+            workstationId: prev?.workstationId,
             workstations: []
           }))
         }
       } catch (error) {
-        // 加载游戏用户数据失败
-        // 出错时使用认证数据作为后备
+        console.error('Failed to parse game user data:', error)
         setCurrentUser((prev: any) => ({
           id: user.id,
           name: user.name,
           email: user.email,
           avatar: user.avatar,
-          points: user.points || 50,
-          username: user.name,
-          workstationId: prev?.workstationId, // 保留现有的工位绑定
-          workstations: []
+          workstationId: prev?.workstationId
         }))
       }
     } else {
@@ -253,37 +252,39 @@ export default function Home() {
       const tempPlayerData = getTempPlayerGameData()
 
       if (tempPlayerData) {
-        // 使用现有临时玩家
-        // 使用现有临时玩家
         setCurrentUser(tempPlayerData)
         setIsTemporaryPlayer(true)
       } else if (isFirstTimeVisitor()) {
-        // 首次访问，创建临时玩家
-        // 首次访问用户，创建临时玩家
         await createTempPlayer()
         const tempGameData = getTempPlayerGameData()
-
         if (tempGameData) {
           setCurrentUser(tempGameData)
           setIsTemporaryPlayer(true)
         }
       } else {
-        // 既不是首次访问，也没有临时玩家数据 - 创建新的临时玩家（比如用户退出登录后）
-        // 用户退出登录，创建新临时玩家
         await createTempPlayer()
         const tempGameData = getTempPlayerGameData()
-
         if (tempGameData) {
           setCurrentUser(tempGameData)
           setIsTemporaryPlayer(true)
         } else {
-          // 如果临时玩家创建失败，设置为 null
           setCurrentUser(null)
           setIsTemporaryPlayer(false)
         }
       }
     }
   }, [user])
+
+  // 将 currentUser 同步到 Phaser 游戏实例
+  useEffect(() => {
+    if (typeof window !== 'undefined' && (window as any).updatePhaserUserData && currentUser) {
+      console.log('📤 [React Sync] 发送数据到 Phaser:', {
+        id: currentUser.id,
+        workstationId: currentUser.workstationId
+      });
+      (window as any).updatePhaserUserData(currentUser);
+    }
+  }, [currentUser])
 
   // 检测移动设备和加载用户数据 - 优化resize处理
   useEffect(() => {
@@ -599,8 +600,23 @@ export default function Home() {
 
     window.addEventListener('open-ai-chat', handleOpenAiChat as EventListener)
 
+    // 监听碰到自己工位的事件
+    const handleMyWorkstationCollision = (e: any) => {
+      console.log('🎯 [Home] 收到碰撞事件 start:', e.detail)
+      setShowStatusPopup(true)
+    }
+    const handleMyWorkstationCollisionEnd = (e: any) => {
+      console.log('👋 [Home] 收到碰撞事件 end:', e.detail)
+      setShowStatusPopup(false)
+    }
+
+    window.addEventListener('my-workstation-collision-start', handleMyWorkstationCollision)
+    window.addEventListener('my-workstation-collision-end', handleMyWorkstationCollisionEnd)
+
     return () => {
       window.removeEventListener('open-ai-chat', handleOpenAiChat as EventListener)
+      window.removeEventListener('my-workstation-collision-start', handleMyWorkstationCollision)
+      window.removeEventListener('my-workstation-collision-end', handleMyWorkstationCollisionEnd)
     }
   }, [])
 
@@ -836,11 +852,7 @@ export default function Home() {
         onStatusUpdate={handleStatusUpdate}
         currentStatus={myStatus}
         userId={currentUser?.id}
-        userData={{
-          username: currentUser?.name,
-          points: currentUser?.points,
-          workstationId: currentUser?.workstationId
-        }}
+        userData={currentUser}
       />
     )
   }, [handleStatusUpdate, myStatus, currentUser?.id, currentUser?.name, currentUser?.points, currentUser?.workstationId]) // 包含所有相关字段依赖
@@ -1016,6 +1028,7 @@ export default function Home() {
       {showAuthPrompt && (
         <div className="fixed inset-0 bg-black flex items-center justify-center z-50 p-4">
           <div className="bg-gradient-to-br from-retro-bg-darker via-gray-900 to-retro-bg-darker border-2 border-retro-purple/30 rounded-xl p-6 w-full max-w-lg">
+            {/* 隐藏的背景遮罩（用于点击面板外部关闭） */}
             {/* 顶部装饰线 */}
             <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-20 h-1 bg-gradient-to-r from-retro-purple to-retro-pink"></div>
 
@@ -1116,6 +1129,14 @@ export default function Home() {
           onClose={() => setShowAuthModal(false)}
         />
       )}
+      {/* 工位状态更新弹窗 */}
+      <WorkstationStatusPopup
+        isVisible={showStatusPopup}
+        onStatusUpdate={handleStatusUpdate}
+        onClose={() => setShowStatusPopup(false)}
+        userId={currentUser?.id}
+        language={(typeof window !== 'undefined' ? (localStorage.getItem('pixeldesk-language') || 'zh-CN') : 'zh-CN') as any}
+      />
     </div>
   )
 }

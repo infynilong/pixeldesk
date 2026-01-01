@@ -418,11 +418,26 @@ export class WorkstationManager {
     }
 
     getWorkstationByUser(userId) {
-        for (const [workstationId, boundUserId] of this.userBindings) {
-            if (boundUserId === userId) {
-                return this.workstations.get(workstationId);
+        if (!userId) return null;
+
+        for (const [wsId, boundUserId] of this.userBindings) {
+            if (String(boundUserId) === String(userId)) {
+                // 🔧 修复类型转换：尝试字符串和数字两种 key
+                const ws = this.workstations.get(wsId) ||
+                    this.workstations.get(Number(wsId)) ||
+                    this.workstations.get(String(wsId));
+
+                if (ws) return ws;
             }
         }
+
+        // 如果上面没找到，遍历所有工位对象看看
+        for (const workstation of this.workstations.values()) {
+            if (String(workstation.userId) === String(userId)) {
+                return workstation;
+            }
+        }
+
         return null;
     }
 
@@ -593,22 +608,27 @@ export class WorkstationManager {
         // 创建绑定映射表
         const bindingsMap = new Map();
         bindings.forEach(binding => {
-            bindingsMap.set(parseInt(binding.workstationId), binding);
+            // 同时保存字符串和数字形式的 key，确保兼容性
+            bindingsMap.set(String(binding.workstationId), binding);
+            bindingsMap.set(Number(binding.workstationId), binding);
         });
 
-        // 清理所有工位的绑定状态
+        // 清理所有已有的用户绑定映射并重新填充
+        this.userBindings.clear();
         this.workstations.forEach((workstation, workstationId) => {
-            const binding = bindingsMap.get(workstationId);
+            // 🔧 修复：使用多种 key 类型尝试获取
+            const binding = bindingsMap.get(workstationId) ||
+                bindingsMap.get(String(workstationId)) ||
+                bindingsMap.get(Number(workstationId));
 
             if (binding) {
-                debugLog(`✅ [applyBindingsDirectly] 应用工位 ${workstationId} 绑定:`, {
-                    userId: binding.userId,
-                    userName: binding.user?.name
-                });
-
+                console.log(`✅ [Sync] 映射用户 ${binding.userId} -> 工位 ${workstationId}`);
                 // 应用绑定状态
                 workstation.isOccupied = true;
                 workstation.userId = binding.userId;
+
+                // 将绑定存入映射表以便后续查询
+                this.userBindings.set(String(workstationId), String(binding.userId));
                 workstation.userInfo = {
                     name: binding.user?.name,
                     avatar: binding.user?.avatar,

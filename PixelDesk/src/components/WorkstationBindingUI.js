@@ -52,7 +52,7 @@ export class WorkstationBindingUI {
             this.scene.cameras.main.width,
             this.scene.cameras.main.height,
             0x000000,
-            0.85  // 从0.6改为0.85，接近不透明
+            1.0  // 完全不透明
         );
         bg.setScrollFactor(0);
         bg.setDepth(999);
