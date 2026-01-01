@@ -31,6 +31,7 @@ export default function CharacterShopPage() {
   const router = useRouter()
   const [characters, setCharacters] = useState<ShopCharacter[]>([])
   const [userPoints, setUserPoints] = useState(0)
+  const [userId, setUserId] = useState<string | null>(null)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [isPurchasing, setIsPurchasing] = useState<string | null>(null)
@@ -73,6 +74,7 @@ export default function CharacterShopPage() {
       if (data.success) {
         setCharacters(data.data)
         setUserPoints(data.userPoints || 0)
+        setUserId(data.userId || null)
         setIsAuthenticated(data.isAuthenticated || false)
       } else {
         setError(data.error || '加载失败')
@@ -185,10 +187,13 @@ export default function CharacterShopPage() {
         )
 
         // 触发积分更新事件
-        if (typeof window !== 'undefined') {
+        if (typeof window !== 'undefined' && userId) {
           window.dispatchEvent(
             new CustomEvent('user-points-updated', {
-              detail: { points: data.data.remainingPoints }
+              detail: {
+                userId: userId,
+                points: data.data.remainingPoints
+              }
             })
           )
         }
@@ -282,31 +287,28 @@ export default function CharacterShopPage() {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setPriceFilter('all')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  priceFilter === 'all'
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${priceFilter === 'all'
                     ? 'bg-purple-600 text-white'
                     : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
-                }`}
+                  }`}
               >
                 全部
               </button>
               <button
                 onClick={() => setPriceFilter('free')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  priceFilter === 'free'
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${priceFilter === 'free'
                     ? 'bg-blue-600 text-white'
                     : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
-                }`}
+                  }`}
               >
                 免费
               </button>
               <button
                 onClick={() => setPriceFilter('paid')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  priceFilter === 'paid'
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${priceFilter === 'paid'
                     ? 'bg-yellow-600 text-white'
                     : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
-                }`}
+                  }`}
               >
                 付费
               </button>
@@ -318,31 +320,28 @@ export default function CharacterShopPage() {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setSourceFilter('all')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  sourceFilter === 'all'
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${sourceFilter === 'all'
                     ? 'bg-purple-600 text-white'
                     : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
-                }`}
+                  }`}
               >
                 全部来源
               </button>
               <button
                 onClick={() => setSourceFilter('official')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  sourceFilter === 'official'
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${sourceFilter === 'official'
                     ? 'bg-cyan-600 text-white'
                     : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
-                }`}
+                  }`}
               >
                 官方
               </button>
               <button
                 onClick={() => setSourceFilter('user')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  sourceFilter === 'user'
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${sourceFilter === 'user'
                     ? 'bg-green-600 text-white'
                     : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
-                }`}
+                  }`}
               >
                 玩家创作
               </button>

@@ -115,6 +115,7 @@ export default function Home() {
   const [showAuthPrompt, setShowAuthPrompt] = useState(false)
   const [authPromptMessage, setAuthPromptMessage] = useState('')
   const [showAuthModal, setShowAuthModal] = useState(false)
+  const [authModalMode, setAuthModalMode] = useState<'login' | 'register'>('login')
 
   // 设置全局登录状态标志
   useEffect(() => {
@@ -249,28 +250,20 @@ export default function Home() {
       }
     } else {
       // 用户未登录 - 检查临时玩家或创建新的临时玩家
-      const tempPlayerData = getTempPlayerGameData()
+      let tempPlayerData = getTempPlayerGameData()
+
+      if (!tempPlayerData) {
+        // 如果没有临时玩家数据，则创建一个（无论是首次访问还是旧数据过期的访问）
+        await createTempPlayer()
+        tempPlayerData = getTempPlayerGameData()
+      }
 
       if (tempPlayerData) {
         setCurrentUser(tempPlayerData)
         setIsTemporaryPlayer(true)
-      } else if (isFirstTimeVisitor()) {
-        await createTempPlayer()
-        const tempGameData = getTempPlayerGameData()
-        if (tempGameData) {
-          setCurrentUser(tempGameData)
-          setIsTemporaryPlayer(true)
-        }
       } else {
-        await createTempPlayer()
-        const tempGameData = getTempPlayerGameData()
-        if (tempGameData) {
-          setCurrentUser(tempGameData)
-          setIsTemporaryPlayer(true)
-        } else {
-          setCurrentUser(null)
-          setIsTemporaryPlayer(false)
-        }
+        setCurrentUser(null)
+        setIsTemporaryPlayer(false)
       }
     }
   }, [user])
@@ -793,37 +786,27 @@ export default function Home() {
     window.open(`/posts/${postId}`, '_blank')
   }, [handlePostDetailModalClose])
 
-  // 检查Player状态 - 仅对正式用户检查
   useEffect(() => {
-    if (user && playerExists === false && !isTemporaryPlayer) {
-      // PlayerExists状态由UserContext管理，这里直接显示角色创建弹窗
-      console.log('显示角色创建弹窗:', { user: !!user, playerExists, isTemporaryPlayer })
-      setShowCharacterCreation(true)
-    } else if (isTemporaryPlayer) {
-      // 临时玩家直接设置为已有玩家，不需要创建角色
-      setPlayerExists(true)
-      setShowCharacterCreation(false)
-    } else if (user && playerExists === true) {
-      // 用户已有角色，确保关闭弹窗
-      setShowCharacterCreation(false)
+    // 只有在非登录状态下，才考虑临时玩家逻辑
+    if (user) {
+      setIsTemporaryPlayer(false)
+      if (playerExists === false) {
+        setShowCharacterCreation(true)
+      } else if (playerExists === true) {
+        setShowCharacterCreation(false)
+      }
+    } else {
+      // 未登录时的逻辑
+      const tempPlayerData = getTempPlayerGameData()
+      if (tempPlayerData) {
+        setIsTemporaryPlayer(true)
+        setPlayerExists(true) // 临时玩家不需要创建角色
+        setShowCharacterCreation(false)
+      }
     }
-  }, [user, playerExists, isTemporaryPlayer, setPlayerExists])
+  }, [user, playerExists, setPlayerExists])
 
-  // 额外的用户登录后状态检查 - 确保弹窗在登录后立即显示
-  useEffect(() => {
-    if (user && !isTemporaryPlayer) {
-      // 用户登录且不是临时用户，检查是否需要显示角色创建弹窗
-      // 添加小延迟确保playerExists状态已更新
-      const timer = setTimeout(() => {
-        if (playerExists === false) {
-          console.log('用户登录后检查角色状态，需要创建角色')
-          setShowCharacterCreation(true)
-        }
-      }, 100)
-
-      return () => clearTimeout(timer)
-    }
-  }, [user, isTemporaryPlayer, playerExists])
+  // 移除多余的延时检查，逻辑已在上方的 useEffect 中处理
 
   // 关闭工位信息弹窗
   const handleWorkstationInfoModalClose = useCallback(() => {
@@ -1090,9 +1073,20 @@ export default function Home() {
                 <button
                   onClick={() => {
                     setShowAuthPrompt(false)
+                    setAuthModalMode('login')
                     setShowAuthModal(true)
                   }}
-                  className="bg-gradient-to-r from-retro-purple to-retro-pink hover:from-retro-purple/90 hover:to-retro-pink/90 text-white font-bold py-2 px-6 rounded-lg  shadow-lg hover:shadow-purple-500/25 transform hover:scale-[1.02] active:scale-[0.98]"
+                  className="bg-retro-bg-dark border border-retro-border hover:bg-retro-border/30 text-white font-medium py-2 px-4 rounded-lg transition-all"
+                >
+                  已有账号登录
+                </button>
+                <button
+                  onClick={() => {
+                    setShowAuthPrompt(false)
+                    setAuthModalMode('register')
+                    setShowAuthModal(true)
+                  }}
+                  className="bg-gradient-to-r from-retro-purple to-retro-pink hover:from-retro-purple/90 hover:to-retro-pink/90 text-white font-bold py-2 px-6 rounded-lg shadow-lg hover:shadow-purple-500/25 transform hover:scale-[1.02] active:scale-[0.98]"
                 >
                   立即注册
                 </button>
@@ -1135,6 +1129,7 @@ export default function Home() {
         <AuthModal
           isOpen={showAuthModal}
           onClose={() => setShowAuthModal(false)}
+          initialMode={authModalMode}
         />
       )}
       {/* 工位状态更新弹窗 */}

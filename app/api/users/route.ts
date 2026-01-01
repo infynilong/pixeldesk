@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { verifyAuthFromRequest } from '@/lib/serverAuth'
 import { getCharacterImageUrl } from '@/lib/characterUtils'
 
 export async function GET(request: NextRequest) {
@@ -39,7 +40,18 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    // 强制进行身份验证，防止匿名创建/覆盖用户
+    const authResult = await verifyAuthFromRequest(request)
+    if (!authResult.success || !authResult.user) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+    }
+
     const { id, name, email, avatar, points } = await request.json()
+
+    // 只能管理自己的账户信息
+    if (id !== authResult.user.id) {
+      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 })
+    }
 
     if (!id || !name) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -91,7 +103,17 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
+    const authResult = await verifyAuthFromRequest(request)
+    if (!authResult.success || !authResult.user) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+    }
+
     const { userId, points } = await request.json()
+
+    // 只能管理自己的积分
+    if (userId !== authResult.user.id) {
+      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 })
+    }
 
     console.log('🔴 [API /api/users PUT] 收到请求:', { userId, points })
 

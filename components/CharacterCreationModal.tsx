@@ -92,7 +92,7 @@ export default function CharacterCreationModal({ isOpen, userName, onComplete, o
             <span className="text-3xl">🎮</span>
           </div>
           <h2 className="text-white text-2xl font-bold mb-2">创建你的游戏角色</h2>
-          <p className="text-retro-textMuted text-sm">你的角色名称将是：<span className="text-retro-purple font-semibold">{userName}</span><br/>请选择你的角色外观</p>
+          <p className="text-retro-textMuted text-sm">你的角色名称将是：<span className="text-retro-purple font-semibold">{userName}</span><br />请选择你的角色外观</p>
         </div>
 
         <div className="space-y-6">
@@ -117,21 +117,32 @@ export default function CharacterCreationModal({ isOpen, userName, onComplete, o
                     key={character.id}
                     onClick={() => setSelectedCharacter(character.name)}
                     className={`
-                      relative aspect-square rounded-lg border-2 cursor-pointer overflow-hidden
+                      relative aspect-square rounded-xl border-2 cursor-pointer transition-all duration-300 group
                       ${selectedCharacter === character.name
-                        ? 'border-retro-purple bg-retro-purple/20 shadow-lg shadow-retro-purple/30'
-                        : 'border-retro-border/50 bg-retro-bg-dark/30 hover:border-retro-purple/50 hover:bg-retro-purple/10'
+                        ? 'border-retro-purple bg-retro-purple/30 shadow-[0_0_20px_rgba(168,85,247,0.4)] scale-105 z-10'
+                        : 'border-retro-border/30 bg-gray-800/40 hover:border-retro-purple/50 hover:bg-retro-purple/10 hover:scale-102'
                       }
                     `}
                   >
-                    <img
-                      src={character.imageUrl}
-                      alt={character.displayName}
-                      className="w-full h-full object-contain pixelated"
-                      style={{
-                        imageRendering: 'pixelated'
-                      }}
-                    />
+                    {/* 选中时的对勾效果 */}
+                    {selectedCharacter === character.name && (
+                      <div className="absolute -top-2 -right-2 w-7 h-7 bg-retro-purple rounded-full flex items-center justify-center border-2 border-white shadow-lg z-20 animate-bounce-subtle">
+                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                    )}
+
+                    <div className="absolute inset-0 flex items-center justify-center p-2">
+                      <img
+                        src={character.imageUrl}
+                        alt={character.displayName}
+                        className={`w-full h-full object-contain pixelated transition-transform ${selectedCharacter === character.name ? 'scale-110' : 'group-hover:scale-110'}`}
+                        style={{
+                          imageRendering: 'pixelated'
+                        }}
+                      />
+                    </div>
 
                     {/* 显示名称提示 */}
                     <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-xs py-1 px-2 text-center truncate">

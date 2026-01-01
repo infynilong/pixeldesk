@@ -131,6 +131,7 @@ export async function GET(request: NextRequest) {
       success: true,
       data: shopCharacters,
       userPoints: user?.points || 0,
+      userId: user?.id || null,
       isAuthenticated: !!user
     })
   } catch (error) {

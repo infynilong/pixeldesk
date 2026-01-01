@@ -123,17 +123,22 @@ export function UserProvider({ children }: { children: ReactNode }) {
       if (response.ok && data.success) {
         // Registration successful, user is automatically logged in
         setUser(data.data)
-        
+
         // 处理临时玩家迁移
         const migrationResult = migrateTempPlayerToUser(data.data.id)
         if (migrationResult.migrationSuccess) {
           // 临时玩家数据迁移成功
         }
-        
+
         // Clear any existing player data from localStorage for new user
         clearPlayerFromLocalStorage()
         clearTempPlayer() // 清理临时玩家数据
-        
+
+        // Initialize player sync after successful registration to check for player existence
+        // For new users, this will set playerExists to false, triggering character creation modal
+        const playerSyncResult = await initializePlayerSync()
+        setPlayerExists(playerSyncResult.hasPlayer)
+
         return { success: true }
       } else {
         return { success: false, error: data.error || 'Registration failed' }
@@ -167,7 +172,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         method: 'GET',
         credentials: 'include', // Include cookies
       })
-      
+
       if (response.ok) {
         const data = await response.json()
         if (data.success && data.data) {

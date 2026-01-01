@@ -9,7 +9,7 @@ datasource db {
 
 model User {
   id                       String                    @id @default(cuid())
-  points                   Int                       @default(50)
+  points                   Int                       @default(100)
   createdAt                DateTime                  @default(now())
   updatedAt                DateTime                  @updatedAt
   avatar                   String?

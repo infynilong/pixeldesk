@@ -31,12 +31,12 @@ const TEMP_PLAYER_EXPIRY = 7 * 24 * 60 * 60 * 1000 // 7天过期
  */
 export function isFirstTimeVisitor(): boolean {
   if (typeof window === 'undefined') return false
-  
+
   try {
     // 检查localStorage和sessionStorage
     const hasVisited = localStorage.getItem(FIRST_VISIT_KEY)
     const hasTempPlayer = localStorage.getItem(TEMP_PLAYER_KEY)
-    
+
     return !hasVisited && !hasTempPlayer
   } catch (error) {
     console.warn('Failed to check first visit status:', error)
@@ -49,7 +49,7 @@ export function isFirstTimeVisitor(): boolean {
  */
 export function markAsVisited(): void {
   if (typeof window === 'undefined') return
-  
+
   try {
     localStorage.setItem(FIRST_VISIT_KEY, 'true')
   } catch (error) {
@@ -63,11 +63,11 @@ export function markAsVisited(): void {
 function generateTempUsername(): string {
   const adjectives = ['勇敢的', '聪明的', '快乐的', '神秘的', '优雅的', '活跃的', '冷静的', '热情的']
   const nouns = ['访客', '玩家', '探索者', '新手', '旅行者', '冒险家', '学者', '工匠']
-  
+
   const adjective = adjectives[Math.floor(Math.random() * adjectives.length)]
   const noun = nouns[Math.floor(Math.random() * nouns.length)]
   const number = Math.floor(Math.random() * 999) + 1
-  
+
   return `${adjective}${noun}${number}`
 }
 
@@ -97,7 +97,7 @@ export async function createTempPlayer(): Promise<TempPlayerData> {
       id: tempId,
       username: generateTempUsername(),
       character: await generateRandomCharacter(),
-      points: 50,
+      points: 100,
       isTemporary: true,
       createdAt: now,
       lastActiveAt: now
@@ -123,7 +123,7 @@ export async function createTempPlayer(): Promise<TempPlayerData> {
  */
 export function saveTempPlayer(data: TempPlayerData): void {
   if (typeof window === 'undefined') return
-  
+
   try {
     data.user.lastActiveAt = new Date().toISOString()
     localStorage.setItem(TEMP_PLAYER_KEY, JSON.stringify(data))
@@ -137,23 +137,23 @@ export function saveTempPlayer(data: TempPlayerData): void {
  */
 export function getTempPlayer(): TempPlayerData | null {
   if (typeof window === 'undefined') return null
-  
+
   try {
     const data = localStorage.getItem(TEMP_PLAYER_KEY)
     if (!data) return null
-    
+
     const tempPlayer: TempPlayerData = JSON.parse(data)
-    
+
     // 检查是否过期
     const createdAt = new Date(tempPlayer.user.createdAt).getTime()
     const now = Date.now()
-    
+
     if (now - createdAt > TEMP_PLAYER_EXPIRY) {
       console.log('🕒 临时玩家已过期，清理中...')
       clearTempPlayer()
       return null
     }
-    
+
     return tempPlayer
   } catch (error) {
     console.warn('Failed to get temp player data:', error)
@@ -166,11 +166,11 @@ export function getTempPlayer(): TempPlayerData | null {
  */
 export function updateTempPlayer(updates: Partial<TempPlayer>): boolean {
   if (typeof window === 'undefined') return false
-  
+
   try {
     const currentData = getTempPlayer()
     if (!currentData) return false
-    
+
     const updatedData: TempPlayerData = {
       ...currentData,
       user: {
@@ -179,7 +179,7 @@ export function updateTempPlayer(updates: Partial<TempPlayer>): boolean {
         lastActiveAt: new Date().toISOString()
       }
     }
-    
+
     saveTempPlayer(updatedData)
     return true
   } catch (error) {
@@ -193,7 +193,7 @@ export function updateTempPlayer(updates: Partial<TempPlayer>): boolean {
  */
 export function clearTempPlayer(): void {
   if (typeof window === 'undefined') return
-  
+
   try {
     localStorage.removeItem(TEMP_PLAYER_KEY)
     console.log('🧹 临时玩家数据已清理')
@@ -215,7 +215,7 @@ export function hasTempPlayer(): boolean {
 export function getTempPlayerGameData() {
   const tempPlayer = getTempPlayer()
   if (!tempPlayer) return null
-  
+
   return {
     id: tempPlayer.user.id,
     username: tempPlayer.user.username,
@@ -232,16 +232,16 @@ export function getTempPlayerGameData() {
 /**
  * 迁移临时玩家到正式用户（注册后调用）
  */
-export function migrateTempPlayerToUser(userId: string): { 
+export function migrateTempPlayerToUser(userId: string): {
   tempPlayerData: TempPlayerData | null
-  migrationSuccess: boolean 
+  migrationSuccess: boolean
 } {
   const tempPlayerData = getTempPlayer()
-  
+
   if (!tempPlayerData) {
     return { tempPlayerData: null, migrationSuccess: false }
   }
-  
+
   try {
     // 保存临时玩家的一些游戏状态，以便可能的数据迁移
     const migrationData = {
@@ -250,15 +250,15 @@ export function migrateTempPlayerToUser(userId: string): {
       tempCharacter: tempPlayerData.user.character,
       tempGameState: tempPlayerData.gameState
     }
-    
+
     // 可以将这些数据传递给新用户的初始化
     console.log('📊 临时玩家迁移数据:', migrationData)
-    
+
     // 清理临时玩家数据
     clearTempPlayer()
-    
+
     console.log('✅ 临时玩家已成功迁移到正式用户:', userId)
-    
+
     return { tempPlayerData, migrationSuccess: true }
   } catch (error) {
     console.error('❌ 临时玩家迁移失败:', error)
@@ -278,7 +278,7 @@ export function requiresAuthentication(action: string): boolean {
     'social_features',
     'premium_features'
   ]
-  
+
   return restrictedActions.includes(action)
 }
 
@@ -294,6 +294,6 @@ export function getAuthPromptMessage(action: string): string {
     premium_features: '高级功能需要注册账号才能解锁',
     default: '这个功能需要注册账号才能使用，注册后即可享受完整游戏体验！'
   }
-  
+
   return messages[action] || messages.default
 }

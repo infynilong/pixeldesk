@@ -330,25 +330,30 @@ export class Start extends Phaser.Scene {
       this.keyboardInputEnabled = true // 默认启用
       // 简化键盘输入控制已初始化
 
-      // 获取用户数据（从场景参数或本地存储）
+      // 获取用户数据（从场景参数获取，React会通过参数传进来）
       const sceneData = this.scene.settings.data || {}
-      this.currentUser = sceneData.userData || this.getCurrentUserFromStorage()
+      this.currentUser = sceneData.userData
 
       if (!this.currentUser) {
-        // 在新的认证系统下，如果没有用户数据，创建默认临时数据
-        // React层面已经处理了认证和角色创建
-        // 没有找到用户数据，使用默认设置
-        this.currentUser = {
-          id: 'temp_user',
-          username: 'Guest',
-          character: 'hangli',
-          points: 50,
-          gold: 50
+        // 如果没有从React传过来，尝试从本地缓存获取（仅作为备选）
+        // 这里的逻辑应该由 React 层面统一调度
+        const cachedUser = this.getCurrentUserFromStorage()
+        if (cachedUser) {
+          this.currentUser = cachedUser
+        } else {
+          // 没有找到用户数据，使用默认设置
+          this.currentUser = {
+            id: 'temp_user',
+            username: 'Guest',
+            character: 'hangli',
+            points: 100,
+            gold: 100
+          }
         }
       }
 
-      // 同步用户数据到数据库
-      this.syncUserToDatabase()
+      // 注意：不再在Phaser内部主动调用 syncUserToDatabase()
+      // 用户数据的持久化应由 app/api/player 等后台接口统一处理，或由 React 层面触发同步
 
       // 暴露全局方法给React同步最新的用户数据
       if (typeof window !== 'undefined') {

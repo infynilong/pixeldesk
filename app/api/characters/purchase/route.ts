@@ -132,11 +132,22 @@ export async function POST(request: NextRequest) {
         }
       })
 
+      // 记录积分结算历史
+      await tx.pointsHistory.create({
+        data: {
+          userId: user.id,
+          amount: -character.price,
+          reason: `购买角色形象: ${character.displayName}`,
+          type: 'purchase',
+          balance: updatedUser.points
+        }
+      })
+
       // 如果是用户生成的角色，给创建者分成积分
       let creatorEarned = 0
       if (character.isUserGenerated && character.creatorId && character.price > 0) {
         // 给创建者100%的收入
-        await tx.user.update({
+        const updatedCreator = await tx.user.update({
           where: { id: character.creatorId },
           data: {
             points: {
@@ -144,6 +155,18 @@ export async function POST(request: NextRequest) {
             }
           }
         })
+
+        // 记录创作者的收益历史
+        await tx.pointsHistory.create({
+          data: {
+            userId: character.creatorId!,
+            amount: character.price,
+            reason: `出售角色形象收益: ${character.displayName}`,
+            type: 'sale_earning',
+            balance: updatedCreator.points
+          }
+        })
+
         creatorEarned = character.price
 
         // 更新角色销量

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import LoginForm from './LoginForm'
 import RegisterForm from './RegisterForm'
 
@@ -12,6 +12,13 @@ interface AuthModalProps {
 
 export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: AuthModalProps) {
   const [mode, setMode] = useState<'login' | 'register'>(initialMode)
+
+  // 核心修复：当模态框打开时，强制同步到期望的模式（登录或注册）
+  useEffect(() => {
+    if (isOpen) {
+      setMode(initialMode)
+    }
+  }, [isOpen, initialMode])
 
   if (!isOpen) return null
 
@@ -47,7 +54,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
         >
           ×
         </button>
-        
+
         {mode === 'login' ? (
           <LoginForm
             onSuccess={handleLoginSuccess}

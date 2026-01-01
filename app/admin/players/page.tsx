@@ -35,6 +35,9 @@ export default function PlayersPage() {
   const [search, setSearch] = useState('')
   const [sortBy, setSortBy] = useState('createdAt')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
     fetchPlayers()
@@ -76,6 +79,33 @@ export default function PlayersPage() {
     } else {
       setSortBy(field)
       setSortOrder('desc')
+    }
+  }
+
+  const confirmDelete = (id: string) => {
+    setDeletingId(id)
+    setShowDeleteConfirm(true)
+  }
+
+  const handleDelete = async () => {
+    if (!deletingId) return
+    setIsDeleting(true)
+    try {
+      const response = await fetch(`/api/admin/players/${deletingId}`, {
+        method: 'DELETE',
+      })
+      if (response.ok) {
+        setPlayers(players.filter(p => p.id !== deletingId))
+        setShowDeleteConfirm(false)
+      } else {
+        alert('删除失败')
+      }
+    } catch (error) {
+      console.error('Error deleting player:', error)
+      alert('删除出错')
+    } finally {
+      setIsDeleting(false)
+      setDeletingId(null)
     }
   }
 
@@ -216,22 +246,29 @@ export default function PlayersPage() {
                   </td>
                   <td className="px-6 py-4">
                     <span
-                      className={`text-xs px-2 py-1 rounded ${
-                        player.isActive
+                      className={`text-xs px-2 py-1 rounded ${player.isActive
                           ? 'bg-green-600/20 text-green-400'
                           : 'bg-red-600/20 text-red-400'
-                      }`}
+                        }`}
                     >
                       {player.isActive ? '活跃' : '禁用'}
                     </span>
                   </td>
                   <td className="px-6 py-4">
-                    <button
-                      onClick={() => router.push(`/admin/players/${player.id}`)}
-                      className="text-purple-400 hover:text-purple-300 text-sm"
-                    >
-                      查看详情
-                    </button>
+                    <div className="flex items-center gap-4">
+                      <button
+                        onClick={() => router.push(`/admin/players/${player.id}`)}
+                        className="text-purple-400 hover:text-purple-300 text-sm font-medium transition-colors"
+                      >
+                        详情
+                      </button>
+                      <button
+                        onClick={() => confirmDelete(player.id)}
+                        className="text-red-400 hover:text-red-300 text-sm font-medium transition-colors"
+                      >
+                        删除
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -266,6 +303,38 @@ export default function PlayersPage() {
             >
               下一页
             </button>
+          </div>
+        </div>
+      )}
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-gray-900 border border-gray-800 rounded-2xl max-w-md w-full p-6 shadow-2xl">
+            <h3 className="text-xl font-bold text-white mb-4">确认删除玩家？</h3>
+            <p className="text-gray-400 mb-6">
+              此操作将永久删除该玩家及其所有相关数据。此操作无法撤销。
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-4 py-2 text-gray-400 hover:text-white transition-colors"
+                disabled={isDeleting}
+              >
+                取消
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-all flex items-center gap-2"
+              >
+                {isDeleting ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                    删除中...
+                  </>
+                ) : '确认删除'}
+              </button>
+            </div>
           </div>
         </div>
       )}

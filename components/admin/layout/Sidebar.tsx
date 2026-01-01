@@ -16,6 +16,11 @@ const menuItems = [
     href: '/admin/players',
   },
   {
+    title: '用户管理',
+    icon: '👤',
+    href: '/admin/users',
+  },
+  {
     title: '角色形象',
     icon: '🎭',
     href: '/admin/characters',
@@ -76,8 +81,8 @@ export function Sidebar() {
               key={item.href}
               href={item.href}
               className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${isActive
-                  ? 'bg-purple-600 text-white'
-                  : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                ? 'bg-purple-600 text-white'
+                : 'text-gray-300 hover:bg-gray-800 hover:text-white'
                 }`}
             >
               <span className="text-xl">{item.icon}</span>
