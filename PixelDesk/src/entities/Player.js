@@ -82,9 +82,9 @@ export class Player extends Phaser.GameObjects.Container {
         if (this.isOtherPlayer) {
             this.initCharacterFloatAnimation();
         }
-        // 修改碰撞体大小和偏移量，使其位于玩家脚部（最自然的碰撞位置）
-        this.body.setSize(30, 20);
-        this.body.setOffset(-15, 42);
+        // 修改碰撞体大小和偏移量，使其与玩家精灵重叠 (恢复到正常 commit 的设置)
+        this.body.setSize(40, 60);
+        this.body.setOffset(-20, -12);
 
         // 设置默认帧
         this.setDirectionFrame(this.currentDirection);

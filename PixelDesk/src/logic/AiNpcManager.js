@@ -43,19 +43,23 @@ export class AiNpcManager {
      * 初始化管理器
      */
     async init() {
-        // 优先使用场景已经创建好的 group，确保碰撞逻辑一致
+        // 优先复用场景中已经定义好的物理组
         this.npcGroup = this.scene.npcGroup || this.scene.physics.add.group({ immovable: true });
 
-        // 设置物理阻挡与交互触发 (合并 Collider 和 Interaction)
+        // 设置全域物理阻挡与交互 (物理实体感 + 对话触发)
         if (this.scene.player) {
-            this.scene.physics.add.collider(this.scene.player, this.npcGroup, (p, npc) => {
+            // 实体碰撞阻挡
+            this.scene.physics.add.collider(this.scene.player, this.npcGroup);
+
+            // 交互触发回调
+            this.scene.physics.add.overlap(this.scene.player, this.npcGroup, (p, npc) => {
                 if (typeof this.scene.handlePlayerCollision === 'function') {
                     this.scene.handlePlayerCollision(p, npc);
                 }
             });
         }
 
-        // 确保 NPC 进入其他玩家 group 以触发对话 overlap (Start.js 中的逻辑)
+        // 确保 NPC 进入其他玩家 group (为了兼容 Start.js 中的其他逻辑)
         if (!this.scene.otherPlayersGroup) {
             this.scene.otherPlayersGroup = this.scene.physics.add.group();
         }
@@ -212,9 +216,9 @@ export class AiNpcManager {
 
         if (npcCharacter.body) {
             // NPC 的物理设定：Immovable 确保玩家撞不动 NPC
-            // 采用与玩家一致的“脚部碰撞”模式
-            npcCharacter.body.setSize(30, 20);
-            npcCharacter.body.setOffset(-15, 42);
+            // 恢复为与玩家一致的大碰撞箱 (40x60)，确保碰撞感扎实
+            npcCharacter.body.setSize(40, 60);
+            npcCharacter.body.setOffset(-20, -12);
             npcCharacter.body.setImmovable(true);
             npcCharacter.body.moves = true;
             npcCharacter.body.setCollideWorldBounds(true);
