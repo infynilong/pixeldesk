@@ -531,3 +531,16 @@ model AiUsage {
   @@unique([userId, date]) // 确保每人每天只有一条记录
   @@map("ai_usage")
 }
+
+// AI NPC 聊天历史记录
+model AiChatHistory {
+  id        String   @id @default(cuid())
+  userId    String   // 用户ID
+  npcId     String   // NPC ID
+  role      String   // 'user' 或 'assistant'
+  content   String   @db.Text // 消息内容
+  createdAt DateTime @default(now())
+
+  @@index([userId, npcId, createdAt]) // 复合索引，用于快速查询特定用户和NPC的对话
+  @@map("ai_chat_history")
+}

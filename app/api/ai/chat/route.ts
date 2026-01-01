@@ -26,11 +26,17 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: '消息或NPC ID缺失' }, { status: 400 })
         }
 
-        // 3. 准备数据：NPC 信息、全局 AI 配置、系统实时上下文
-        const [npc, aiConfig, systemContext] = await Promise.all([
+        // 3. 准备数据：NPC 信息、全局 AI 配置、系统实时上下文、聊天历史
+        const [npc, aiConfig, systemContext, chatHistory] = await Promise.all([
             prisma.aiNpc.findUnique({ where: { id: npcId } }),
             prisma.aiGlobalConfig.findFirst({ where: { isActive: true } }),
-            getSystemContext()
+            getSystemContext(),
+            // 加载最近100条聊天历史
+            prisma.aiChatHistory.findMany({
+                where: { userId, npcId },
+                orderBy: { createdAt: 'desc' },
+                take: 100
+            })
         ])
 
         if (!npc) {
@@ -93,7 +99,20 @@ ${systemContext?.latestBuzz}
 5. 请用中文回答。
 `.trim();
 
-        // 6. 调用 AI
+        // 6. 构建消息历史 + 当前消息
+        // 历史消息按时间倒序，需要反转为正序
+        const historicalMessages = chatHistory.reverse().map(h => ({
+            role: h.role as 'user' | 'assistant',
+            content: h.content
+        }))
+
+        console.log(`📚 [${npc.name}] 加载了 ${historicalMessages.length} 条历史消息`)
+        if (historicalMessages.length > 0) {
+            console.log(`📚 [${npc.name}] 最早的历史: ${historicalMessages[0].content.substring(0, 50)}...`)
+            console.log(`📚 [${npc.name}] 最近的历史: ${historicalMessages[historicalMessages.length - 1].content.substring(0, 50)}...`)
+        }
+
+        // 7. 调用 AI
         try {
             const finalModelName = aiConfig.modelName || (
                 aiConfig.provider === 'deepseek' ? 'deepseek-chat' :
@@ -101,11 +120,16 @@ ${systemContext?.latestBuzz}
                         'gemini-1.5-flash'
             );
 
+            const messagesToSend = [
+                { role: 'system', content: systemPrompt },
+                ...historicalMessages,
+                { role: 'user', content: message }
+            ]
+
+            console.log(`🤖 [${npc.name}] 发送给AI: 系统提示词(1条) + 历史消息(${historicalMessages.length}条) + 新消息(1条) = 共${messagesToSend.length}条`)
+
             const aiResponse = await callAiProvider(
-                [
-                    { role: 'system', content: systemPrompt },
-                    { role: 'user', content: message }
-                ],
+                messagesToSend,
                 {
                     provider: aiConfig.provider,
                     apiKey: aiConfig.apiKey,
@@ -115,7 +139,7 @@ ${systemContext?.latestBuzz}
                 }
             )
 
-            // 7. 更新 Token 使用记录
+            // 8. 更新 Token 使用记录
             if (aiResponse.usage) {
                 await prisma.aiUsage.update({
                     where: { id: usage.id },
@@ -126,6 +150,24 @@ ${systemContext?.latestBuzz}
                     }
                 })
             }
+
+            // 9. 保存聊天历史（用户消息 + AI回复）
+            await prisma.aiChatHistory.createMany({
+                data: [
+                    {
+                        userId,
+                        npcId,
+                        role: 'user',
+                        content: message
+                    },
+                    {
+                        userId,
+                        npcId,
+                        role: 'assistant',
+                        content: aiResponse.reply
+                    }
+                ]
+            })
 
             return NextResponse.json({
                 success: true,

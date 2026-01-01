@@ -26,21 +26,82 @@ export default function AiChatModal({
     const [messages, setMessages] = useState<Message[]>([])
     const [input, setInput] = useState('')
     const [isLoading, setIsLoading] = useState(false)
+    const [isLoadingHistory, setIsLoadingHistory] = useState(false)
     const [usage, setUsage] = useState<{ current: number; limit: number; remaining: number } | null>(null)
     const [error, setError] = useState<string | null>(null)
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const inputRef = useRef<HTMLInputElement>(null)
+    const hasLoadedHistory = useRef(false)
 
-    // 初始化时添加问候语
+    // 加载聊天历史
     useEffect(() => {
-        if (isOpen && messages.length === 0 && greeting) {
-            setMessages([{
-                role: 'assistant',
-                content: greeting,
-                timestamp: new Date()
-            }])
+        console.log(`[聊天窗口] isOpen=${isOpen}, npcId=${npcId}, npcName=${npcName}, hasLoadedHistory=${hasLoadedHistory.current}`)
+        const loadHistory = async () => {
+            if (!isOpen) {
+                console.log('[聊天窗口] 窗口未打开，跳过加载')
+                return
+            }
+            if (hasLoadedHistory.current) {
+                console.log('[聊天窗口] 已加载过历史，跳过')
+                return
+            }
+
+            setIsLoadingHistory(true)
+            try {
+                const response = await fetch(`/api/ai/chat/history?npcId=${npcId}`, {
+                    credentials: 'include'
+                })
+
+                if (response.ok) {
+                    const data = await response.json()
+                    console.log(`[${npcName}] 加载历史消息:`, data.messages?.length || 0, '条')
+                    if (data.success && data.messages.length > 0) {
+                        // 有历史消息，直接显示
+                        console.log(`[${npcName}] 显示历史对话，不显示问候语`)
+                        setMessages(data.messages.map((m: any) => ({
+                            role: m.role,
+                            content: m.content,
+                            timestamp: new Date(m.timestamp)
+                        })))
+                        hasLoadedHistory.current = true
+                    } else if (greeting) {
+                        // 没有历史消息，显示问候语
+                        console.log(`[${npcName}] 没有历史消息，显示问候语`)
+                        setMessages([{
+                            role: 'assistant',
+                            content: greeting,
+                            timestamp: new Date()
+                        }])
+                        hasLoadedHistory.current = true
+                    }
+                } else if (greeting) {
+                    console.error(`[${npcName}] 加载历史失败:`, response.status)
+                    // 加载失败，显示问候语
+                    setMessages([{
+                        role: 'assistant',
+                        content: greeting,
+                        timestamp: new Date()
+                    }])
+                    hasLoadedHistory.current = true
+                }
+            } catch (error) {
+                console.error('Failed to load chat history:', error)
+                // 加载失败，显示问候语
+                if (greeting) {
+                    setMessages([{
+                        role: 'assistant',
+                        content: greeting,
+                        timestamp: new Date()
+                    }])
+                }
+                hasLoadedHistory.current = true
+            } finally {
+                setIsLoadingHistory(false)
+            }
         }
-    }, [isOpen, greeting, messages.length])
+
+        loadHistory()
+    }, [isOpen, npcId, greeting])
 
     // 自动聚焦输入框
     useEffect(() => {
@@ -57,7 +118,8 @@ export default function AiChatModal({
     // 重置状态（关闭时）
     useEffect(() => {
         if (!isOpen) {
-            // 保留消息历史，但重置错误状态
+            // 重置加载标志，下次打开时重新加载
+            hasLoadedHistory.current = false
             setError(null)
             setInput('')
             // 确保关闭时恢复键盘
@@ -197,7 +259,13 @@ export default function AiChatModal({
 
                 {/* Messages */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-[300px]">
-                    {messages.map((msg, idx) => (
+                    {isLoadingHistory ? (
+                        <div className="flex items-center justify-center h-full">
+                            <div className="text-gray-400 text-sm">加载聊天历史...</div>
+                        </div>
+                    ) : (
+                        <>
+                            {messages.map((msg, idx) => (
                         <div
                             key={idx}
                             className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
@@ -216,19 +284,21 @@ export default function AiChatModal({
                         </div>
                     ))}
 
-                    {isLoading && (
-                        <div className="flex justify-start">
-                            <div className="bg-gray-800 text-gray-100 rounded-2xl rounded-bl-md px-4 py-3">
-                                <div className="flex items-center gap-1">
-                                    <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
-                                    <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
-                                    <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                            {isLoading && (
+                                <div className="flex justify-start">
+                                    <div className="bg-gray-800 text-gray-100 rounded-2xl rounded-bl-md px-4 py-3">
+                                        <div className="flex items-center gap-1">
+                                            <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                                            <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                                            <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
-                    )}
+                            )}
 
-                    <div ref={messagesEndRef} />
+                            <div ref={messagesEndRef} />
+                        </>
+                    )}
                 </div>
 
                 {/* Error */}

@@ -26,33 +26,80 @@ export default function AiChatTab({
     const [messages, setMessages] = useState<Message[]>([])
     const [input, setInput] = useState('')
     const [isLoading, setIsLoading] = useState(false)
+    const [isLoadingHistory, setIsLoadingHistory] = useState(false)
     const [usage, setUsage] = useState<{ current: number; limit: number; remaining: number } | null>(null)
     const [error, setError] = useState<string | null>(null)
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const inputRef = useRef<HTMLInputElement>(null)
+    const hasLoadedHistory = useRef<Record<string, boolean>>({})
 
     const greeting = npcData?.currentStatus?.message || '你好！我是你的 AI 助手 Sarah，有什么可以帮你的吗？'
 
-    // 初始化时添加问候语 (只添加一次)
+    // 加载聊天历史（当 NPC 切换时）
     useEffect(() => {
-        if (messages.length === 0) {
-            setMessages([{
-                role: 'assistant',
-                content: greeting,
-                timestamp: new Date()
-            }])
-        }
-    }, [greeting])
+        const loadHistory = async () => {
+            if (!npcId || hasLoadedHistory.current[npcId]) {
+                return
+            }
 
-    // 如果切换了 NPC，重置消息 (虽然目前只有一个 Sarah)
-    useEffect(() => {
-        setMessages([{
-            role: 'assistant',
-            content: greeting,
-            timestamp: new Date()
-        }])
+            // 去掉前面的 npc_ 前缀，只拿原始 ID
+            const cleanNpcId = npcId.replace('npc_', '')
+
+            console.log(`[${npcName}] 开始加载聊天历史, npcId=${cleanNpcId}`)
+            setIsLoadingHistory(true)
+
+            try {
+                const response = await fetch(`/api/ai/chat/history?npcId=${cleanNpcId}`, {
+                    credentials: 'include'
+                })
+
+                if (response.ok) {
+                    const data = await response.json()
+                    console.log(`[${npcName}] 加载历史消息:`, data.messages?.length || 0, '条')
+
+                    if (data.success && data.messages.length > 0) {
+                        // 有历史消息，直接显示
+                        console.log(`[${npcName}] 显示历史对话，不显示问候语`)
+                        setMessages(data.messages.map((m: any) => ({
+                            role: m.role,
+                            content: m.content,
+                            timestamp: new Date(m.timestamp)
+                        })))
+                    } else {
+                        // 没有历史消息，显示问候语
+                        console.log(`[${npcName}] 没有历史消息，显示问候语`)
+                        setMessages([{
+                            role: 'assistant',
+                            content: greeting,
+                            timestamp: new Date()
+                        }])
+                    }
+                } else {
+                    console.error(`[${npcName}] 加载历史失败:`, response.status)
+                    // 加载失败，显示问候语
+                    setMessages([{
+                        role: 'assistant',
+                        content: greeting,
+                        timestamp: new Date()
+                    }])
+                }
+            } catch (error) {
+                console.error(`[${npcName}] 加载历史出错:`, error)
+                // 加载失败，显示问候语
+                setMessages([{
+                    role: 'assistant',
+                    content: greeting,
+                    timestamp: new Date()
+                }])
+            } finally {
+                setIsLoadingHistory(false)
+                hasLoadedHistory.current[npcId] = true
+            }
+        }
+
+        loadHistory()
         setError(null)
-    }, [npcId])
+    }, [npcId, npcName, greeting])
 
     // 组件卸载时确保恢复键盘
     useEffect(() => {
@@ -194,7 +241,13 @@ export default function AiChatTab({
 
             {/* Chat Area */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                {messages.map((msg, idx) => (
+                {isLoadingHistory ? (
+                    <div className="flex items-center justify-center h-full">
+                        <div className="text-gray-400 text-sm">正在加载聊天历史...</div>
+                    </div>
+                ) : (
+                    <>
+                        {messages.map((msg, idx) => (
                     <div
                         key={idx}
                         className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
@@ -215,19 +268,21 @@ export default function AiChatTab({
                     </div>
                 ))}
 
-                {isLoading && (
-                    <div className="flex justify-start">
-                        <div className="bg-gray-800/50 rounded-xl rounded-bl-none px-3 py-2 border border-gray-700/30">
-                            <div className="flex items-center gap-1">
-                                <span className="w-1.5 h-1.5 bg-cyan-500/50 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
-                                <span className="w-1.5 h-1.5 bg-cyan-500/50 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
-                                <span className="w-1.5 h-1.5 bg-cyan-500/50 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                        {isLoading && (
+                            <div className="flex justify-start">
+                                <div className="bg-gray-800/50 rounded-xl rounded-bl-none px-3 py-2 border border-gray-700/30">
+                                    <div className="flex items-center gap-1">
+                                        <span className="w-1.5 h-1.5 bg-cyan-500/50 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                                        <span className="w-1.5 h-1.5 bg-cyan-500/50 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                                        <span className="w-1.5 h-1.5 bg-cyan-500/50 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                    </div>
-                )}
+                        )}
 
-                <div ref={messagesEndRef} />
+                        <div ref={messagesEndRef} />
+                    </>
+                )}
             </div>
 
             {/* Error Message */}
