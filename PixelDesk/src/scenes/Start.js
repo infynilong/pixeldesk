@@ -2219,15 +2219,26 @@ export class Start extends Phaser.Scene {
       return
     }
 
-    // 创建 group 物理阻挡 (Collider) - 解决玩家与玩家之间的穿透问题
-    this.physics.add.collider(this.player, this.otherPlayersGroup);
+    // 创建 group 物理阻挡 (Collider) + 交互触发 (逻辑注入)
+    // 同时解决：1. 玩家与玩家/NPC 之间的穿透问题 2. 触发对话 Tab 的打开
+    this.physics.add.collider(
+      this.player,
+      this.otherPlayersGroup,
+      (player1, player2) => {
+        // 确保是其他角色触发了碰撞（包括其他玩家和 NPC）
+        if (player2.isOtherPlayer) {
+          this.handlePlayerCollision(player1, player2)
+        }
+      },
+      null,
+      this
+    )
 
-    // 创建 group 交互触发 (Overlap) - 触发对话窗口
+    // 锦上添花：保留 playerCharacterCollider 用于极少数重合情况的兜底（可选，但通常 Collider 里的回调已经足够）
     this.playerCharacterCollider = this.physics.add.overlap(
       this.player,
       this.otherPlayersGroup,
       (player1, player2) => {
-        // 确保是其他玩家触发了碰撞
         if (player2.isOtherPlayer) {
           this.handlePlayerCollision(player1, player2)
         }

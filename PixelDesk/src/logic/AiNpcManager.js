@@ -46,19 +46,6 @@ export class AiNpcManager {
         // 优先复用场景中已经定义好的物理组
         this.npcGroup = this.scene.npcGroup || this.scene.physics.add.group({ immovable: true });
 
-        // 设置全域物理阻挡与交互 (物理实体感 + 对话触发)
-        if (this.scene.player) {
-            // 实体碰撞阻挡
-            this.scene.physics.add.collider(this.scene.player, this.npcGroup);
-
-            // 交互触发回调
-            this.scene.physics.add.overlap(this.scene.player, this.npcGroup, (p, npc) => {
-                if (typeof this.scene.handlePlayerCollision === 'function') {
-                    this.scene.handlePlayerCollision(p, npc);
-                }
-            });
-        }
-
         // 确保 NPC 进入其他玩家 group (为了兼容 Start.js 中的其他逻辑)
         if (!this.scene.otherPlayersGroup) {
             this.scene.otherPlayersGroup = this.scene.physics.add.group();
@@ -229,11 +216,20 @@ export class AiNpcManager {
         if (npcCharacter.setDirectionFrame) npcCharacter.setDirectionFrame('down');
 
         // 同时加入这两个 Group：
-        // 1. npcGroup 用于物理碰撞限制（如撞墙）
-        // 2. otherPlayersGroup 用于触发对话 Interaction（兼容 Start.js 中的逻辑）
+        // 1. npcGroup 用于环境碰撞（如撞墙）
+        // 2. otherPlayersGroup 用于与主玩家的物理碰撞和对话交互
         if (this.npcGroup) this.npcGroup.add(npcCharacter);
+
         if (this.scene.otherPlayersGroup) {
             this.scene.otherPlayersGroup.add(npcCharacter);
+
+            // 再次强化物理属性：确保在加入 Group 后，其 Immovable 状态仍为 true
+            // 防止玩家推动 NPC
+            if (npcCharacter.body) {
+                npcCharacter.body.setImmovable(true);
+            }
+
+            // 触发 Start.js 里的检测器创建
             if (typeof this.scene.ensurePlayerCharacterOverlap === 'function') {
                 this.scene.ensurePlayerCharacterOverlap();
             }
