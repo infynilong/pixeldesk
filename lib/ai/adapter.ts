@@ -12,11 +12,20 @@ export interface AiOptions {
     baseUrl?: string;
 }
 
+export interface AiResponse {
+    reply: string;
+    usage: {
+        promptTokens: number;
+        completionTokens: number;
+        totalTokens: number;
+    };
+}
+
 /**
  * AI 请求适配器
  * 支持多供应商扩展
  */
-export async function callAiProvider(messages: ChatMessage[], options: AiOptions) {
+export async function callAiProvider(messages: ChatMessage[], options: AiOptions): Promise<AiResponse> {
     const { provider, apiKey, modelName, temperature, baseUrl } = options;
 
     switch (provider.toLowerCase()) {
@@ -40,9 +49,7 @@ export async function callAiProvider(messages: ChatMessage[], options: AiOptions
     }
 }
 
-async function callGemini(messages: ChatMessage[], apiKey: string, model: string, temp = 0.7) {
-    // 转换格式为 Gemini 格式
-    // system -> 转为 contents 的第一个 message 或专用 systemInstruction (需 API 支持)
+async function callGemini(messages: ChatMessage[], apiKey: string, model: string, temp = 0.7): Promise<AiResponse> {
     const systemMsg = messages.find(m => m.role === 'system')?.content || '';
     const history = messages
         .filter(m => m.role !== 'system')
@@ -72,10 +79,17 @@ async function callGemini(messages: ChatMessage[], apiKey: string, model: string
     }
 
     const data = await response.json();
-    return data.candidates?.[0]?.content?.parts?.[0]?.text || 'AI 没有返回内容';
+    return {
+        reply: data.candidates?.[0]?.content?.parts?.[0]?.text || 'AI 没有返回内容',
+        usage: {
+            promptTokens: data.usageMetadata?.promptTokenCount || 0,
+            completionTokens: data.usageMetadata?.candidatesTokenCount || 0,
+            totalTokens: data.usageMetadata?.totalTokenCount || 0
+        }
+    };
 }
 
-async function callOpenAiCompatible(messages: ChatMessage[], apiKey: string, model: string, temp = 0.7, baseUrl = 'https://api.openai.com/v1') {
+async function callOpenAiCompatible(messages: ChatMessage[], apiKey: string, model: string, temp = 0.7, baseUrl = 'https://api.openai.com/v1'): Promise<AiResponse> {
     const url = `${baseUrl.replace(/\/$/, '')}/chat/completions`;
 
     const response = await fetch(url, {
@@ -97,5 +111,12 @@ async function callOpenAiCompatible(messages: ChatMessage[], apiKey: string, mod
     }
 
     const data = await response.json();
-    return data.choices?.[0]?.message?.content || 'AI 没有返回内容';
+    return {
+        reply: data.choices?.[0]?.message?.content || 'AI 没有返回内容',
+        usage: {
+            promptTokens: data.usage?.prompt_tokens || 0,
+            completionTokens: data.usage?.completion_tokens || 0,
+            totalTokens: data.usage?.total_tokens || 0
+        }
+    };
 }

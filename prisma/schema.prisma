@@ -509,6 +509,7 @@ model AiGlobalConfig {
   baseUrl       String?  // API 代理或供应商的基础 URL
   temperature   Float    @default(0.7)
   maxTokens     Int      @default(1000)
+  dailyLimit    Int      @default(20)    // 每个用户每日最大对话次数
   isActive      Boolean  @default(true)
   updatedAt     DateTime @updatedAt
 
@@ -517,12 +518,15 @@ model AiGlobalConfig {
 
 // AI 使用记录 (每日限制)
 model AiUsage {
-  id          String   @id @default(cuid())
-  userId      String
-  count       Int      @default(0) // 当日已对话次数
-  date        String   // 日期 YYYY-MM-DD
-  updatedAt   DateTime @updatedAt
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id               String   @id @default(cuid())
+  userId           String
+  count            Int      @default(0) // 当日已对话次数
+  totalTokens      Int      @default(0) // 总 Token 消耗
+  promptTokens     Int      @default(0) // 输入 Token
+  completionTokens Int      @default(0) // 输出 Token
+  date             String   // 日期 YYYY-MM-DD
+  updatedAt        DateTime @updatedAt
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, date]) // 确保每人每天只有一条记录
   @@map("ai_usage")

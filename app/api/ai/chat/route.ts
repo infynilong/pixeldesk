@@ -55,11 +55,18 @@ export async function POST(request: NextRequest) {
             create: { userId, date: today, count: 1 }
         })
 
-        if (usage.count > DAILY_LIMIT) {
+        const currentLimit = aiConfig?.dailyLimit || DAILY_LIMIT;
+
+        if (usage.count > currentLimit) {
             return NextResponse.json({
                 success: false,
                 reply: `[${npc.name}]: 对不起，我今天聊得太久了，头有点晕...咱们明天再聊吧！`,
-                error: 'Limit exceeded'
+                error: 'Limit exceeded',
+                usage: {
+                    current: usage.count,
+                    limit: currentLimit,
+                    remaining: 0
+                }
             }, { status: 429 })
         }
 
@@ -94,7 +101,7 @@ ${systemContext?.latestBuzz}
                         'gemini-1.5-flash'
             );
 
-            const reply = await callAiProvider(
+            const aiResponse = await callAiProvider(
                 [
                     { role: 'system', content: systemPrompt },
                     { role: 'user', content: message }
@@ -108,13 +115,25 @@ ${systemContext?.latestBuzz}
                 }
             )
 
+            // 7. 更新 Token 使用记录
+            if (aiResponse.usage) {
+                await prisma.aiUsage.update({
+                    where: { id: usage.id },
+                    data: {
+                        promptTokens: { increment: aiResponse.usage.promptTokens },
+                        completionTokens: { increment: aiResponse.usage.completionTokens },
+                        totalTokens: { increment: aiResponse.usage.totalTokens }
+                    }
+                })
+            }
+
             return NextResponse.json({
                 success: true,
-                reply: reply,
+                reply: aiResponse.reply,
                 usage: {
                     current: usage.count,
-                    limit: DAILY_LIMIT,
-                    remaining: Math.max(0, DAILY_LIMIT - usage.count)
+                    limit: currentLimit,
+                    remaining: Math.max(0, currentLimit - usage.count)
                 }
             })
         } catch (aiError: any) {

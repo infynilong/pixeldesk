@@ -8,7 +8,8 @@ export default function AiAdminPage() {
         apiKey: '',
         modelName: 'gemini-1.5-flash',
         baseUrl: '',
-        temperature: 0.7
+        temperature: 0.7,
+        dailyLimit: 20
     })
     const [npcs, setNpcs] = useState<any[]>([])
     const [status, setStatus] = useState('')
@@ -16,6 +17,7 @@ export default function AiAdminPage() {
     const [isTesting, setIsTesting] = useState(false)
     const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null)
     const [activeConfig, setActiveConfig] = useState<any>(null)
+    const [usageStats, setUsageStats] = useState<any>(null)
 
     useEffect(() => {
         fetchInitialData()
@@ -24,10 +26,11 @@ export default function AiAdminPage() {
     const fetchInitialData = async () => {
         setIsLoading(true)
         try {
-            // Fetch NPCs and Config in parallel
-            const [npcsRes, configRes] = await Promise.all([
+            // Fetch NPCs, Config, and Usage in parallel
+            const [npcsRes, configRes, usageRes] = await Promise.all([
                 fetch('/api/ai/npcs'),
-                fetch('/api/admin/ai/config') // We'll create this helper endpoint or check if it exists
+                fetch('/api/admin/ai/config'),
+                fetch('/api/admin/ai/usage')
             ])
 
             const npcsData = await npcsRes.json()
@@ -36,8 +39,23 @@ export default function AiAdminPage() {
             if (configRes.ok) {
                 const configData = await configRes.json()
                 if (configData.success && configData.data) {
-                    setConfig(configData.data)
-                    setActiveConfig(configData.data)
+                    const d = configData.data
+                    setConfig({
+                        provider: d.provider || 'gemini',
+                        apiKey: d.apiKey || '',
+                        modelName: d.modelName || '',
+                        baseUrl: d.baseUrl || '',
+                        temperature: d.temperature || 0.7,
+                        dailyLimit: d.dailyLimit ?? 20
+                    })
+                    setActiveConfig(d)
+                }
+            }
+
+            if (usageRes.ok) {
+                const usageData = await usageRes.json()
+                if (usageData.success) {
+                    setUsageStats(usageData)
                 }
             }
         } catch (e) {
@@ -247,6 +265,19 @@ export default function AiAdminPage() {
                             onChange={e => setConfig({ ...config, baseUrl: e.target.value })}
                         />
                     </div>
+
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-mono text-gray-500 uppercase">用户每日对话上限 (Daily Chat Limit)</label>
+                        <div className="flex items-center gap-3">
+                            <input
+                                type="number"
+                                className="w-32 bg-gray-950 border border-gray-800 rounded-xl p-3 text-sm text-yellow-500 font-bold focus:border-purple-500 outline-none"
+                                value={config.dailyLimit}
+                                onChange={e => setConfig({ ...config, dailyLimit: parseInt(e.target.value) || 0 })}
+                            />
+                            <span className="text-xs text-gray-400">次/人/天</span>
+                        </div>
+                    </div>
                 </div>
 
                 <div className="mt-8 flex flex-col sm:flex-row justify-end gap-4">
@@ -270,6 +301,49 @@ export default function AiAdminPage() {
                     </button>
                 </div>
             </section>
+
+            {/* Usage Stats Section */}
+            {usageStats && usageStats.summary && (
+                <section className="bg-gray-900/50 rounded-2xl border border-gray-800 p-6 shadow-2xl backdrop-blur-sm">
+                    <div className="flex items-center gap-3 mb-6">
+                        <div className="w-10 h-10 bg-cyan-600/20 rounded-xl flex items-center justify-center text-cyan-400 border border-cyan-500/30">
+                            📊
+                        </div>
+                        <h2 className="text-xl font-bold text-gray-100">Token 消耗量化报告 (Daily Tokens)</h2>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left font-mono text-xs">
+                            <thead className="bg-gray-950/50 text-gray-500 uppercase">
+                                <tr>
+                                    <th className="px-4 py-3 rounded-l-lg">日期 (Date)</th>
+                                    <th className="px-4 py-3">对话次数 (Hits)</th>
+                                    <th className="px-4 py-3">用户数 (Users)</th>
+                                    <th className="px-4 py-3">输入 (Prompt)</th>
+                                    <th className="px-4 py-3">输出 (Completion)</th>
+                                    <th className="px-4 py-3 rounded-r-lg">总计 (Total Tokens)</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-800">
+                                {usageStats.summary.map((day: any) => (
+                                    <tr key={day.date} className="hover:bg-gray-800/30 transition-colors">
+                                        <td className="px-4 py-4 text-gray-300 font-bold">{day.date}</td>
+                                        <td className="px-4 py-4 text-cyan-400">{day.totalCount}</td>
+                                        <td className="px-4 py-4 text-purple-400">{day.userCount}</td>
+                                        <td className="px-4 py-4 text-gray-500">{day.promptTokens.toLocaleString()}</td>
+                                        <td className="px-4 py-4 text-gray-500">{day.completionTokens.toLocaleString()}</td>
+                                        <td className="px-4 py-4">
+                                            <span className="bg-cyan-500/10 text-cyan-300 px-2 py-1 rounded border border-cyan-500/20">
+                                                {day.totalTokens.toLocaleString()}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            )}
 
             {/* NPCs List Section */}
             <div className="grid grid-cols-1 gap-6">

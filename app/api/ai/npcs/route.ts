@@ -151,21 +151,47 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
     try {
         const body = await request.json()
-        const { provider, apiKey, modelName, baseUrl } = body
+        const { provider, apiKey, modelName, baseUrl, dailyLimit, temperature } = body
+        console.log('📡 [AI Config Update] Request Body:', { provider, modelName, baseUrl, dailyLimit, temperature });
 
         if (!provider || !apiKey) {
             return NextResponse.json({ error: 'Missing provider or apiKey' }, { status: 400 })
         }
 
-        const config = await prisma.aiGlobalConfig.upsert({
-            where: { id: 'global_config' }, // 保持唯一
-            update: { provider, apiKey, modelName, baseUrl, isActive: true },
-            create: { id: 'global_config', provider, apiKey, modelName, baseUrl, isActive: true }
+        // 确保数值类型正确
+        const parsedLimit = typeof dailyLimit === 'number' ? dailyLimit : parseInt(dailyLimit) || 20;
+
+        const config = await (prisma as any).aiGlobalConfig.upsert({
+            where: { id: 'global_config' },
+            update: {
+                provider,
+                apiKey,
+                modelName: modelName || null,
+                baseUrl: baseUrl || null,
+                dailyLimit: parsedLimit,
+                temperature: temperature !== undefined ? parseFloat(temperature) : 0.7,
+                isActive: true
+            },
+            create: {
+                id: 'global_config',
+                provider,
+                apiKey,
+                modelName: modelName || null,
+                baseUrl: baseUrl || null,
+                dailyLimit: parsedLimit,
+                temperature: temperature !== undefined ? parseFloat(temperature) : 0.7,
+                isActive: true
+            }
         })
 
+        console.log('✅ [AI Config Update] Success:', config.id);
         return NextResponse.json({ success: true, config })
-    } catch (error) {
-        console.error('Error updating AI config:', error)
-        return NextResponse.json({ error: 'Failed to update config' }, { status: 500 })
+    } catch (error: any) {
+        console.error('❌ [AI NPC Config POST Error]:', error)
+        return NextResponse.json({
+            success: false,
+            error: error.message || 'Failed to update config',
+            details: error.toString()
+        }, { status: 500 })
     }
 }
