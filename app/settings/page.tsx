@@ -33,9 +33,13 @@ export default function SettingsPage() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
+  const [language, setLanguage] = useState<string>('zh-CN')
 
   useEffect(() => {
     fetchSettings()
+    // 加载当前语言设置
+    const savedLanguage = localStorage.getItem('pixeldesk-language') || 'zh-CN'
+    setLanguage(savedLanguage)
   }, [])
 
   const fetchSettings = async () => {
@@ -406,6 +410,41 @@ export default function SettingsPage() {
                 className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
                 placeholder="请再次输入新密码"
               />
+            </div>
+          </div>
+        </div>
+
+        {/* 语言设置 */}
+        <div className="bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-700 rounded-2xl p-6">
+          <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+            <svg className="w-6 h-6 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+            </svg>
+            语言设置 / Language Settings
+          </h2>
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-gray-300 text-sm font-medium mb-2">
+                界面语言 / Interface Language
+              </label>
+              <select
+                value={language}
+                onChange={(e) => {
+                  const newLanguage = e.target.value
+                  setLanguage(newLanguage)
+                  localStorage.setItem('pixeldesk-language', newLanguage)
+                  setSuccess('语言设置已保存，部分内容需要刷新页面后生效')
+                }}
+                className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent cursor-pointer"
+              >
+                <option value="zh-CN">简体中文 (Simplified Chinese)</option>
+                <option value="en">English</option>
+              </select>
+              <p className="text-gray-500 text-xs mt-1">
+                当前语言：{language === 'zh-CN' ? '简体中文' : 'English'} ·
+                Current language: {language === 'zh-CN' ? 'Simplified Chinese' : 'English'}
+              </p>
             </div>
           </div>
         </div>
