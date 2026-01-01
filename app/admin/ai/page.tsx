@@ -135,9 +135,27 @@ export default function AiAdminPage() {
                 </div>
                 <div className="text-right">
                     <span className="text-[10px] font-mono text-gray-600 block">LAST SYNC: {new Date().toLocaleTimeString()}</span>
-                    <span className="text-xs text-green-500 font-mono">● BACKEND_READY</span>
+                    <span className="text-xs text-green-500 font-mono flex items-center justify-end gap-1">
+                        <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
+                        BACKEND_READY
+                    </span>
                 </div>
             </div>
+
+            {/* Error Hint for Model Not Exist */}
+            {testResult && !testResult.success && testResult.message.includes('Model Not Exist') && (
+                <div className="bg-amber-500/10 border border-amber-500/30 p-4 rounded-xl flex gap-3 text-amber-200 text-sm">
+                    <div className="text-xl">💡</div>
+                    <div>
+                        <p className="font-bold">排障建议：“Model Not Exist” 错误</p>
+                        <p className="opacity-80 mt-1">
+                            这通常意味着模型名称不匹配。如果你使用的是 <span className="text-amber-400 font-bold">SiliconFlow (硅基流动)</span>，请确保：
+                            <br />• 供应商选择 <b>SiliconFlow</b>
+                            <br />• 模型名称使用完整路径，如 <b>deepseek-ai/DeepSeek-V3</b>
+                        </p>
+                    </div>
+                </div>
+            )}
 
             {/* Global Config Section */}
             <section className="bg-gray-900/50 rounded-2xl border border-gray-800 p-6 shadow-2xl backdrop-blur-sm">
@@ -177,6 +195,9 @@ export default function AiAdminPage() {
                                 if (p === 'deepseek') {
                                     m = 'deepseek-chat';
                                     url = 'https://api.deepseek.com';
+                                } else if (p === 'siliconflow') {
+                                    m = 'deepseek-ai/DeepSeek-V3';
+                                    url = 'https://api.siliconflow.cn/v1';
                                 } else if (p === 'gemini') {
                                     m = 'gemini-1.5-flash';
                                     url = '';
@@ -189,7 +210,8 @@ export default function AiAdminPage() {
                         >
                             <option value="gemini">Google Gemini (Recommended)</option>
                             <option value="openai">OpenAI (Pro)</option>
-                            <option value="deepseek">DeepSeek (OpenAI-Compatible)</option>
+                            <option value="deepseek">DeepSeek (Official API)</option>
+                            <option value="siliconflow">SiliconFlow (DeepSeek V3 / R1)</option>
                         </select>
                     </div>
 

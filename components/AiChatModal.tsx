@@ -60,8 +60,21 @@ export default function AiChatModal({
             // 保留消息历史，但重置错误状态
             setError(null)
             setInput('')
+            // 确保关闭时恢复键盘
+            if (typeof window !== 'undefined' && (window as any).enableGameKeyboard) {
+                (window as any).enableGameKeyboard()
+            }
         }
     }, [isOpen])
+
+    // 组件卸载时确保恢复键盘
+    useEffect(() => {
+        return () => {
+            if (typeof window !== 'undefined' && (window as any).enableGameKeyboard) {
+                (window as any).enableGameKeyboard()
+            }
+        }
+    }, [])
 
     const sendMessage = useCallback(async () => {
         if (!input.trim() || isLoading) return
@@ -127,10 +140,24 @@ export default function AiChatModal({
         }
     }, [input, isLoading, npcId])
 
+    const handleFocus = () => {
+        if (typeof window !== 'undefined' && (window as any).disableGameKeyboard) {
+            (window as any).disableGameKeyboard()
+        }
+    }
+
+    const handleBlur = () => {
+        if (typeof window !== 'undefined' && (window as any).enableGameKeyboard) {
+            (window as any).enableGameKeyboard()
+        }
+    }
+
     const handleKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault()
             sendMessage()
+        } else if (e.key === 'Escape') {
+            (e.target as HTMLInputElement).blur()
         }
     }
 
@@ -177,8 +204,8 @@ export default function AiChatModal({
                         >
                             <div
                                 className={`max-w-[80%] rounded-2xl px-4 py-2 ${msg.role === 'user'
-                                        ? 'bg-blue-600 text-white rounded-br-md'
-                                        : 'bg-gray-800 text-gray-100 rounded-bl-md'
+                                    ? 'bg-blue-600 text-white rounded-br-md'
+                                    : 'bg-gray-800 text-gray-100 rounded-bl-md'
                                     }`}
                             >
                                 <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
@@ -220,6 +247,8 @@ export default function AiChatModal({
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
                             onKeyDown={handleKeyDown}
+                            onFocus={handleFocus}
+                            onBlur={handleBlur}
                             placeholder="输入消息..."
                             disabled={isLoading}
                             className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 disabled:opacity-50"

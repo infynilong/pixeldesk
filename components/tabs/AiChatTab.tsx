@@ -54,10 +54,21 @@ export default function AiChatTab({
         setError(null)
     }, [npcId])
 
-    // 自动滚动到底部
+    // 组件卸载时确保恢复键盘
+    useEffect(() => {
+        return () => {
+            if (typeof window !== 'undefined' && (window as any).enableGameKeyboard) {
+                (window as any).enableGameKeyboard()
+            }
+        }
+    }, [])
+
+    // 自动滚动到底部以及聚焦输入框
     useEffect(() => {
         if (isActive) {
             messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+            // 延迟一会确保渲染完成
+            setTimeout(() => inputRef.current?.focus(), 200)
         }
     }, [messages, isActive])
 
@@ -120,10 +131,25 @@ export default function AiChatTab({
         }
     }, [input, isLoading, npcId])
 
+    const handleFocus = () => {
+        if (typeof window !== 'undefined' && (window as any).disableGameKeyboard) {
+            (window as any).disableGameKeyboard()
+        }
+    }
+
+    const handleBlur = () => {
+        if (typeof window !== 'undefined' && (window as any).enableGameKeyboard) {
+            (window as any).enableGameKeyboard()
+        }
+    }
+
     const handleKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault()
             sendMessage()
+        } else if (e.key === 'Escape') {
+            // 按下 ESC 键时失去焦点，恢复游戏控制
+            (e.target as HTMLInputElement).blur()
         }
     }
 
@@ -220,6 +246,8 @@ export default function AiChatTab({
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         onKeyDown={handleKeyDown}
+                        onFocus={handleFocus}
+                        onBlur={handleBlur}
                         placeholder="Say something to AI..."
                         disabled={isLoading}
                         className="w-full bg-gray-800/50 border border-gray-700 rounded-lg pl-3 pr-10 py-2 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:border-cyan-500/50 transition-colors disabled:opacity-50"

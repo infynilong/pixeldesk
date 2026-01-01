@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, memo } from 'react'
+import { useState, useCallback, memo, useRef, useEffect } from 'react'
 
 interface PlayerClickModalProps {
   isVisible: boolean
@@ -8,12 +8,20 @@ interface PlayerClickModalProps {
   onClose: () => void
 }
 
-const PlayerClickModal = memo(({ 
-  isVisible, 
-  player, 
-  onClose 
+const PlayerClickModal = memo(({
+  isVisible,
+  player,
+  onClose
 }: PlayerClickModalProps) => {
   const [activeTab, setActiveTab] = useState<'status' | 'interaction' | 'info'>('status')
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  // 监听标签切换，自动聚焦输入框
+  useEffect(() => {
+    if (isVisible && activeTab === 'interaction') {
+      setTimeout(() => inputRef.current?.focus(), 200)
+    }
+  }, [isVisible, activeTab])
 
   // 处理关闭
   const handleClose = useCallback(() => {
@@ -86,13 +94,13 @@ const PlayerClickModal = memo(({
         className="absolute inset-0 bg-retro-bg-darker "
         onClick={handleClose}
       />
-      
+
       {/* 模态框容器 - 现代像素艺术设计 */}
       <div className="relative bg-retro-bg-darker border-2 border-retro-border rounded-2xl p-8 w-full max-w-lg shadow-2xl shadow-retro-purple/20 ">
         {/* 装饰性光效 */}
         <div className="absolute inset-0 bg-gradient-to-br from-retro-purple/5 via-retro-blue/8 to-retro-pink/5 rounded-2xl "></div>
         <div className="absolute inset-0 border border-retro-purple/20 rounded-2xl "></div>
-        
+
         {/* 关闭按钮 - 像素化设计 */}
         <button
           onClick={handleClose}
@@ -106,7 +114,7 @@ const PlayerClickModal = memo(({
         <div className="relative mb-8">
           {/* 背景装饰 */}
           <div className="absolute inset-0 bg-gradient-to-r from-retro-purple/10 to-retro-pink/10 rounded-xl opacity-60 pointer-events-none"></div>
-          
+
           <div className="relative bg-gradient-to-br from-retro-bg-dark/50 to-retro-bg-darker/50 backdrop-blur-sm border-2 border-retro-border/50 rounded-xl p-6 shadow-lg">
             <div className="flex items-center gap-5 mb-4">
               {/* 像素化头像容器 */}
@@ -122,7 +130,7 @@ const PlayerClickModal = memo(({
                   <div className="w-full h-full bg-retro-green rounded-full  opacity-60"></div>
                 </div>
               </div>
-              
+
               {/* 用户信息区域 */}
               <div className="flex-1 space-y-3">
                 <h2 className="text-white text-2xl font-bold font-pixel tracking-wide drop-shadow-sm">
@@ -141,7 +149,7 @@ const PlayerClickModal = memo(({
                 </div>
               </div>
             </div>
-            
+
             {/* 装饰性分割线 */}
             <div className="w-16 h-2 bg-gradient-to-r from-retro-purple via-retro-pink to-retro-blue rounded-full shadow-lg"></div>
           </div>
@@ -155,22 +163,21 @@ const PlayerClickModal = memo(({
             { id: 'info', label: 'INFO', icon: '👤' }
           ].map((tab) => {
             const isActive = activeTab === tab.id
-            
+
             return (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`group relative overflow-hidden flex items-center gap-2 px-4 py-3 rounded-xl border-2  ${
-                  isActive
-                    ? 'bg-gradient-to-r from-retro-purple/30 to-retro-blue/30 text-white border-retro-purple/50 shadow-lg shadow-retro-purple/20' 
-                    : 'text-retro-textMuted hover:text-white border-retro-border hover:border-retro-blue/30 hover:bg-gradient-to-r hover:from-retro-blue/10 hover:to-retro-cyan/10'
-                } ${isActive ? '' : 'hover:scale-105'}`}
+                className={`group relative overflow-hidden flex items-center gap-2 px-4 py-3 rounded-xl border-2  ${isActive
+                  ? 'bg-gradient-to-r from-retro-purple/30 to-retro-blue/30 text-white border-retro-purple/50 shadow-lg shadow-retro-purple/20'
+                  : 'text-retro-textMuted hover:text-white border-retro-border hover:border-retro-blue/30 hover:bg-gradient-to-r hover:from-retro-blue/10 hover:to-retro-cyan/10'
+                  } ${isActive ? '' : 'hover:scale-105'}`}
               >
                 {/* 激活状态光效 */}
                 {isActive && (
                   <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 rounded-xl "></div>
                 )}
-                
+
                 {/* 选项卡内容 */}
                 <div className="relative flex items-center gap-2">
                   <div className={`w-5 h-5 ${isActive ? 'bg-white/20' : 'bg-retro-textMuted/20'} rounded flex items-center justify-center `}>
@@ -180,7 +187,7 @@ const PlayerClickModal = memo(({
                     {tab.label}
                   </span>
                 </div>
-                
+
                 {/* 激活指示器 */}
                 {isActive && (
                   <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-retro-purple rounded-full "></div>
@@ -194,7 +201,7 @@ const PlayerClickModal = memo(({
         <div className="relative space-y-6">
           {/* 背景装饰 */}
           <div className="absolute inset-0 bg-gradient-to-br from-retro-orange/2 via-retro-yellow/4 to-retro-red/2 rounded-xl opacity-60 pointer-events-none"></div>
-          
+
           {activeTab === 'status' && (
             <div className="relative space-y-4">
               {/* 状态历史标题 */}
@@ -208,7 +215,7 @@ const PlayerClickModal = memo(({
                   <span className="text-xs text-retro-textMuted font-retro">{playerHistory.length} RECORDS</span>
                 </div>
               </div>
-              
+
               {/* 状态历史列表 */}
               <div className="space-y-4 max-h-72 overflow-y-auto pr-2 scrollbar-hide">
                 {playerHistory.map((history, index) => (
@@ -223,7 +230,7 @@ const PlayerClickModal = memo(({
                             {history.status}
                           </span>
                         </div>
-                        
+
                         {/* 时间戳 */}
                         <div className="flex items-center gap-2">
                           <div className="w-1 h-1 bg-retro-textMuted rounded-full"></div>
@@ -232,12 +239,12 @@ const PlayerClickModal = memo(({
                           </span>
                         </div>
                       </div>
-                      
+
                       {/* 状态消息 */}
                       <p className="text-retro-text text-sm font-retro leading-relaxed pl-2 border-l-2 border-retro-purple/30">
                         {history.message}
                       </p>
-                      
+
                       {/* 历史记录序号 */}
                       <div className="absolute top-2 right-2 w-6 h-6 bg-gradient-to-br from-retro-textMuted/20 to-retro-border/20 rounded-full flex items-center justify-center border border-retro-textMuted/30">
                         <span className="text-xs font-bold font-pixel text-retro-textMuted">
@@ -260,7 +267,7 @@ const PlayerClickModal = memo(({
                 </div>
                 <h3 className="text-white font-bold text-base font-pixel tracking-wide">QUICK INTERACTIONS</h3>
               </div>
-              
+
               {/* 快速互动按钮组 */}
               <div className="relative">
                 <div className="absolute inset-0 bg-gradient-to-r from-retro-blue/5 to-retro-cyan/5 rounded-xl opacity-60 pointer-events-none"></div>
@@ -288,7 +295,7 @@ const PlayerClickModal = memo(({
                   </div>
                 </div>
               </div>
-              
+
               {/* 消息发送区域 */}
               <div className="relative">
                 <div className="absolute inset-0 bg-gradient-to-r from-retro-purple/5 to-retro-pink/5 rounded-xl opacity-60 pointer-events-none"></div>
@@ -303,11 +310,25 @@ const PlayerClickModal = memo(({
                     <div className="flex-1 relative group">
                       <div className="absolute inset-0 bg-gradient-to-r from-retro-purple/10 to-retro-pink/10 rounded-xl opacity-0 group-focus-within:opacity-100  blur-sm"></div>
                       <input
+                        ref={inputRef}
                         type="text"
                         placeholder="Type your message..."
                         className="relative w-full bg-gradient-to-br from-retro-bg-dark/80 to-retro-bg-darker/80 border-2 border-retro-border focus:border-retro-purple rounded-xl px-4 py-3 text-white placeholder-retro-textMuted focus:outline-none backdrop-blur-md  font-retro text-sm focus:shadow-lg focus:shadow-retro-purple/20"
-                        onClick={(e) => e.stopPropagation()}
-                        onKeyDown={(e) => e.stopPropagation()}
+                        onFocus={() => {
+                          if (typeof window !== 'undefined' && (window as any).disableGameKeyboard) {
+                            (window as any).disableGameKeyboard()
+                          }
+                        }}
+                        onBlur={() => {
+                          if (typeof window !== 'undefined' && (window as any).enableGameKeyboard) {
+                            (window as any).enableGameKeyboard()
+                          }
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Escape') {
+                            (e.target as HTMLInputElement).blur()
+                          }
+                        }}
                       />
                     </div>
                     <button className="group relative overflow-hidden bg-gradient-to-br from-retro-purple/30 to-retro-pink/30 hover:from-retro-purple/40 hover:to-retro-pink/40 text-white px-6 py-3 rounded-xl border-2 border-retro-purple/40 hover:border-retro-purple/60  shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95 backdrop-blur-sm">
@@ -334,7 +355,7 @@ const PlayerClickModal = memo(({
                 </div>
                 <h3 className="text-white font-bold text-base font-pixel tracking-wide">PLAYER INFO</h3>
               </div>
-              
+
               {/* 基本信息卡片 */}
               <div className="relative">
                 <div className="absolute inset-0 bg-gradient-to-r from-retro-cyan/5 to-retro-blue/5 rounded-xl opacity-60 pointer-events-none"></div>
@@ -372,7 +393,7 @@ const PlayerClickModal = memo(({
         <div className="relative flex gap-4 mt-8 pt-6 border-t-2 border-retro-border/50">
           {/* 背景装饰 */}
           <div className="absolute inset-0 bg-gradient-to-r from-retro-purple/3 via-retro-blue/5 to-retro-pink/3 opacity-60 pointer-events-none rounded-xl"></div>
-          
+
           {/* 关闭按钮 */}
           <button
             onClick={handleClose}
@@ -380,7 +401,7 @@ const PlayerClickModal = memo(({
           >
             {/* 按钮光效 */}
             <div className="absolute inset-0 bg-gradient-to-r from-retro-red/5 to-retro-orange/5 opacity-0 group-hover:opacity-100 "></div>
-            
+
             {/* 按钮内容 */}
             <div className="relative flex items-center justify-center gap-3">
               <div className="w-6 h-6 bg-retro-red/20 rounded-lg flex items-center justify-center group-hover:bg-retro-red/30 ">
@@ -389,7 +410,7 @@ const PlayerClickModal = memo(({
               <span className="font-pixel text-base tracking-wide">CLOSE</span>
             </div>
           </button>
-          
+
           {/* 关注按钮 */}
           <button
             onClick={() => {
@@ -401,7 +422,7 @@ const PlayerClickModal = memo(({
             {/* 按钮光效 */}
             <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-white/20 to-white/10 opacity-0 group-hover:opacity-100 "></div>
             <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 "></div>
-            
+
             {/* 按钮内容 */}
             <div className="relative flex items-center justify-center gap-3">
               <div className="w-6 h-6 bg-white/20 rounded-lg flex items-center justify-center group-hover:bg-white/30 ">

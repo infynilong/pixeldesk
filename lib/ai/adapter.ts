@@ -24,7 +24,16 @@ export async function callAiProvider(messages: ChatMessage[], options: AiOptions
             return callGemini(messages, apiKey, modelName, temperature);
         case 'openai':
         case 'deepseek':
-            const finalBaseUrl = baseUrl || (provider.toLowerCase() === 'deepseek' ? 'https://api.deepseek.com' : 'https://api.openai.com/v1');
+        case 'siliconflow':
+            const fallbacks: Record<string, string> = {
+                'deepseek': 'https://api.deepseek.com',
+                'siliconflow': 'https://api.siliconflow.cn/v1',
+                'openai': 'https://api.openai.com/v1'
+            };
+            const finalBaseUrl = baseUrl || fallbacks[provider.toLowerCase()] || 'https://api.openai.com/v1';
+
+            console.log(`📡 [AI Adapter] Calling OpenAI-Compatible: Provider=${provider}, Model=${modelName}, URL=${finalBaseUrl}`);
+
             return callOpenAiCompatible(messages, apiKey, modelName, temperature, finalBaseUrl);
         default:
             throw new Error(`Unsupported AI provider: ${provider}`);

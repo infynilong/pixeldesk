@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
 
         const defaultModel = provider === 'gemini'
             ? 'gemini-1.5-flash'
-            : (provider === 'deepseek' ? 'deepseek-chat' : 'gpt-4o-mini')
+            : (provider === 'deepseek' ? 'deepseek-chat' : (provider === 'siliconflow' ? 'deepseek-ai/DeepSeek-V3' : 'gpt-4o-mini'))
 
         const reply = await callAiProvider(
             [

@@ -99,7 +99,7 @@ export default function SocialFeed({ player }: SocialFeedProps) {
                 <span className="text-retro-textMuted text-sm">{status.timestamp}</span>
               </div>
               <p className="text-retro-text mb-4 leading-relaxed">{status.content}</p>
-              
+
               {/* 留言区域 */}
               <div className="border-t border-retro-border pt-4">
                 <div className="space-y-3 mb-4">
@@ -115,12 +115,27 @@ export default function SocialFeed({ player }: SocialFeedProps) {
                       </div>
                     ))}
                 </div>
-                
+
                 <form onSubmit={handleSubmitComment} className="flex gap-2">
                   <input
                     type="text"
                     value={newComment}
                     onChange={(e) => setNewComment(e.target.value)}
+                    onFocus={() => {
+                      if (typeof window !== 'undefined' && (window as any).disableGameKeyboard) {
+                        (window as any).disableGameKeyboard()
+                      }
+                    }}
+                    onBlur={() => {
+                      if (typeof window !== 'undefined' && (window as any).enableGameKeyboard) {
+                        (window as any).enableGameKeyboard()
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Escape') {
+                        (e.target as HTMLInputElement).blur()
+                      }
+                    }}
                     placeholder="说点什么..."
                     className="flex-1 px-4 py-2 bg-retro-border/30 border border-retro-border rounded-md focus:outline-none focus:ring-2 focus:ring-retro-purple focus:border-transparent text-white placeholder-retro-textMuted backdrop-blur-sm "
                   />

@@ -125,103 +125,77 @@ export class Start extends Phaser.Scene {
 
       // 添加简单的键盘控制接口
       window.disableGameKeyboard = () => {
-        // 游戏键盘输入已禁用
+        console.log('🎮 [Internal] Disabling Game Keyboard');
         this.keyboardInputEnabled = false;
 
-        // 彻底停用Phaser的键盘处理
         if (this.input && this.input.keyboard) {
-          // 移除所有键盘监听
-          this.input.keyboard.removeAllKeys();
-          this.cursors = null;
-          this.wasdKeys = null;
-
-          // 停用键盘管理器
-          this.input.keyboard.enabled = false;
-
-          // 清除任何现有的键盘事件捕获
-          if (this.input.keyboard.capture && this.input.keyboard.capture.length > 0) {
-            this.input.keyboard.capture = [];
+          // 停止当前所有正在进行的按键动作，防止人物一直走
+          if (this.player && this.player.body) {
+            this.player.body.setVelocity(0, 0);
           }
 
-          // 移除canvas上的键盘事件监听
+          // 停用按键管理器，不移除 Key 对象以防状态丢失
+          this.input.keyboard.enabled = false;
+
+          // 暂时禁用 canvas 焦点
           const canvas = this.game.canvas;
           if (canvas) {
-            // 移除tabindex，让canvas不能获得焦点
             canvas.removeAttribute('tabindex');
-            // 如果canvas当前有焦点，移除焦点
             if (document.activeElement === canvas) {
               canvas.blur();
             }
+          }
 
-            // 临时添加事件监听器阻止键盘事件传播到Phaser
+          // 拦截所有穿透到 document 的按键事件 (双保险)
+          if (!this.keyboardBlockHandler) {
             this.keyboardBlockHandler = (event) => {
-              // 检查事件是否来自输入元素
               const isFromInput = event.target.tagName.toLowerCase() === 'input' ||
                 event.target.tagName.toLowerCase() === 'textarea' ||
                 event.target.contentEditable === 'true';
 
-              if (isFromInput) {
-                // 如果来自输入元素，不阻止事件，让输入正常工作
-                return;
-              }
-
-              // 对于其他情况，阻止事件传播到Phaser
+              if (isFromInput) return;
               event.stopPropagation();
             };
-
-            // 在捕获阶段添加监听器，优先级更高
             document.addEventListener('keydown', this.keyboardBlockHandler, true);
             document.addEventListener('keyup', this.keyboardBlockHandler, true);
-            document.addEventListener('keypress', this.keyboardBlockHandler, true);
           }
-
-          // 完全禁用Phaser的keyboard插件
-          if (this.input.keyboard.manager) {
-            this.input.keyboard.manager.enabled = false;
-          }
-
-          // Phaser键盘完全禁用
         }
-
         return { success: true, enabled: false };
       }
 
       window.enableGameKeyboard = () => {
-        // 游戏键盘输入已启用
+        console.log('🎮 [Internal] Enabling Game Keyboard');
         this.keyboardInputEnabled = true;
 
-        // 重新启用Phaser的键盘处理
         if (this.input && this.input.keyboard) {
-          // 移除临时的键盘事件拦截器
+          // 移除全局拦截器
           if (this.keyboardBlockHandler) {
             document.removeEventListener('keydown', this.keyboardBlockHandler, true);
             document.removeEventListener('keyup', this.keyboardBlockHandler, true);
-            document.removeEventListener('keypress', this.keyboardBlockHandler, true);
             this.keyboardBlockHandler = null;
-            // 已移除键盘事件拦截器
           }
 
-          // 重新启用键盘管理器
+          // 重新启用 Phaser 键盘
           this.input.keyboard.enabled = true;
-
-          // 重新启用Phaser的keyboard插件
           if (this.input.keyboard.manager) {
             this.input.keyboard.manager.enabled = true;
           }
 
-          // 恢复canvas的tabindex，让它可以获得焦点
+          // 恢复 canvas 聚焦能力
           const canvas = this.game.canvas;
           if (canvas) {
             canvas.setAttribute('tabindex', '0');
+            canvas.focus();
           }
 
-          // 重新创建键盘监听
-          this.cursors = this.input.keyboard.createCursorKeys();
-          this.wasdKeys = this.input.keyboard.addKeys('W,S,A,D');
-
-          // Phaser键盘完全恢复
+          // 确保 cursors 重建
+          if (!this.cursors) {
+            this.cursors = this.input.keyboard.createCursorKeys();
+          }
+          if (!this.wasdKeys) {
+            this.wasdKeys = this.input.keyboard.addKeys('W,S,A,D');
+          }
         }
-
         return { success: true, enabled: true };
       }
 
@@ -275,6 +249,28 @@ export class Start extends Phaser.Scene {
         debugWarn('🎮 无法禁用玩家移动 - 玩家对象不存在');
         return { success: false, error: '玩家对象不存在' };
       }
+
+      // 交互恢复逻辑：点击游戏区域时，如果焦点在输入框，自动释放焦点以回复键盘控制
+      this.input.on('pointerdown', () => {
+        const activeElement = document.activeElement;
+        const isInput = activeElement && (
+          activeElement.tagName === 'INPUT' ||
+          activeElement.tagName === 'TEXTAREA' ||
+          activeElement.contentEditable === 'true'
+        );
+
+        console.log('🎮 Game Canvas Clicked, Active Element:', activeElement?.tagName, 'Is Input:', isInput);
+
+        if (isInput) {
+          activeElement.blur();
+        }
+
+        // 无论当前是否有输入框焦点，点击 Canvas 都尝试唤醒键盘
+        window.enableGameKeyboard();
+
+        window.focus();
+        if (this.game.canvas) this.game.canvas.focus();
+      });
 
       // 触发Phaser游戏初始化完成事件
       window.dispatchEvent(new Event("phaser-game-ready"))
