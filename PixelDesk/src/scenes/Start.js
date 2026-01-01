@@ -1999,8 +1999,8 @@ export class Start extends Phaser.Scene {
     this.collisionManager = {
       activeCollisions: new Set(),
       debounceTimers: new Map(),
-      debounceDelay: 300, // 300ms防抖延迟
-      collisionThreshold: 60, // 碰撞检测阈值（像素）
+      debounceDelay: 800, // 增加到800ms，配合距离校验更稳定
+      collisionThreshold: 70, // 略微增加检测阈值
     }
 
     // 设置主玩家与其他玩家的碰撞检测
@@ -2077,9 +2077,19 @@ export class Start extends Phaser.Scene {
     const timer = this.time.delayedCall(
       this.collisionManager.debounceDelay,
       () => {
-        // 防抖时间到，检查是否仍在碰撞
+        // 防抖时间到，执行“粘性”检查：如果玩家虽然没有物理碰撞但依然在附近，则维持状态
         if (this.collisionManager.activeCollisions.has(playerId)) {
-          // 从活动碰撞中移除
+          // 获取当前距离
+          const dist = Phaser.Math.Distance.Between(mainPlayer.x, mainPlayer.y, otherPlayer.x, otherPlayer.y);
+
+          // 如果距离依然在阈值内，说明玩家只是停下了或者被物理引擎推开了一点点，不应关闭面板
+          if (dist < this.collisionManager.collisionThreshold) {
+            // 自动续期
+            this.resetCollisionDebounceTimer(playerId, mainPlayer, otherPlayer);
+            return;
+          }
+
+          // 距离过远，真正断开
           this.collisionManager.activeCollisions.delete(playerId)
 
           // 触发碰撞结束事件
