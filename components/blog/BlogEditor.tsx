@@ -10,6 +10,7 @@ interface BlogPost {
   content: string
   tags: string[]
   coverImage?: string
+  imageUrls?: string[]
   isDraft: boolean
 }
 
@@ -29,6 +30,8 @@ export default function BlogEditor({ blog, userId, onSaved, onPublished }: BlogE
   const [tags, setTags] = useState<string[]>(blog?.tags || [])
   const [tagInput, setTagInput] = useState('')
   const [coverImage, setCoverImage] = useState(blog?.coverImage || '')
+  const [imageUrls, setImageUrls] = useState<string[]>(blog?.imageUrls || [])
+  const [imageUrlInput, setImageUrlInput] = useState('')
   const [isPublishing, setIsPublishing] = useState(false)
   const [isSavingDraft, setIsSavingDraft] = useState(false)
   const [error, setError] = useState('')
@@ -42,12 +45,13 @@ export default function BlogEditor({ blog, userId, onSaved, onPublished }: BlogE
         title !== blog.title ||
         content !== blog.content ||
         JSON.stringify(tags) !== JSON.stringify(blog.tags) ||
-        coverImage !== (blog.coverImage || '')
+        coverImage !== (blog.coverImage || '') ||
+        JSON.stringify(imageUrls) !== JSON.stringify(blog.imageUrls || [])
       setHasUnsavedChanges(changed)
     } else {
       setHasUnsavedChanges(title.trim() !== '' || content.trim() !== '')
     }
-  }, [title, content, tags, coverImage, blog, isEditMode])
+  }, [title, content, tags, coverImage, imageUrls, blog, isEditMode])
 
   // 自动保存草稿（仅新建模式）
   useEffect(() => {
@@ -109,6 +113,20 @@ export default function BlogEditor({ blog, userId, onSaved, onPublished }: BlogE
     setTags(tags.filter(tag => tag !== tagToRemove))
   }
 
+  // 添加图片URL
+  const handleAddImageUrl = () => {
+    const url = imageUrlInput.trim()
+    if (url && !imageUrls.includes(url)) {
+      setImageUrls([...imageUrls, url])
+      setImageUrlInput('')
+    }
+  }
+
+  // 删除图片URL
+  const handleRemoveImageUrl = (urlToRemove: string) => {
+    setImageUrls(imageUrls.filter(url => url !== urlToRemove))
+  }
+
   // 计算阅读时间
   const calculateReadTime = (text: string): number => {
     const wordCount = text.length
@@ -144,7 +162,8 @@ export default function BlogEditor({ blog, userId, onSaved, onPublished }: BlogE
             wordCount: content.length,
             readTime: calculateReadTime(content),
             tags,
-            coverImage: coverImage || null
+            coverImage: coverImage || null,
+            imageUrls
           })
         })
 
@@ -171,6 +190,7 @@ export default function BlogEditor({ blog, userId, onSaved, onPublished }: BlogE
             readTime: calculateReadTime(content),
             tags,
             coverImage: coverImage || null,
+            imageUrls,
             isDraft: true
           })
         })
@@ -222,6 +242,7 @@ export default function BlogEditor({ blog, userId, onSaved, onPublished }: BlogE
             readTime: calculateReadTime(content),
             tags,
             coverImage: coverImage || null,
+            imageUrls,
             isDraft: false,
             publishedAt: blog.isDraft ? new Date().toISOString() : undefined
           })
@@ -250,6 +271,7 @@ export default function BlogEditor({ blog, userId, onSaved, onPublished }: BlogE
             readTime: calculateReadTime(content),
             tags,
             coverImage: coverImage || null,
+            imageUrls,
             isDraft: false,
             publishedAt: new Date().toISOString()
           })
@@ -447,6 +469,77 @@ export default function BlogEditor({ blog, userId, onSaved, onPublished }: BlogE
                 }
               }}
             />
+          </div>
+
+          {/* 内容图片URL */}
+          <div>
+            <label className="block text-sm font-medium text-gray-400 mb-2">
+              内容图片 URL (可添加多个)
+            </label>
+            <div className="flex gap-2 mb-2">
+              <input
+                type="url"
+                placeholder="https://example.com/image.jpg"
+                value={imageUrlInput}
+                onChange={(e) => setImageUrlInput(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    handleAddImageUrl()
+                  }
+                }}
+                className="flex-1 bg-gray-800 border border-gray-700 focus:ring-2 focus:ring-cyan-500 focus:border-transparent rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none text-sm transition-all"
+                onFocus={() => {
+                  if (typeof window !== 'undefined' && (window as any).disableGameKeyboard) {
+                    (window as any).disableGameKeyboard()
+                  }
+                }}
+                onBlur={() => {
+                  if (typeof window !== 'undefined' && (window as any).enableGameKeyboard) {
+                    (window as any).enableGameKeyboard()
+                  }
+                }}
+              />
+              <button
+                onClick={handleAddImageUrl}
+                disabled={!imageUrlInput.trim()}
+                className="px-4 py-2 bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg text-sm transition-all"
+              >
+                添加
+              </button>
+            </div>
+
+            {imageUrls.length > 0 && (
+              <div className="space-y-2">
+                {imageUrls.map((url, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center gap-2 bg-gray-800/50 border border-gray-700/50 rounded-lg p-2"
+                  >
+                    {/* 缩略图预览 */}
+                    <img
+                      src={url}
+                      alt={`图片 ${index + 1}`}
+                      className="w-16 h-16 object-cover rounded"
+                      onError={(e) => {
+                        e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="64" height="64"%3E%3Crect fill="%23374151" width="64" height="64"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em" fill="%239CA3AF" font-size="12"%3E无效%3C/text%3E%3C/svg%3E'
+                      }}
+                    />
+                    {/* URL文本 */}
+                    <span className="flex-1 text-sm text-gray-300 truncate">
+                      {url}
+                    </span>
+                    {/* 删除按钮 */}
+                    <button
+                      onClick={() => handleRemoveImageUrl(url)}
+                      className="cursor-pointer px-3 py-1 bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-500/30 rounded text-sm transition-colors"
+                    >
+                      删除
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 

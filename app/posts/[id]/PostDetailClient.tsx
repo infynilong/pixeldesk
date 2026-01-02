@@ -49,6 +49,8 @@ export default function PostDetailClient({ initialPost }: PostDetailClientProps)
   const [post, setPost] = useState<Post>(initialPost)
   const [isLiking, setIsLiking] = useState(false)
   const [showLoginPrompt, setShowLoginPrompt] = useState(false)
+  const [lightboxOpen, setLightboxOpen] = useState(false)
+  const [lightboxImageIndex, setLightboxImageIndex] = useState(0)
 
   // 使用回复hook来管理回复数据
   const {
@@ -135,6 +137,49 @@ export default function PostDetailClient({ initialPost }: PostDetailClientProps)
 
   // 检查是否是作者
   const isAuthor = currentUserId === post.author.id
+
+  // 打开图片lightbox
+  const openLightbox = (index: number) => {
+    setLightboxImageIndex(index)
+    setLightboxOpen(true)
+  }
+
+  // 关闭lightbox
+  const closeLightbox = () => {
+    setLightboxOpen(false)
+  }
+
+  // 下一张图片
+  const nextImage = () => {
+    if (post.imageUrls && post.imageUrls.length > 0) {
+      setLightboxImageIndex((prev) => (prev + 1) % (post.imageUrls?.length || 1))
+    }
+  }
+
+  // 上一张图片
+  const prevImage = () => {
+    if (post.imageUrls && post.imageUrls.length > 0) {
+      setLightboxImageIndex((prev) => (prev - 1 + (post.imageUrls?.length || 1)) % (post.imageUrls?.length || 1))
+    }
+  }
+
+  // 键盘事件处理
+  useEffect(() => {
+    if (!lightboxOpen) return
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        closeLightbox()
+      } else if (e.key === 'ArrowLeft') {
+        prevImage()
+      } else if (e.key === 'ArrowRight') {
+        nextImage()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [lightboxOpen, post.imageUrls])
 
   return (
     <div className="min-h-screen bg-gray-950 relative">
@@ -350,6 +395,41 @@ export default function PostDetailClient({ initialPost }: PostDetailClientProps)
                     />
                   </div>
                 )}
+
+                {/* 多图片展示 - imageUrls */}
+                {post.imageUrls && post.imageUrls.length > 0 && (
+                  <div className="mt-6">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                      {post.imageUrls.map((url, index) => (
+                        <div
+                          key={index}
+                          className="relative aspect-square overflow-hidden rounded-lg bg-gray-800 cursor-pointer group"
+                          onClick={() => openLightbox(index)}
+                        >
+                          <img
+                            src={url}
+                            alt={`图片 ${index + 1}`}
+                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                            onError={(e) => {
+                              e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23374151" width="200" height="200"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em" fill="%239CA3AF" font-size="16"%3E图片加载失败%3C/text%3E%3C/svg%3E'
+                            }}
+                          />
+                          {/* 悬停遮罩 */}
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors duration-300 flex items-center justify-center">
+                            <svg
+                              className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                            </svg>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* 统计和操作 */}
@@ -524,6 +604,79 @@ export default function PostDetailClient({ initialPost }: PostDetailClientProps)
           </aside>
         </div>
       </main>
+
+      {/* 图片Lightbox模态框 */}
+      {lightboxOpen && post.imageUrls && post.imageUrls.length > 0 && (
+        <div
+          className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
+          onClick={closeLightbox}
+        >
+          {/* 关闭按钮 */}
+          <button
+            onClick={closeLightbox}
+            className="absolute top-4 right-4 p-2 bg-gray-800/80 hover:bg-gray-700 text-white rounded-lg transition-all z-10"
+            title="关闭 (ESC)"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+
+          {/* 上一张按钮 */}
+          {post.imageUrls.length > 1 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                prevImage()
+              }}
+              className="absolute left-4 p-3 bg-gray-800/80 hover:bg-gray-700 text-white rounded-lg transition-all z-10"
+              title="上一张"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+          )}
+
+          {/* 图片容器 */}
+          <div
+            className="max-w-7xl max-h-[90vh] w-full h-full flex items-center justify-center p-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={post.imageUrls[lightboxImageIndex]}
+              alt={`图片 ${lightboxImageIndex + 1}`}
+              className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+              onError={(e) => {
+                e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="400"%3E%3Crect fill="%23374151" width="400" height="400"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em" fill="%239CA3AF" font-size="20"%3E图片加载失败%3C/text%3E%3C/svg%3E'
+              }}
+            />
+          </div>
+
+          {/* 下一张按钮 */}
+          {post.imageUrls.length > 1 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                nextImage()
+              }}
+              className="absolute right-4 p-3 bg-gray-800/80 hover:bg-gray-700 text-white rounded-lg transition-all z-10"
+              title="下一张"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          )}
+
+          {/* 图片计数器 */}
+          {post.imageUrls.length > 1 && (
+            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 px-4 py-2 bg-gray-800/80 text-white rounded-lg text-sm font-medium">
+              {lightboxImageIndex + 1} / {post.imageUrls.length}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

@@ -124,6 +124,7 @@ export async function POST(request: NextRequest) {
       content,
       type = 'TEXT',
       imageUrl,
+      imageUrls = [],
       summary,
       wordCount = 0,
       readTime = 1,
@@ -179,6 +180,7 @@ export async function POST(request: NextRequest) {
         content: content.trim(),
         type,
         imageUrl: imageUrl || null,
+        imageUrls: imageUrls || [],
         authorId: userId,
         // 博客相关字段
         summary: summary || null,

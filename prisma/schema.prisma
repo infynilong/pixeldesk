@@ -7,45 +7,337 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id                       String                    @id @default(cuid())
-  points                   Int                       @default(100)
-  createdAt                DateTime                  @default(now())
-  updatedAt                DateTime                  @updatedAt
-  avatar                   String?
-  email                    String?                   @unique
-  name                     String
-  emailVerified            Boolean                   @default(false)
-  isActive                 Boolean                   @default(true)
-  lastLogin                DateTime?
-  password                 String?
-  customAvatar             String?
-  aiUsages                 AiUsage[]
-  ownedCharacters          CharacterPurchase[]
-  createdCharacters        Character[]               @relation("CreatedCharacters")
-  conversationParticipants ConversationParticipant[]
-  sentMessages             Message[]
-  relatedNotifications     Notification[]            @relation("NotificationRelatedUser")
-  notifications            Notification[]
-  player                   Player?
-  pointsHistory            PointsHistory[]
-  postLikes                PostLike[]
-  postReplies              PostReply[]
-  posts                    Post[]
-  statusHistory            StatusHistory[]
-  timeTracking             TimeTracking[]
-  onlineStatus             UserOnlineStatus?
-  sessions                 UserSession[]
-  workstations             UserWorkstation[]
-  workSessions             WorkSession[]
+model admin_logs {
+  id         String   @id
+  adminId    String
+  action     String
+  resource   String
+  resourceId String?
+  details    Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+  admins     admins   @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([action])
+  @@index([adminId, createdAt])
+  @@index([resource, createdAt])
+}
+
+model admins {
+  id          String       @id
+  username    String       @unique
+  email       String       @unique
+  password    String
+  role        AdminRole    @default(ADMIN)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime
+  lastLoginAt DateTime?
+  isActive    Boolean      @default(true)
+  admin_logs  admin_logs[]
 
   @@index([email])
   @@index([isActive])
-  @@index([lastLogin])
-  @@map("users")
+  @@index([username])
 }
 
-model StatusHistory {
+model ai_chat_history {
+  id        String   @id
+  userId    String
+  npcId     String
+  role      String
+  content   String
+  createdAt DateTime @default(now())
+
+  @@index([userId, npcId, createdAt])
+}
+
+model ai_global_config {
+  id          String   @id
+  provider    String   @default("gemini")
+  apiKey      String?
+  modelName   String?
+  baseUrl     String?
+  temperature Float    @default(0.7)
+  maxTokens   Int      @default(1000)
+  isActive    Boolean  @default(true)
+  updatedAt   DateTime
+  dailyLimit  Int      @default(20)
+}
+
+model ai_npcs {
+  id          String   @id
+  name        String
+  sprite      String
+  x           Int
+  y           Int
+  personality String
+  greeting    String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime
+  knowledge   String?
+  role        String?
+  isFixed     Boolean  @default(false)
+}
+
+model ai_usage {
+  id               String   @id
+  userId           String
+  count            Int      @default(0)
+  date             String
+  updatedAt        DateTime
+  completionTokens Int      @default(0)
+  promptTokens     Int      @default(0)
+  totalTokens      Int      @default(0)
+  users            users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+}
+
+model character_logs {
+  id          String     @id
+  characterId String
+  adminId     String
+  action      String
+  changes     Json
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime   @default(now())
+  characters  characters @relation(fields: [characterId], references: [id], onDelete: Cascade)
+
+  @@index([adminId])
+  @@index([characterId, createdAt])
+}
+
+model character_purchases {
+  id          String     @id
+  userId      String
+  characterId String
+  price       Int
+  purchasedAt DateTime   @default(now())
+  characters  characters @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  users       users      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, characterId])
+  @@index([characterId])
+  @@index([purchasedAt])
+  @@index([userId])
+}
+
+model characters {
+  id                  String                @id
+  name                String                @unique
+  displayName         String
+  description         String?
+  imageUrl            String
+  frameWidth          Int                   @default(48)
+  frameHeight         Int                   @default(48)
+  totalFrames         Int                   @default(8)
+  isCompactFormat     Boolean               @default(false)
+  price               Int                   @default(0)
+  isDefault           Boolean               @default(false)
+  isActive            Boolean               @default(true)
+  sortOrder           Int                   @default(0)
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime
+  creatorId           String?
+  isUserGenerated     Boolean               @default(false)
+  salesCount          Int                   @default(0)
+  character_logs      character_logs[]
+  character_purchases character_purchases[]
+  users               users?                @relation(fields: [creatorId], references: [id])
+
+  @@index([createdAt])
+  @@index([creatorId])
+  @@index([isActive, sortOrder])
+  @@index([isDefault])
+  @@index([isUserGenerated])
+  @@index([price])
+}
+
+model conversation_participants {
+  id             String        @id
+  conversationId String
+  userId         String
+  joinedAt       DateTime      @default(now())
+  lastReadAt     DateTime      @default(now())
+  isActive       Boolean       @default(true)
+  conversations  conversations @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  users          users         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+}
+
+model conversations {
+  id                        String                      @id
+  type                      String                      @default("private")
+  name                      String?
+  createdAt                 DateTime                    @default(now())
+  updatedAt                 DateTime
+  conversation_participants conversation_participants[]
+  messages                  messages[]
+}
+
+model library_books {
+  id          String   @id
+  title       String
+  author      String
+  description String?
+  coverUrl    String?
+  content     String?
+  bookcaseId  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime
+
+  @@index([bookcaseId])
+}
+
+model messages {
+  id             String        @id
+  conversationId String
+  senderId       String
+  content        String
+  type           String        @default("text")
+  status         String        @default("sent")
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime
+  conversations  conversations @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  users          users         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+}
+
+model notifications {
+  id                                       String           @id
+  userId                                   String
+  type                                     NotificationType
+  title                                    String
+  message                                  String
+  isRead                                   Boolean          @default(false)
+  relatedPostId                            String?
+  relatedReplyId                           String?
+  relatedUserId                            String?
+  createdAt                                DateTime         @default(now())
+  updatedAt                                DateTime
+  posts                                    posts?           @relation(fields: [relatedPostId], references: [id], onDelete: Cascade)
+  users_notifications_relatedUserIdTousers users?           @relation("notifications_relatedUserIdTousers", fields: [relatedUserId], references: [id], onDelete: Cascade)
+  users_notifications_userIdTousers        users            @relation("notifications_userIdTousers", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, isRead])
+}
+
+model players {
+  id              String   @id
+  userId          String   @unique
+  playerName      String
+  characterSprite String
+  currentX        Int      @default(400)
+  currentY        Int      @default(300)
+  currentScene    String   @default("Start")
+  lastActiveAt    DateTime @default(now())
+  playerState     Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime
+  totalPlayTime   Int      @default(0)
+  users           users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([characterSprite])
+  @@index([createdAt])
+  @@index([lastActiveAt])
+  @@index([userId])
+}
+
+model points_config {
+  id          String         @id
+  key         String         @unique
+  value       Int
+  description String
+  category    PointsCategory
+  isActive    Boolean        @default(true)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime
+
+  @@index([category])
+  @@index([key])
+}
+
+model points_history {
+  id        String   @id
+  userId    String
+  amount    Int
+  reason    String
+  type      String
+  balance   Int
+  createdAt DateTime @default(now())
+  users     users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
+  @@index([userId])
+}
+
+model post_likes {
+  id      String   @id
+  postId  String
+  userId  String
+  likedAt DateTime @default(now())
+  posts   posts    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  users   users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([postId])
+  @@index([userId])
+}
+
+model post_replies {
+  id        String   @id
+  postId    String
+  authorId  String
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+  users     users    @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  posts     posts    @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([authorId])
+  @@index([postId, createdAt])
+}
+
+model posts {
+  id            String          @id
+  authorId      String
+  title         String?
+  content       String
+  type          PostType        @default(TEXT)
+  imageUrl      String?
+  isPublic      Boolean         @default(true)
+  likeCount     Int             @default(0)
+  replyCount    Int             @default(0)
+  viewCount     Int             @default(0)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime
+  coverImage    String?
+  isDraft       Boolean         @default(false)
+  publishedAt   DateTime?
+  readTime      Int             @default(1)
+  summary       String?
+  tags          String[]        @default([])
+  wordCount     Int             @default(0)
+  imageUrls     String[]        @default([])
+  notifications notifications[]
+  post_likes    post_likes[]
+  post_replies  post_replies[]
+  users         users           @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([authorId])
+  @@index([createdAt])
+  @@index([isDraft])
+  @@index([likeCount])
+  @@index([publishedAt])
+}
+
+model status_history {
   id        Int      @id @default(autoincrement())
   userId    String
   emoji     String?
@@ -53,54 +345,19 @@ model StatusHistory {
   status    String
   timestamp DateTime @default(now())
   type      String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("status_history")
+  users     users    @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-model Workstation {
-  id         Int      @id @default(autoincrement())
-  name       String
-  xPosition  Int
-  yPosition  Int
-  isOccupied Boolean  @default(false)
-  createdAt  DateTime @default(now())
-
-  @@map("workstations")
+model system_config {
+  id          String   @id
+  key         String   @unique
+  value       String
+  description String?
+  category    String   @default("general")
+  updatedAt   DateTime
 }
 
-model UserWorkstation {
-  id            Int       @id @default(autoincrement())
-  userId        String
-  workstationId Int
-  boundAt       DateTime  @default(now())
-  cost          Int       @default(0)
-  expiresAt     DateTime?
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, workstationId])
-  @@index([workstationId])
-  @@index([boundAt])
-  @@index([expiresAt])
-  @@index([userId, boundAt])
-  @@map("user_workstations")
-}
-
-model WorkSession {
-  id            Int       @id @default(autoincrement())
-  userId        String
-  workstationId String?
-  startTime     DateTime  @default(now())
-  endTime       DateTime?
-  totalMinutes  Int?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("work_sessions")
-}
-
-model TimeTracking {
+model time_tracking {
   id            Int       @id @default(autoincrement())
   userId        String
   activityType  String
@@ -111,175 +368,25 @@ model TimeTracking {
   workstationId String?
   notes         String?
   createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  updatedAt     DateTime
+  users         users     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId, date])
   @@index([userId, activityType])
-  @@map("time_tracking")
+  @@index([userId, date])
 }
 
-model Conversation {
-  id           String                    @id @default(cuid())
-  type         String                    @default("private")
-  name         String?
-  createdAt    DateTime                  @default(now())
-  updatedAt    DateTime                  @updatedAt
-  participants ConversationParticipant[]
-  messages     Message[]
-
-  @@map("conversations")
-}
-
-model ConversationParticipant {
-  id             String       @id @default(cuid())
-  conversationId String
-  userId         String
-  joinedAt       DateTime     @default(now())
-  lastReadAt     DateTime     @default(now())
-  isActive       Boolean      @default(true)
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([conversationId, userId])
-  @@map("conversation_participants")
-}
-
-model Message {
-  id             String       @id @default(cuid())
-  conversationId String
-  senderId       String
-  content        String
-  type           String       @default("text")
-  status         String       @default("sent")
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
-
-  @@index([conversationId, createdAt])
-  @@map("messages")
-}
-
-model UserOnlineStatus {
-  id        String   @id @default(cuid())
+model user_online_status {
+  id        String   @id
   userId    String   @unique
   isOnline  Boolean  @default(false)
   lastSeen  DateTime @default(now())
   socketId  String?
-  updatedAt DateTime @updatedAt
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("user_online_status")
+  updatedAt DateTime
+  users     users    @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-model Post {
-  id            String         @id @default(cuid())
-  authorId      String
-  title         String?
-  content       String
-  type          PostType       @default(TEXT)
-  imageUrl      String?
-  isPublic      Boolean        @default(true)
-  likeCount     Int            @default(0)
-  replyCount    Int            @default(0)
-  viewCount     Int            @default(0)
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  coverImage    String?
-  isDraft       Boolean        @default(false)
-  publishedAt   DateTime?
-  readTime      Int            @default(1)
-  summary       String?
-  tags          String[]       @default([])
-  wordCount     Int            @default(0)
-  notifications Notification[]
-  likes         PostLike[]
-  replies       PostReply[]
-  author        User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
-
-  @@index([createdAt])
-  @@index([authorId])
-  @@index([likeCount])
-  @@index([isDraft])
-  @@index([publishedAt])
-  @@map("posts")
-}
-
-model PostReply {
-  id        String   @id @default(cuid())
-  postId    String
-  authorId  String
-  content   String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
-
-  @@index([postId, createdAt])
-  @@index([authorId])
-  @@map("post_replies")
-}
-
-model PostLike {
-  id      String   @id @default(cuid())
-  postId  String
-  userId  String
-  likedAt DateTime @default(now())
-  post    Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
-  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([postId, userId])
-  @@index([postId])
-  @@index([userId])
-  @@map("post_likes")
-}
-
-model Notification {
-  id             String           @id @default(cuid())
-  userId         String
-  type           NotificationType
-  title          String
-  message        String
-  isRead         Boolean          @default(false)
-  relatedPostId  String?
-  relatedReplyId String?
-  relatedUserId  String?
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
-  relatedPost    Post?            @relation(fields: [relatedPostId], references: [id], onDelete: Cascade)
-  relatedUser    User?            @relation("NotificationRelatedUser", fields: [relatedUserId], references: [id], onDelete: Cascade)
-  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId, isRead])
-  @@index([userId, createdAt])
-  @@map("notifications")
-}
-
-model Player {
-  id              String   @id @default(cuid())
-  userId          String   @unique
-  playerName      String
-  characterSprite String
-  currentX        Int      @default(400)
-  currentY        Int      @default(300)
-  currentScene    String   @default("Start")
-  lastActiveAt    DateTime @default(now())
-  playerState     Json?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  totalPlayTime   Int      @default(0)
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([lastActiveAt])
-  @@index([characterSprite])
-  @@index([createdAt])
-  @@map("players")
-}
-
-model UserSession {
-  id        String   @id @default(cuid())
+model user_sessions {
+  id        String   @id
   userId    String
   token     String   @unique
   device    String?
@@ -288,143 +395,81 @@ model UserSession {
   isActive  Boolean  @default(true)
   expiresAt DateTime
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  updatedAt DateTime
+  users     users    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId])
-  @@index([token])
   @@index([expiresAt])
-  @@map("user_sessions")
+  @@index([token])
+  @@index([userId])
 }
 
-model PointsConfig {
-  id          String         @id @default(cuid())
-  key         String         @unique
-  value       Int
-  description String
-  category    PointsCategory
-  isActive    Boolean        @default(true)
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+model user_workstations {
+  id            Int       @id @default(autoincrement())
+  userId        String
+  workstationId Int
+  boundAt       DateTime  @default(now())
+  cost          Int       @default(0)
+  expiresAt     DateTime?
+  users         users     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([key])
-  @@index([category])
-  @@map("points_config")
+  @@unique([userId, workstationId])
+  @@index([boundAt])
+  @@index([expiresAt])
+  @@index([userId, boundAt])
+  @@index([workstationId])
 }
 
-model SystemConfig {
-  id          String   @id @default(cuid())
-  key         String   @unique
-  value       String   @db.Text
-  description String?
-  category    String   @default("general")
-  updatedAt   DateTime @updatedAt
-
-  @@map("system_config")
-}
-
-model Admin {
-  id          String     @id @default(cuid())
-  username    String     @unique
-  email       String     @unique
-  password    String
-  role        AdminRole  @default(ADMIN)
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-  lastLoginAt DateTime?
-  isActive    Boolean    @default(true)
-  logs        AdminLog[]
+model users {
+  id                                               String                      @id
+  points                                           Int                         @default(100)
+  createdAt                                        DateTime                    @default(now())
+  updatedAt                                        DateTime
+  avatar                                           String?
+  email                                            String?                     @unique
+  name                                             String
+  emailVerified                                    Boolean                     @default(false)
+  isActive                                         Boolean                     @default(true)
+  lastLogin                                        DateTime?
+  password                                         String?
+  customAvatar                                     String?
+  ai_usage                                         ai_usage[]
+  character_purchases                              character_purchases[]
+  characters                                       characters[]
+  conversation_participants                        conversation_participants[]
+  messages                                         messages[]
+  notifications_notifications_relatedUserIdTousers notifications[]             @relation("notifications_relatedUserIdTousers")
+  notifications_notifications_userIdTousers        notifications[]             @relation("notifications_userIdTousers")
+  players                                          players?
+  points_history                                   points_history[]
+  post_likes                                       post_likes[]
+  post_replies                                     post_replies[]
+  posts                                            posts[]
+  status_history                                   status_history[]
+  time_tracking                                    time_tracking[]
+  user_online_status                               user_online_status?
+  user_sessions                                    user_sessions[]
+  user_workstations                                user_workstations[]
+  work_sessions                                    work_sessions[]
 
   @@index([email])
-  @@index([username])
   @@index([isActive])
-  @@map("admins")
+  @@index([lastLogin])
 }
 
-model AdminLog {
-  id         String   @id @default(cuid())
-  adminId    String
-  action     String
-  resource   String
-  resourceId String?
-  details    Json?
-  ipAddress  String?
-  userAgent  String?
-  createdAt  DateTime @default(now())
-  admin      Admin    @relation(fields: [adminId], references: [id], onDelete: Cascade)
-
-  @@index([adminId, createdAt])
-  @@index([resource, createdAt])
-  @@index([action])
-  @@map("admin_logs")
+model work_sessions {
+  id            Int       @id @default(autoincrement())
+  userId        String
+  workstationId String?
+  startTime     DateTime  @default(now())
+  endTime       DateTime?
+  totalMinutes  Int?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime
+  users         users     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-model Character {
-  id              String              @id @default(cuid())
-  name            String              @unique
-  displayName     String
-  description     String?
-  imageUrl        String
-  frameWidth      Int                 @default(48)
-  frameHeight     Int                 @default(48)
-  totalFrames     Int                 @default(8)
-  isCompactFormat Boolean             @default(false)
-  price           Int                 @default(0)
-  isDefault       Boolean             @default(false)
-  isActive        Boolean             @default(true)
-  sortOrder       Int                 @default(0)
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
-  creatorId       String?
-  isUserGenerated Boolean             @default(false)
-  salesCount      Int                 @default(0)
-  logs            CharacterLog[]
-  purchases       CharacterPurchase[]
-  creator         User?               @relation("CreatedCharacters", fields: [creatorId], references: [id])
-
-  @@index([isActive, sortOrder])
-  @@index([price])
-  @@index([createdAt])
-  @@index([isDefault])
-  @@index([isUserGenerated])
-  @@index([creatorId])
-  @@map("characters")
-}
-
-model CharacterPurchase {
-  id          String    @id @default(cuid())
-  userId      String
-  characterId String
-  price       Int
-  purchasedAt DateTime  @default(now())
-  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, characterId])
-  @@index([userId])
-  @@index([characterId])
-  @@index([purchasedAt])
-  @@map("character_purchases")
-}
-
-model CharacterLog {
-  id          String    @id @default(cuid())
-  characterId String
-  adminId     String
-  action      String
-  changes     Json
-  ipAddress   String?
-  userAgent   String?
-  createdAt   DateTime  @default(now())
-  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
-
-  @@index([characterId, createdAt])
-  @@index([adminId])
-  @@map("character_logs")
-}
-
-model WorkstationConfig {
-  id                 String   @id @default(cuid())
+model workstation_config {
+  id                 String   @id
   totalWorkstations  Int      @default(1000)
   bindingCost        Int      @default(10)
   renewalCost        Int      @default(5)
@@ -433,92 +478,23 @@ model WorkstationConfig {
   defaultDuration    Int      @default(24)
   maxBindingsPerUser Int      @default(1)
   createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  updatedAt          DateTime
   updatedBy          String?
-
-  @@map("workstation_config")
 }
 
-model PointsHistory {
-  id        String   @id @default(cuid())
-  userId    String
-  amount    Int
-  reason    String
-  type      String
-  balance   Int
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([createdAt])
-  @@map("points_history")
+model workstations {
+  id         Int      @id @default(autoincrement())
+  name       String
+  xPosition  Int
+  yPosition  Int
+  isOccupied Boolean  @default(false)
+  createdAt  DateTime @default(now())
 }
 
-model AiNpc {
-  id          String   @id @default(cuid())
-  name        String
-  sprite      String
-  x           Int
-  y           Int
-  personality String
-  greeting    String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  knowledge   String?
-  role        String?
-  isFixed     Boolean  @default(false)
-
-  @@map("ai_npcs")
-}
-
-model AiGlobalConfig {
-  id          String   @id @default(cuid())
-  provider    String   @default("gemini")
-  apiKey      String?
-  modelName   String?
-  baseUrl     String?
-  temperature Float    @default(0.7)
-  maxTokens   Int      @default(1000)
-  isActive    Boolean  @default(true)
-  updatedAt   DateTime @updatedAt
-  dailyLimit  Int      @default(20)
-
-  @@map("ai_global_config")
-}
-
-model AiUsage {
-  id               String   @id @default(cuid())
-  userId           String
-  count            Int      @default(0)
-  date             String
-  updatedAt        DateTime @updatedAt
-  completionTokens Int      @default(0)
-  promptTokens     Int      @default(0)
-  totalTokens      Int      @default(0)
-  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, date])
-  @@map("ai_usage")
-}
-
-model AiChatHistory {
-  id        String   @id @default(cuid())
-  userId    String
-  npcId     String
-  role      String
-  content   String
-  createdAt DateTime @default(now())
-
-  @@index([userId, npcId, createdAt])
-  @@map("ai_chat_history")
-}
-
-enum PostType {
-  TEXT
-  IMAGE
-  MIXED
-  MARKDOWN
+enum AdminRole {
+  SUPER_ADMIN
+  ADMIN
+  VIEWER
 }
 
 enum NotificationType {
@@ -532,23 +508,9 @@ enum PointsCategory {
   COST
 }
 
-enum AdminRole {
-  SUPER_ADMIN
-  ADMIN
-  VIEWER
-}
-
-model LibraryBook {
-  id          String   @id @default(cuid())
-  title       String
-  author      String
-  description String?
-  coverUrl    String?
-  content     String?  @db.Text
-  bookcaseId  String?  // Optional: Tiled Object ID binding
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([bookcaseId])
-  @@map("library_books")
+enum PostType {
+  TEXT
+  IMAGE
+  MIXED
+  MARKDOWN
 }

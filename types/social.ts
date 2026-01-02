@@ -14,6 +14,7 @@ export interface Post {
   content: string
   type: 'TEXT' | 'IMAGE' | 'MIXED' | 'MARKDOWN'
   imageUrl?: string | null
+  imageUrls?: string[]
   isPublic: boolean
   likeCount: number
   replyCount: number
@@ -58,6 +59,7 @@ export interface CreatePostData {
   content: string
   type?: 'TEXT' | 'IMAGE' | 'MIXED' | 'MARKDOWN'
   imageUrl?: string
+  imageUrls?: string[]
   // 博客相关字段
   summary?: string
   wordCount?: number

@@ -12,6 +12,8 @@ interface CreatePostFormProps {
 export default function CreatePostForm({ onSubmit, onCancel, isMobile = false }: CreatePostFormProps) {
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
+  const [imageUrls, setImageUrls] = useState<string[]>([])
+  const [imageUrlInput, setImageUrlInput] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
 
@@ -26,6 +28,20 @@ export default function CreatePostForm({ onSubmit, onCancel, isMobile = false }:
     if (typeof window !== 'undefined' && (window as any).enableGameKeyboard) {
       (window as any).enableGameKeyboard()
     }
+  }
+
+  // 添加图片URL
+  const handleAddImageUrl = () => {
+    const url = imageUrlInput.trim()
+    if (url && !imageUrls.includes(url)) {
+      setImageUrls([...imageUrls, url])
+      setImageUrlInput('')
+    }
+  }
+
+  // 删除图片URL
+  const handleRemoveImageUrl = (urlToRemove: string) => {
+    setImageUrls(imageUrls.filter(url => url !== urlToRemove))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -48,16 +64,24 @@ export default function CreatePostForm({ onSubmit, onCancel, isMobile = false }:
       const postData: CreatePostData = {
         title: title.trim() || undefined,
         content: content.trim(),
-        type: 'TEXT'
+        type: 'TEXT',
+        imageUrls: imageUrls.length > 0 ? imageUrls : undefined
       }
 
+      console.log('📝 [CreatePostForm] 准备提交帖子:', postData)
       const success = await onSubmit(postData)
-      
+      console.log('✅ [CreatePostForm] 提交结果:', success)
+
       if (success) {
         setTitle('')
         setContent('')
+        setImageUrls([])
+        setImageUrlInput('')
+      } else {
+        setError('发布失败,请检查您的登录状态')
       }
     } catch (err) {
+      console.error('❌ [CreatePostForm] 提交失败:', err)
       setError(err instanceof Error ? err.message : '发布失败')
     } finally {
       setIsSubmitting(false)
@@ -96,6 +120,72 @@ export default function CreatePostForm({ onSubmit, onCancel, isMobile = false }:
             </div>
           </div>
 
+          {/* 图片URL输入区域 */}
+          <div className="space-y-2">
+            <div className="flex gap-2">
+              <input
+                type="url"
+                placeholder="添加图片URL..."
+                value={imageUrlInput}
+                onChange={(e) => setImageUrlInput(e.target.value)}
+                onFocus={handleInputFocus}
+                onBlur={handleInputBlur}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    handleAddImageUrl()
+                  }
+                }}
+                className="flex-1 bg-gradient-to-br from-retro-bg-dark/80 to-retro-bg-darker/80 border border-retro-border focus:border-retro-cyan rounded-lg px-3 py-1.5 text-white placeholder-retro-textMuted focus:outline-none backdrop-blur-md font-retro text-xs"
+                disabled={isSubmitting}
+                data-input-container="true"
+              />
+              <button
+                type="button"
+                onClick={handleAddImageUrl}
+                disabled={!imageUrlInput.trim() || isSubmitting}
+                className="bg-gradient-to-r from-retro-cyan/80 to-retro-blue/80 hover:from-retro-cyan hover:to-retro-blue text-white font-medium py-1.5 px-3 rounded-lg border border-white/20 disabled:opacity-50 disabled:cursor-not-allowed backdrop-blur-sm text-xs font-pixel"
+              >
+                📷 添加
+              </button>
+            </div>
+
+            {/* 图片URL列表 */}
+            {imageUrls.length > 0 && (
+              <div className="space-y-1.5">
+                {imageUrls.map((url, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center gap-2 bg-gradient-to-br from-retro-bg-dark/60 to-retro-bg-darker/60 border border-retro-border/50 rounded-lg p-2 backdrop-blur-sm"
+                  >
+                    {/* 缩略图 */}
+                    <img
+                      src={url}
+                      alt={`图片 ${index + 1}`}
+                      className="w-10 h-10 object-cover rounded border border-retro-border/50"
+                      onError={(e) => {
+                        e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="40" height="40"%3E%3Crect fill="%23374151" width="40" height="40"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em" fill="%239CA3AF" font-size="10"%3E❌%3C/text%3E%3C/svg%3E'
+                      }}
+                    />
+                    {/* URL文本 */}
+                    <span className="flex-1 text-xs text-retro-textMuted truncate font-mono">
+                      {url}
+                    </span>
+                    {/* 删除按钮 */}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveImageUrl(url)}
+                      disabled={isSubmitting}
+                      className="text-retro-red hover:text-red-400 text-sm px-2 py-1 disabled:opacity-50"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* 操作按钮 - 紧凑设计 */}
           <div className="flex items-center justify-end gap-2 pt-1">
             <button
@@ -103,6 +193,8 @@ export default function CreatePostForm({ onSubmit, onCancel, isMobile = false }:
               onClick={() => {
                 setTitle('')
                 setContent('')
+                setImageUrls([])
+                setImageUrlInput('')
                 setError('')
               }}
               disabled={isSubmitting}

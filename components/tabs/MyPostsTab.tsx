@@ -59,8 +59,17 @@ export default function MyPostsTab({
 
   // 处理创建帖子
   const handleCreatePost = async (postData: CreatePostData) => {
+    console.log('📝 [MyPostsTab] 开始创建帖子, userId:', currentUserId)
+    console.log('📝 [MyPostsTab] 帖子数据:', postData)
+
     if (!currentUserId) {
-      console.error('用户ID未获取到，无法发帖')
+      console.error('❌ [MyPostsTab] 用户ID未获取到,无法发帖')
+      console.error('💡 提示: 请检查 localStorage 中的 pixelDeskUser 数据')
+
+      // 检查 localStorage
+      const userData = localStorage.getItem('pixelDeskUser')
+      console.log('🔍 [MyPostsTab] localStorage.pixelDeskUser:', userData)
+
       return false
     }
 
@@ -69,6 +78,8 @@ export default function MyPostsTab({
       console.log('✅ [MyPostsTab] 帖子发布成功:', newPost)
       // 刷新帖子列表
       refreshPosts()
+    } else {
+      console.error('❌ [MyPostsTab] 帖子创建失败')
     }
     return !!newPost
   }
