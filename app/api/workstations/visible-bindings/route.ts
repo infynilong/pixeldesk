@@ -38,7 +38,7 @@ export async function POST(request: Request) {
     const now = new Date()
 
     // 清理过期的工位绑定
-    await prisma.userWorkstation.deleteMany({
+    await prisma.user_workstations.deleteMany({
       where: {
         workstationId: {
           in: limitedIds
@@ -50,7 +50,7 @@ export async function POST(request: Request) {
     })
 
     // 查询有效的绑定
-    const visibleBindings = await prisma.userWorkstation.findMany({
+    const visibleBindings = await prisma.user_workstations.findMany({
       where: {
         workstationId: {
           in: limitedIds
@@ -61,7 +61,7 @@ export async function POST(request: Request) {
         ]
       },
       include: {
-        user: {
+        users: {
           select: {
             id: true,
             name: true,

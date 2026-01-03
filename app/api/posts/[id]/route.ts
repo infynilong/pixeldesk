@@ -11,10 +11,10 @@ export async function GET(
     const { searchParams } = new URL(request.url)
     const userId = searchParams.get('userId') // 用于检查是否已点赞
 
-    const post = await prisma.post.findUnique({
+    const post = await prisma.posts.findUnique({
       where: { id },
       include: {
-        author: {
+        users: {
           select: {
             id: true,
             name: true,
@@ -22,11 +22,11 @@ export async function GET(
             customAvatar: true
           }
         },
-        replies: {
+        post_replies: {
           orderBy: { createdAt: 'asc' },
           take: 20, // 只返回前20个回复，更多的通过专门的回复API获取
           include: {
-            author: {
+            users: {
               select: {
                 id: true,
                 name: true,
@@ -38,8 +38,8 @@ export async function GET(
         },
         _count: {
           select: {
-            replies: true,
-            likes: true
+            post_replies: true,
+            post_likes: true
           }
         }
       }
@@ -53,14 +53,14 @@ export async function GET(
     }
 
     // 增加浏览量
-    await prisma.post.update({
+    await prisma.posts.update({
       where: { id },
       data: { viewCount: { increment: 1 } }
     })
 
     let isLiked = false
     if (userId) {
-      const like = await prisma.postLike.findUnique({
+      const like = await prisma.post_likes.findUnique({
         where: {
           postId_userId: {
             postId: id,
@@ -71,12 +71,23 @@ export async function GET(
       isLiked = !!like
     }
 
+    // 转换数据结构：将 users 映射为 author，post_replies 映射为 replies
+    const formattedPost = {
+      ...post,
+      author: post.users,
+      replies: post.post_replies?.map((reply: any) => ({
+        ...reply,
+        author: reply.users,
+        users: undefined
+      })),
+      users: undefined,
+      post_replies: undefined,
+      isLiked
+    }
+
     return NextResponse.json({
       success: true,
-      data: {
-        ...post,
-        isLiked
-      }
+      data: formattedPost
     })
 
   } catch (error) {
@@ -106,7 +117,7 @@ export async function PUT(
     }
 
     // 检查帖子是否存在且用户是否为作者
-    const existingPost = await prisma.post.findUnique({
+    const existingPost = await prisma.posts.findUnique({
       where: { id },
       select: { authorId: true }
     })
@@ -129,7 +140,7 @@ export async function PUT(
     const updateData = await request.json()
 
     // 更新帖子
-    const updatedPost = await prisma.post.update({
+    const updatedPost = await prisma.posts.update({
       where: { id },
       data: {
         title: updateData.title,
@@ -147,7 +158,7 @@ export async function PUT(
         updatedAt: new Date()
       },
       include: {
-        author: {
+        users: {
           select: {
             id: true,
             name: true,
@@ -157,9 +168,16 @@ export async function PUT(
       }
     })
 
+    // 转换数据结构
+    const formattedPost = {
+      ...updatedPost,
+      author: updatedPost.users,
+      users: undefined
+    }
+
     return NextResponse.json({
       success: true,
-      data: updatedPost
+      data: formattedPost
     })
 
   } catch (error) {
@@ -189,7 +207,7 @@ export async function PATCH(
     }
 
     // 检查帖子是否存在且用户是否为作者
-    const existingPost = await prisma.post.findUnique({
+    const existingPost = await prisma.posts.findUnique({
       where: { id },
       select: { authorId: true }
     })
@@ -212,7 +230,7 @@ export async function PATCH(
     const updateData = await request.json()
 
     // 更新帖子
-    const updatedPost = await prisma.post.update({
+    const updatedPost = await prisma.posts.update({
       where: { id },
       data: {
         title: updateData.title,
@@ -230,7 +248,7 @@ export async function PATCH(
         updatedAt: new Date()
       },
       include: {
-        author: {
+        users: {
           select: {
             id: true,
             name: true,
@@ -240,9 +258,16 @@ export async function PATCH(
       }
     })
 
+    // 转换数据结构
+    const formattedPost = {
+      ...updatedPost,
+      author: updatedPost.users,
+      users: undefined
+    }
+
     return NextResponse.json({
       success: true,
-      data: updatedPost
+      data: formattedPost
     })
 
   } catch (error) {
@@ -272,7 +297,7 @@ export async function DELETE(
     }
 
     // 检查帖子是否存在且用户是否为作者
-    const post = await prisma.post.findUnique({
+    const post = await prisma.posts.findUnique({
       where: { id },
       select: { authorId: true }
     })
@@ -291,7 +316,7 @@ export async function DELETE(
       )
     }
 
-    await prisma.post.delete({
+    await prisma.posts.delete({
       where: { id }
     })
 

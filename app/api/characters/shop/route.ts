@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     if (token) {
       const payload = verifyToken(token)
       if (payload) {
-        user = await prisma.user.findUnique({
+        user = await prisma.users.findUnique({
           where: { id: payload.userId },
           select: { id: true, points: true }
         })
@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 获取所有激活的角色
-    const characters = await prisma.character.findMany({
+    const characters = await prisma.characters.findMany({
       where: whereCondition,
       orderBy: [
         { sortOrder: 'asc' },
@@ -84,7 +84,7 @@ export async function GET(request: NextRequest) {
         isUserGenerated: true,
         salesCount: true,
         sortOrder: true,
-        creator: {
+        users: {
           select: {
             id: true,
             name: true
@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
     // 如果用户已登录，查询用户已拥有的角色
     let ownedCharacterIds: string[] = []
     if (user) {
-      const purchases = await prisma.characterPurchase.findMany({
+      const purchases = await prisma.character_purchases.findMany({
         where: {
           userId: user.id
         },
@@ -108,7 +108,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 组装响应数据
-    const shopCharacters = characters.map(character => ({
+    const shopCharacters = characters.map((character: any) => ({
       id: character.id,
       name: character.name,
       displayName: character.displayName,
@@ -122,7 +122,7 @@ export async function GET(request: NextRequest) {
       isDefault: character.isDefault,
       isUserGenerated: character.isUserGenerated,
       salesCount: character.salesCount,
-      creator: character.creator,
+      creator: character.users, // 将 users 映射为 creator
       isOwned: ownedCharacterIds.includes(character.id) || character.isDefault, // 默认角色视为已拥有
       canPurchase: user ? !ownedCharacterIds.includes(character.id) && !character.isDefault : false
     }))

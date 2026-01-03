@@ -23,7 +23,7 @@ export async function GET(
 
     // 获取用户的所有博客
     const [blogs, totalCount] = await Promise.all([
-      prisma.post.findMany({
+      prisma.posts.findMany({
         where: {
           authorId: userId,
           type: 'MARKDOWN',
@@ -51,7 +51,7 @@ export async function GET(
           } : false
         }
       }),
-      prisma.post.count({
+      prisma.posts.count({
         where: {
           authorId: userId,
           type: 'MARKDOWN',

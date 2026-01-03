@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 查找用户（包含密码字段用于验证）
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { 
         email: email.toLowerCase().trim(),
         isActive: true
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
     })
 
     // 清理过期会话
-    await prisma.userSession.updateMany({
+    await prisma.user_sessions.updateMany({
       where: {
         userId: user.id,
         expiresAt: { lt: new Date() }
@@ -75,23 +75,26 @@ export async function POST(request: NextRequest) {
     expiresAt.setDate(expiresAt.getDate() + 7)
 
     const userAgent = request.headers.get('user-agent') || 'Unknown'
-    const ipAddress = request.headers.get('x-forwarded-for') || 
-                     request.headers.get('x-real-ip') || 
+    const ipAddress = request.headers.get('x-forwarded-for') ||
+                     request.headers.get('x-real-ip') ||
                      'Unknown'
 
-    await prisma.userSession.create({
+    const cuid = (await import('cuid')).default
+    await prisma.user_sessions.create({
       data: {
+        id: cuid(),
         userId: user.id,
         token,
         userAgent,
         ipAddress,
         expiresAt,
-        isActive: true
+        isActive: true,
+        updatedAt: new Date()
       }
     })
 
     // 更新最后登录时间
-    await prisma.user.update({
+    await prisma.users.update({
       where: { id: user.id },
       data: { 
         lastLogin: new Date(),

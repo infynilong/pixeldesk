@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
 
     // 获取单个配置
     if (key) {
-      const config = await prisma.pointsConfig.findUnique({
+      const config = await prisma.points_config.findUnique({
         where: {
           key,
           isActive: true
@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
       where.category = category
     }
 
-    const configs = await prisma.pointsConfig.findMany({
+    const configs = await prisma.points_config.findMany({
       where,
       orderBy: { key: 'asc' }
     })
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 使用 upsert 创建或更新
-    const config = await prisma.pointsConfig.upsert({
+    const config = await prisma.points_config.upsert({
       where: { key },
       update: { value, description, category },
       create: { key, value, description, category }

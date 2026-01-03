@@ -9,10 +9,10 @@ export async function GET(
     try {
         await requirePermission('players.view')
 
-        const player = await prisma.player.findUnique({
+        const player = await prisma.players.findUnique({
             where: { id: params.id },
             include: {
-                user: {
+                users: {
                     select: {
                         id: true,
                         name: true,
@@ -36,10 +36,10 @@ export async function GET(
 
         const formattedPlayer = {
             ...player,
-            userName: player.user.name,
-            email: player.user.email,
-            points: player.user.points,
-            isActive: player.user.isActive,
+            userName: player.users.name,
+            email: player.users.email,
+            points: player.users.points,
+            isActive: player.users.isActive,
             totalPlayTimeText: totalHours > 0
                 ? `${totalHours}小时${totalMinutes}分钟`
                 : `${totalMinutes}分钟`,
@@ -66,7 +66,7 @@ export async function DELETE(
         await requirePermission('players.delete')
 
         // 查找玩家以获取 userId
-        const player = await prisma.player.findUnique({
+        const player = await prisma.players.findUnique({
             where: { id: params.id },
             select: { userId: true }
         })
@@ -76,7 +76,7 @@ export async function DELETE(
         }
 
         // 删除用户（级联删除 Player 记录）
-        await prisma.user.delete({
+        await prisma.users.delete({
             where: { id: player.userId }
         })
 

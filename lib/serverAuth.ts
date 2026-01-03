@@ -36,7 +36,7 @@ export async function verifyAuthFromRequest(request: NextRequest): Promise<AuthR
     }
 
     // Check if session is still active in database
-    const activeSession = await prisma.userSession.findFirst({
+    const activeSession = await prisma.user_sessions.findFirst({
       where: {
         userId: payload.userId,
         token: token,
@@ -50,7 +50,7 @@ export async function verifyAuthFromRequest(request: NextRequest): Promise<AuthR
     }
 
     // Get user information
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: {
         id: payload.userId,
         isActive: true
@@ -98,7 +98,7 @@ export async function getBasicUserFromRequest(request: NextRequest): Promise<Aut
     }
 
     // Get user information directly without session validation
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: {
         id: payload.userId,
         isActive: true
@@ -167,7 +167,7 @@ export function withAuth<T extends any[]>(
  */
 export async function cleanupExpiredSessions(userId: string): Promise<void> {
   try {
-    await prisma.userSession.updateMany({
+    await prisma.user_sessions.updateMany({
       where: {
         userId: userId,
         expiresAt: { lt: new Date() }
@@ -184,7 +184,7 @@ export async function cleanupExpiredSessions(userId: string): Promise<void> {
  */
 export async function invalidateAllUserSessions(userId: string): Promise<void> {
   try {
-    await prisma.userSession.updateMany({
+    await prisma.user_sessions.updateMany({
       where: {
         userId: userId,
         isActive: true

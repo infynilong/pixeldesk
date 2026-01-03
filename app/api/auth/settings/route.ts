@@ -24,7 +24,7 @@ export async function PUT(request: NextRequest) {
     }
     
     // 验证会话是否仍然活跃
-    const activeSession = await prisma.userSession.findFirst({
+    const activeSession = await prisma.user_sessions.findFirst({
       where: {
         userId: payload.userId,
         token: token,
@@ -43,7 +43,7 @@ export async function PUT(request: NextRequest) {
     const { name, currentPassword, newPassword } = await request.json()
     
     // 获取当前用户信息
-    const currentUser = await prisma.user.findUnique({
+    const currentUser = await prisma.users.findUnique({
       where: { id: payload.userId }
     })
     
@@ -117,7 +117,7 @@ export async function PUT(request: NextRequest) {
     
     // 更新用户信息
     updateData.updatedAt = new Date()
-    const updatedUser = await prisma.user.update({
+    const updatedUser = await prisma.users.update({
       where: { id: payload.userId },
       data: updateData
     })

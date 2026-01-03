@@ -6,7 +6,7 @@ export async function GET() {
     const now = new Date()
 
     // 先清理过期的工位绑定
-    await prisma.userWorkstation.deleteMany({
+    await prisma.user_workstations.deleteMany({
       where: {
         expiresAt: {
           lt: now
@@ -15,7 +15,7 @@ export async function GET() {
     })
 
     // 获取所有有效的工位绑定信息
-    const allBindings = await prisma.userWorkstation.findMany({
+    const allBindings = await prisma.user_workstations.findMany({
       where: {
         OR: [
           { expiresAt: null }, // 兼容旧数据
@@ -23,14 +23,14 @@ export async function GET() {
         ]
       },
       include: {
-        user: {
+        users: {
           select: {
             id: true,
             name: true,
             email: true,
             avatar: true,
             points: true,
-            player: {
+            players: {
               select: {
                 characterSprite: true
               }

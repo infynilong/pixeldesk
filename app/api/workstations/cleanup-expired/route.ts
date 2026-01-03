@@ -6,14 +6,14 @@ export async function POST() {
     const now = new Date()
 
     // 查找所有过期的工位绑定
-    const expiredBindings = await prisma.userWorkstation.findMany({
+    const expiredBindings = await prisma.user_workstations.findMany({
       where: {
         expiresAt: {
           lt: now
         }
       },
       include: {
-        user: {
+        users: {
           select: {
             id: true,
             name: true
@@ -31,7 +31,7 @@ export async function POST() {
     }
 
     // 删除过期的工位绑定
-    const result = await prisma.userWorkstation.deleteMany({
+    const result = await prisma.user_workstations.deleteMany({
       where: {
         expiresAt: {
           lt: now
@@ -70,7 +70,7 @@ export async function GET() {
     const now = new Date()
 
     // 查找即将过期的工位绑定（3天内过期）
-    const soonToExpire = await prisma.userWorkstation.findMany({
+    const soonToExpire = await prisma.user_workstations.findMany({
       where: {
         expiresAt: {
           gte: now,
@@ -78,7 +78,7 @@ export async function GET() {
         }
       },
       include: {
-        user: {
+        users: {
           select: {
             id: true,
             name: true,

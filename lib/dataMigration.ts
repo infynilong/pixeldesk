@@ -71,7 +71,7 @@ export class DataMigration {
       // 迁移用户数据
       for (const user of data.users) {
         try {
-          await prisma.user.upsert({
+          await prisma.users.upsert({
             where: { id: user.id },
             update: {
               name: user.name,
@@ -143,7 +143,7 @@ export class DataMigration {
       // 迁移用户工位绑定
       for (const binding of data.userWorkstations) {
         try {
-          await prisma.userWorkstation.create({
+          await prisma.user_workstations.create({
             data: {
               userId: binding.userId,
               workstationId: binding.workstationId,

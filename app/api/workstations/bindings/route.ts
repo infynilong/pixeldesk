@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 获取用户的工位绑定
-    const userWorkstations = await prisma.userWorkstation.findMany({
+    const userWorkstations = await prisma.user_workstations.findMany({
       where: { userId }
     })
 
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     console.log(`💰 绑定工位所需积分: ${cost}`)
 
     // 检查用户积分
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: userId }
     })
 
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 检查用户是否已经绑定了其他工位（一个用户只能绑定一个工位）
-    const userExistingBinding = await prisma.userWorkstation.findFirst({
+    const userExistingBinding = await prisma.user_workstations.findFirst({
       where: { userId }
     })
 
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 检查工位是否已被其他用户绑定
-    const workstationExistingBinding = await prisma.userWorkstation.findFirst({
+    const workstationExistingBinding = await prisma.user_workstations.findFirst({
       where: { workstationId: workstationIdNum }
     })
 
@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
     // 执行绑定
     const result = await prisma.$transaction(async (tx) => {
       // 扣除用户积分
-      const updatedUser = await tx.user.update({
+      const updatedUser = await tx.users.update({
         where: { id: userId },
         data: {
           points: { decrement: cost },
@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
       expiresAt.setDate(expiresAt.getDate() + 30)
 
       // 创建工位绑定
-      const userWorkstation = await tx.userWorkstation.create({
+      const userWorkstation = await tx.user_workstations.create({
         data: {
           userId,
           workstationId: workstationIdNum,
@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
       })
 
       // 记录积分历史
-      await tx.pointsHistory.create({
+      await tx.points_history.create({
         data: {
           userId,
           amount: -cost,
@@ -152,7 +152,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // 解除绑定
-    await prisma.userWorkstation.delete({
+    await prisma.user_workstations.delete({
       where: {
         userId_workstationId: {
           userId,

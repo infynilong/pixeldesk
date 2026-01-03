@@ -83,7 +83,7 @@ export async function getCharacterByKey(
 
   try {
     // 从数据库查询
-    const character = await prisma.character.findFirst({
+    const character = await prisma.characters.findFirst({
       where: {
         name: characterKey,
         isActive: true

@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
             orderBy: { date: 'desc' },
             take: 14,
             include: {
-                user: {
+                users: {
                     select: {
                         name: true,
                     }

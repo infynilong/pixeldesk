@@ -16,10 +16,10 @@ export async function GET() {
       occupiedWorkstations,
     ] = await Promise.all([
       // 总玩家数
-      prisma.player.count(),
+      prisma.players.count(),
 
       // 活跃玩家数（最近7天活跃）
-      prisma.player.count({
+      prisma.players.count({
         where: {
           lastActiveAt: {
             gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 7天前
@@ -28,17 +28,17 @@ export async function GET() {
       }),
 
       // 总角色形象数
-      prisma.character.count({
+      prisma.characters.count({
         where: { isActive: true },
       }),
 
       // 总工位数（从配置表获取）
-      prisma.workstationConfig.findFirst({
+      prisma.workstation_config.findFirst({
         select: { totalWorkstations: true },
       }),
 
       // 已占用工位数
-      prisma.userWorkstation.count({
+      prisma.user_workstations.count({
         where: {
           OR: [
             { expiresAt: null }, // 永久绑定

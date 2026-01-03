@@ -21,6 +21,11 @@ const menuItems = [
     href: '/admin/users',
   },
   {
+    title: '内容管理',
+    icon: '📝',
+    href: '/admin/posts',
+  },
+  {
     title: '角色形象',
     icon: '🎭',
     href: '/admin/characters',

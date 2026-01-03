@@ -11,7 +11,7 @@ export async function getSystemContext() {
             where: { isOnline: true },
             take: 10,
             include: {
-                user: {
+                users: {
                     select: { name: true }
                 }
             }
@@ -19,7 +19,7 @@ export async function getSystemContext() {
 
         // 2. 获取工位状态概览
         const totalDesks = 1000 // 假设总数
-        const occupiedDesks = await prisma.userWorkstation.count({
+        const occupiedDesks = await prisma.user_workstations.count({
             where: {
                 OR: [
                     { expiresAt: null },

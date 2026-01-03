@@ -46,7 +46,7 @@ export async function GET(
     })
 
     // 获取玩家移动数据
-    const player = await prisma.player.findUnique({
+    const player = await prisma.players.findUnique({
       where: { userId },
       select: {
         currentX: true,

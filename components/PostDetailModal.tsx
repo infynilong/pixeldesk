@@ -171,8 +171,14 @@ export default function PostDetailModal({
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 In"
       style={{
-        background: 'linear-gradient(135deg, rgba(0,0,0,0.95) 0%, rgba(30,20,60,0.98) 50%, rgba(0,0,0,0.95) 100%)'
+        background: 'linear-gradient(135deg, rgba(0,0,0,0.95) 0%, rgba(30,20,60,0.98) 50%, rgba(0,0,0,0.95) 100%)',
+        pointerEvents: 'auto'
       }}
+      onClick={onClose}
+      onMouseDown={(e) => e.stopPropagation()}
+      onMouseUp={(e) => e.stopPropagation()}
+      onPointerDown={(e) => e.stopPropagation()}
+      onPointerUp={(e) => e.stopPropagation()}
     >
       {/* 背景装饰 */}
       <div className="absolute inset-0 overflow-hidden">
@@ -180,7 +186,14 @@ export default function PostDetailModal({
         <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-gradient-to-r from-blue-500/10 to-cyan-500/10 rounded-full blur-3xl  delay-1000"></div>
       </div>
 
-      <div className="relative bg-white dark:bg-gray-900 rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden Up border border-gray-200/20 dark:border-gray-800/50">
+      <div
+        className="relative bg-white dark:bg-gray-900 rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden Up border border-gray-200/20 dark:border-gray-800/50"
+        onClick={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
+        onMouseUp={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
+        onPointerUp={(e) => e.stopPropagation()}
+      >
         {/* 现代化头部设计 */}
         <div className="relative bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 border-b border-gray-200/50 dark:border-gray-700/50">
           {/* 头部装饰线 */}

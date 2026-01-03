@@ -9,7 +9,7 @@ import { enrichPlayerWithCharacterUrl } from '@/lib/characterUtils'
  */
 async function validateCharacterSprite(characterName: string): Promise<boolean> {
   try {
-    const character = await prisma.character.findFirst({
+    const character = await prisma.characters.findFirst({
       where: {
         name: characterName,
         isActive: true
@@ -47,10 +47,10 @@ export async function GET(request: NextRequest) {
     }
     const user = authResult.user
 
-    const player = await prisma.player.findUnique({
+    const player = await prisma.players.findUnique({
       where: { userId: user.id },
       include: {
-        user: {
+        users: {
           select: {
             id: true,
             name: true,
@@ -87,7 +87,7 @@ export async function GET(request: NextRequest) {
       success: true,
       data: {
         player: playerWithUrl,
-        user: player.user
+        user: player.users
       },
       hasPlayer: true
     })
@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
     const user = authResult.user
 
     // 检查用户是否已有角色
-    const existingPlayer = await prisma.player.findUnique({
+    const existingPlayer = await prisma.players.findUnique({
       where: { userId: user.id }
     })
 
@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    const player = await prisma.player.create({
+    const player = await prisma.players.create({
       data: {
         userId: user.id,
         playerName: validatedData.playerName,
@@ -143,7 +143,7 @@ export async function POST(request: NextRequest) {
         currentScene: 'Start'
       },
       include: {
-        user: {
+        users: {
           select: {
             id: true,
             name: true,
@@ -169,7 +169,7 @@ export async function POST(request: NextRequest) {
           createdAt: player.createdAt,
           updatedAt: player.updatedAt
         },
-        user: player.user
+        user: player.users
       }
     }, { status: 201 })
   } catch (error) {
@@ -198,7 +198,7 @@ export async function PUT(request: NextRequest) {
     }
     const user = authResult.user
 
-    const existingPlayer = await prisma.player.findUnique({
+    const existingPlayer = await prisma.players.findUnique({
       where: { userId: user.id }
     })
 
@@ -240,11 +240,11 @@ export async function PUT(request: NextRequest) {
     if (validatedData.playerState !== undefined) updateData.playerState = validatedData.playerState
 
     console.log('🔴 [API /api/player PUT] 开始更新数据库...')
-    const updatedPlayer = await prisma.player.update({
+    const updatedPlayer = await prisma.players.update({
       where: { userId: user.id },
       data: updateData,
       include: {
-        user: {
+        users: {
           select: {
             id: true,
             name: true,
@@ -277,7 +277,7 @@ export async function PUT(request: NextRequest) {
           createdAt: updatedPlayer.createdAt,
           updatedAt: updatedPlayer.updatedAt
         },
-        user: updatedPlayer.user  // user对象包含points字段
+        user: updatedPlayer.users  // users对象包含points字段
       }
     })
   } catch (error) {
@@ -306,7 +306,7 @@ export async function DELETE(request: NextRequest) {
     }
     const user = authResult.user
 
-    const existingPlayer = await prisma.player.findUnique({
+    const existingPlayer = await prisma.players.findUnique({
       where: { userId: user.id }
     })
 
@@ -317,7 +317,7 @@ export async function DELETE(request: NextRequest) {
       }, { status: 404 })
     }
 
-    await prisma.player.delete({
+    await prisma.players.delete({
       where: { userId: user.id }
     })
 

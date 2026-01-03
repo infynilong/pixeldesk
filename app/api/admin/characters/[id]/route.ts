@@ -19,7 +19,7 @@ export async function DELETE(
     const { id } = params
 
     // 查询角色信息
-    const character = await prisma.character.findUnique({
+    const character = await prisma.characters.findUnique({
       where: { id },
       include: {
         _count: {
@@ -38,7 +38,7 @@ export async function DELETE(
     }
 
     // 检查是否有用户正在使用此角色
-    const usersUsingCharacter = await prisma.player.count({
+    const usersUsingCharacter = await prisma.players.count({
       where: { characterSprite: character.name }
     })
 
@@ -66,7 +66,7 @@ export async function DELETE(
     }
 
     // 删除数据库记录
-    await prisma.character.delete({
+    await prisma.characters.delete({
       where: { id }
     })
 
@@ -115,7 +115,7 @@ export async function PUT(
     const { displayName, price, isDefault } = body
 
     // 获取原始角色信息
-    const originalCharacter = await prisma.character.findUnique({
+    const originalCharacter = await prisma.characters.findUnique({
       where: { id }
     })
 
@@ -216,7 +216,7 @@ export async function GET(
 
     const { id } = params
 
-    const character = await prisma.character.findUnique({
+    const character = await prisma.characters.findUnique({
       where: { id },
       include: {
         _count: {
@@ -241,7 +241,7 @@ export async function GET(
     }
 
     // 统计使用人数
-    const userCount = await prisma.player.count({
+    const userCount = await prisma.players.count({
       where: { characterSprite: character.name }
     })
 

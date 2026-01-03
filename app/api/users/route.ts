@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 获取用户信息
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: userId },
       include: {
         workstations: true
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 创建或更新用户
-    const user = await prisma.user.upsert({
+    const user = await prisma.users.upsert({
       where: { id },
       update: updateData,
       create: {
@@ -123,7 +123,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // 先查询当前积分
-    const currentUser = await prisma.user.findUnique({
+    const currentUser = await prisma.users.findUnique({
       where: { id: userId },
       select: { points: true }
     })
@@ -132,7 +132,7 @@ export async function PUT(request: NextRequest) {
 
     // 更新用户积分
     console.log('🔴 [API /api/users PUT] 开始更新数据库...')
-    const user = await prisma.user.update({
+    const user = await prisma.users.update({
       where: { id: userId },
       data: {
         points: { increment: points || 0 },

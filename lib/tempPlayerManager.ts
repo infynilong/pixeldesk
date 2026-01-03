@@ -93,7 +93,7 @@ export async function createTempPlayer(): Promise<TempPlayerData> {
   const tempId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
 
   const tempPlayerData: TempPlayerData = {
-    user: {
+    users: {
       id: tempId,
       username: generateTempUsername(),
       character: await generateRandomCharacter(),
@@ -173,7 +173,7 @@ export function updateTempPlayer(updates: Partial<TempPlayer>): boolean {
 
     const updatedData: TempPlayerData = {
       ...currentData,
-      user: {
+      users: {
         ...currentData.user,
         ...updates,
         lastActiveAt: new Date().toISOString()

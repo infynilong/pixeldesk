@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
       
       if (payload?.userId) {
         // 将该用户的所有活跃会话标记为非活跃
-        await prisma.userSession.updateMany({
+        await prisma.user_sessions.updateMany({
           where: {
             userId: payload.userId,
             token: token,

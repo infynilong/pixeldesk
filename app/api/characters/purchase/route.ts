@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: payload.userId },
       select: { id: true }
     })
@@ -60,10 +60,10 @@ export async function POST(request: NextRequest) {
     }
 
     // 查询角色信息（包含创建者信息用于分成）
-    const character = await prisma.character.findUnique({
+    const character = await prisma.characters.findUnique({
       where: { id: characterId, isActive: true },
       include: {
-        creator: {
+        users: {
           select: { id: true, name: true }
         }
       }
@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 检查是否已拥有
-    const existingPurchase = await prisma.characterPurchase.findUnique({
+    const existingPurchase = await prisma.character_purchases.findUnique({
       where: {
         userId_characterId: {
           userId: user.id,
@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 检查积分是否足够
-    const currentUser = await prisma.user.findUnique({
+    const currentUser = await prisma.users.findUnique({
       where: { id: user.id },
       select: { points: true }
     })
@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
     // 使用事务完成购买
     const result = await prisma.$transaction(async (tx) => {
       // 扣除积分
-      const updatedUser = await tx.user.update({
+      const updatedUser = await tx.users.update({
         where: { id: user.id },
         data: {
           points: {
@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
       })
 
       // 创建购买记录
-      const purchase = await tx.characterPurchase.create({
+      const purchase = await tx.character_purchases.create({
         data: {
           userId: user.id,
           characterId: character.id,
@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
       })
 
       // 记录积分结算历史
-      await tx.pointsHistory.create({
+      await tx.points_history.create({
         data: {
           userId: user.id,
           amount: -character.price,
@@ -147,7 +147,7 @@ export async function POST(request: NextRequest) {
       let creatorEarned = 0
       if (character.isUserGenerated && character.creatorId && character.price > 0) {
         // 给创建者100%的收入
-        const updatedCreator = await tx.user.update({
+        const updatedCreator = await tx.users.update({
           where: { id: character.creatorId },
           data: {
             points: {
@@ -157,7 +157,7 @@ export async function POST(request: NextRequest) {
         })
 
         // 记录创作者的收益历史
-        await tx.pointsHistory.create({
+        await tx.points_history.create({
           data: {
             userId: character.creatorId!,
             amount: character.price,
@@ -170,7 +170,7 @@ export async function POST(request: NextRequest) {
         creatorEarned = character.price
 
         // 更新角色销量
-        await tx.character.update({
+        await tx.characters.update({
           where: { id: character.id },
           data: {
             salesCount: {
@@ -184,7 +184,7 @@ export async function POST(request: NextRequest) {
         purchase,
         remainingPoints: updatedUser.points,
         creatorEarned,
-        creatorName: character.creator?.name
+        creatorName: character.users?.name
       }
     })
 

@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
       // 移除频繁日志输出以优化性能
 
       // 获取用户的所有工位绑定
-      const userWorkstations = await prisma.userWorkstation.findMany({
+      const userWorkstations = await prisma.user_workstations.findMany({
         where: { userId },
         orderBy: { boundAt: 'desc' }
       })
@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
         const oldBindings = userWorkstations.slice(1)
 
         // 删除旧的绑定
-        await prisma.userWorkstation.deleteMany({
+        await prisma.user_workstations.deleteMany({
           where: {
             userId,
             id: {

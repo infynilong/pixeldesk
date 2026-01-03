@@ -16,10 +16,10 @@ export async function GET(request: NextRequest) {
         const skip = (page - 1) * limit
 
         const [total, history] = await Promise.all([
-            prisma.pointsHistory.count({
+            prisma.points_history.count({
                 where: { userId }
             }),
-            prisma.pointsHistory.findMany({
+            prisma.points_history.findMany({
                 where: { userId },
                 orderBy: { createdAt: 'desc' },
                 take: limit,

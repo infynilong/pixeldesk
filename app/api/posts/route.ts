@@ -17,7 +17,9 @@ export async function GET(request: NextRequest) {
     // 构建查询条件
     const where: any = {
       isPublic: true,
-      isDraft: false // 只显示已发布的帖子，不显示草稿
+      isDraft: false, // 只显示已发布的帖子，不显示草稿
+      isActive: true, // 只显示启用的内容
+      moderationStatus: 'approved' // 只显示已审核通过的内容
     }
 
     if (authorId) {
@@ -49,13 +51,13 @@ export async function GET(request: NextRequest) {
     }
 
     const [posts, totalCount] = await Promise.all([
-      prisma.post.findMany({
+      prisma.posts.findMany({
         where,
         orderBy,
         skip,
         take: limit,
         include: {
-          author: {
+          users: {
             select: {
               id: true,
               name: true,
@@ -65,21 +67,28 @@ export async function GET(request: NextRequest) {
           },
           _count: {
             select: {
-              replies: true,
-              likes: true
+              post_replies: true,
+              post_likes: true
             }
           }
         }
       }),
-      prisma.post.count({ where })
+      prisma.posts.count({ where })
     ])
 
     const totalPages = Math.ceil(totalCount / limit)
 
+    // 转换数据结构：将 users 映射为 author
+    const formattedPosts = posts.map((post: any) => ({
+      ...post,
+      author: post.users,
+      users: undefined // 移除 users 字段
+    }))
+
     return NextResponse.json({
       success: true,
       data: {
-        posts,
+        posts: formattedPosts,
         pagination: {
           page,
           limit,
@@ -158,7 +167,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 验证用户存在且账户有效
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: userId },
       select: { id: true, name: true }
     })
@@ -174,7 +183,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const post = await prisma.post.create({
+    const post = await prisma.posts.create({
       data: {
         title: title?.trim() || null,
         content: content.trim(),
@@ -189,10 +198,13 @@ export async function POST(request: NextRequest) {
         tags,
         coverImage: coverImage || null,
         isDraft,
-        publishedAt: publishedAt ? new Date(publishedAt) : null
+        publishedAt: publishedAt ? new Date(publishedAt) : null,
+        // 审核相关字段 - 默认自动通过
+        moderationStatus: 'approved',
+        isActive: true
       },
       include: {
-        author: {
+        users: {
           select: {
             id: true,
             name: true,

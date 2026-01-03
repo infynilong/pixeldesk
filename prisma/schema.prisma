@@ -305,36 +305,45 @@ model post_replies {
 }
 
 model posts {
-  id            String          @id
-  authorId      String
-  title         String?
-  content       String
-  type          PostType        @default(TEXT)
-  imageUrl      String?
-  isPublic      Boolean         @default(true)
-  likeCount     Int             @default(0)
-  replyCount    Int             @default(0)
-  viewCount     Int             @default(0)
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime
-  coverImage    String?
-  isDraft       Boolean         @default(false)
-  publishedAt   DateTime?
-  readTime      Int             @default(1)
-  summary       String?
-  tags          String[]        @default([])
-  wordCount     Int             @default(0)
-  imageUrls     String[]        @default([])
-  notifications notifications[]
-  post_likes    post_likes[]
-  post_replies  post_replies[]
-  users         users           @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  id              String          @id
+  authorId        String
+  title           String?
+  content         String
+  type            PostType        @default(TEXT)
+  imageUrl        String?
+  isPublic        Boolean         @default(true)
+  likeCount       Int             @default(0)
+  replyCount      Int             @default(0)
+  viewCount       Int             @default(0)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime
+  coverImage      String?
+  isDraft         Boolean         @default(false)
+  publishedAt     DateTime?
+  readTime        Int             @default(1)
+  summary         String?
+  tags            String[]        @default([])
+  wordCount       Int             @default(0)
+  imageUrls       String[]        @default([])
+  moderationStatus String         @default("pending")  // pending, approved, rejected, flagged
+  isActive        Boolean         @default(true)       // 是否启用（禁用后不显示）
+  aiReviewResult  String?                              // AI审查结果
+  aiReviewedAt    DateTime?                            // AI审查时间
+  reviewedBy      String?                              // 审查人ID
+  reviewedAt      DateTime?                            // 人工审查时间
+  reviewNotes     String?                              // 审查备注
+  notifications   notifications[]
+  post_likes      post_likes[]
+  post_replies    post_replies[]
+  users           users           @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   @@index([authorId])
   @@index([createdAt])
   @@index([isDraft])
   @@index([likeCount])
   @@index([publishedAt])
+  @@index([moderationStatus])
+  @@index([isActive])
 }
 
 model status_history {

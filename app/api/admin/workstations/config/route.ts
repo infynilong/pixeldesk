@@ -18,7 +18,7 @@ export async function GET() {
   try {
     await requirePermission('workstations.view')
 
-    const config = await prisma.workstationConfig.findFirst()
+    const config = await prisma.workstation_config.findFirst()
 
     if (!config) {
       return NextResponse.json(
@@ -58,7 +58,7 @@ export async function PUT(request: NextRequest) {
     const data = validation.data
 
     // 更新配置
-    const config = await prisma.workstationConfig.findFirst()
+    const config = await prisma.workstation_config.findFirst()
 
     if (!config) {
       return NextResponse.json(
@@ -67,7 +67,7 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    const updated = await prisma.workstationConfig.update({
+    const updated = await prisma.workstation_config.update({
       where: { id: config.id },
       data: {
         ...data,

@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     }
     
     // 验证会话是否仍然活跃
-    const activeSession = await prisma.userSession.findFirst({
+    const activeSession = await prisma.user_sessions.findFirst({
       where: {
         userId: payload.userId,
         token: token,
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
         expiresAt: { gt: new Date() }
       }
     })
-    
+
     if (!activeSession) {
       return NextResponse.json({
         success: false,
@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
     const avatarUrl = `/avatars/${fileName}`
 
     // 更新用户customAvatar字段（自定义头像优先级高于角色形象）
-    const updatedUser = await prisma.user.update({
+    const updatedUser = await prisma.users.update({
       where: { id: payload.userId },
       data: {
         customAvatar: avatarUrl,
@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
       success: true,
       data: {
         avatarUrl: avatarUrl,
-        user: {
+        users: {
           id: updatedUser.id,
           name: updatedUser.name,
           email: updatedUser.email,
@@ -146,7 +146,7 @@ export async function DELETE(request: NextRequest) {
     }
     
     // 验证会话是否仍然活跃
-    const activeSession = await prisma.userSession.findFirst({
+    const activeSession = await prisma.user_sessions.findFirst({
       where: {
         userId: payload.userId,
         token: token,
@@ -154,16 +154,16 @@ export async function DELETE(request: NextRequest) {
         expiresAt: { gt: new Date() }
       }
     })
-    
+
     if (!activeSession) {
       return NextResponse.json({
         success: false,
         error: 'Session expired or invalid'
       }, { status: 401 })
     }
-    
+
     // 删除用户customAvatar字段（设为null），恢复使用角色形象
-    const updatedUser = await prisma.user.update({
+    const updatedUser = await prisma.users.update({
       where: { id: payload.userId },
       data: {
         customAvatar: null,
@@ -175,7 +175,7 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: {
-        user: {
+        users: {
           id: updatedUser.id,
           name: updatedUser.name,
           email: updatedUser.email,

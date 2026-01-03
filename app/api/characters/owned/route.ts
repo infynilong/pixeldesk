@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: payload.userId },
       select: { id: true, avatar: true }
     })
@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 查询用户购买的角色
-    const purchases = await prisma.characterPurchase.findMany({
+    const purchases = await prisma.character_purchases.findMany({
       where: {
         userId: user.id
       },
@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
     })
 
     // 查询所有默认角色（免费角色）
-    const defaultCharacters = await prisma.character.findMany({
+    const defaultCharacters = await prisma.characters.findMany({
       where: {
         isDefault: true,
         isActive: true
@@ -99,7 +99,7 @@ export async function GET(request: NextRequest) {
     })
 
     // 获取用户当前使用的角色
-    const currentUser = await prisma.user.findUnique({
+    const currentUser = await prisma.users.findUnique({
       where: { id: user.id },
       select: { avatar: true }
     })

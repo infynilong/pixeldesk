@@ -25,7 +25,7 @@ export async function GET(
       console.log(`📡 [GET replies] 尝试获取回复，剩余重试次数: ${retries}`)
 
       // 验证帖子存在
-      const post = await prisma.post.findUnique({
+      const post = await prisma.posts.findUnique({
         where: { id: postId },
         select: { id: true }
       })
@@ -179,7 +179,7 @@ export async function POST(
       console.log(`📡 [POST replies] 尝试创建回复，剩余重试次数: ${retries}`)
 
       // 验证帖子存在，并获取作者信息
-      const post = await prisma.post.findUnique({
+      const post = await prisma.posts.findUnique({
         where: { id: postId },
         select: {
           id: true,
@@ -203,7 +203,7 @@ export async function POST(
       }
 
       // 验证用户存在
-      const user = await prisma.user.findUnique({
+      const user = await prisma.users.findUnique({
         where: { id: userId },
         select: { id: true, name: true, avatar: true }
       })

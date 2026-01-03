@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 验证会话是否仍然活跃
-    const activeSession = await prisma.userSession.findFirst({
+    const activeSession = await prisma.user_sessions.findFirst({
       where: {
         userId: payload.userId,
         token: token,
@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
     const characterName = `user_${payload.userId}_${timestamp}`
 
     // 创建角色记录
-    const character = await prisma.character.create({
+    const character = await prisma.characters.create({
       data: {
         name: characterName,
         displayName: displayName.trim(),

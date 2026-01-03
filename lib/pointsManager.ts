@@ -24,7 +24,7 @@ export async function getPointsConfig(key: string, useCache = true): Promise<num
     }
 
     // 从数据库获取
-    const config = await prisma.pointsConfig.findUnique({
+    const config = await prisma.points_config.findUnique({
       where: { key, isActive: true }
     })
 
@@ -45,7 +45,7 @@ export async function getPointsConfig(key: string, useCache = true): Promise<num
  */
 export async function refreshPointsConfigCache(): Promise<void> {
   try {
-    const configs = await prisma.pointsConfig.findMany({
+    const configs = await prisma.points_config.findMany({
       where: { isActive: true }
     })
 
@@ -157,7 +157,7 @@ export async function deductPoints(
     }
 
     // 检查用户当前积分
-    const currentUser = await prisma.user.findUnique({
+    const currentUser = await prisma.users.findUnique({
       where: { id: userId },
       select: { points: true }
     })
@@ -228,7 +228,7 @@ export async function deductPoints(
 export async function hasEnoughPoints(userId: string, configKey: string): Promise<boolean> {
   try {
     const requiredPoints = await getPointsConfig(configKey)
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: userId },
       select: { points: true }
     })

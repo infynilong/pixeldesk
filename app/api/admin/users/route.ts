@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
 
         // 查询数据
         const [users, total] = await Promise.all([
-            prisma.user.findMany({
+            prisma.users.findMany({
                 where,
                 include: {
                     player: {
@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
                 skip: (page - 1) * pageSize,
                 take: pageSize,
             }),
-            prisma.user.count({ where }),
+            prisma.users.count({ where }),
         ])
 
         return NextResponse.json({

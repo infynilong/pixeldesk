@@ -9,7 +9,7 @@ export async function GET(
     try {
         await requirePermission('users.view')
 
-        const user = await prisma.user.findUnique({
+        const user = await prisma.users.findUnique({
             where: { id: params.id },
             include: {
                 player: true,
@@ -48,7 +48,7 @@ export async function DELETE(
     try {
         await requirePermission('users.delete')
 
-        const user = await prisma.user.findUnique({
+        const user = await prisma.users.findUnique({
             where: { id: params.id },
         })
 
@@ -57,7 +57,7 @@ export async function DELETE(
         }
 
         // 删除用户（级联删除 Player 和其他关联记录）
-        await prisma.user.delete({
+        await prisma.users.delete({
             where: { id: params.id }
         })
 

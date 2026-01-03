@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 检查邮箱是否已存在
-    const existingUser = await prisma.user.findUnique({
+    const existingUser = await prisma.users.findUnique({
       where: { email: email.toLowerCase().trim() }
     })
 
@@ -56,15 +56,21 @@ export async function POST(request: NextRequest) {
     // 哈希密码
     const hashedPassword = await hashPassword(password)
 
+    // 生成用户 ID
+    const cuid = (await import('cuid')).default
+    const userId = cuid()
+
     // 创建用户
-    const user = await prisma.user.create({
+    const user = await prisma.users.create({
       data: {
+        id: userId,
         name: name.trim(),
         email: email.toLowerCase().trim(),
         password: hashedPassword,
         points: 100,  // 初始积分
         emailVerified: false,
-        isActive: true
+        isActive: true,
+        updatedAt: new Date()
       }
     })
 
@@ -89,14 +95,16 @@ export async function POST(request: NextRequest) {
       request.headers.get('x-real-ip') ||
       'Unknown'
 
-    await prisma.userSession.create({
+    await prisma.user_sessions.create({
       data: {
+        id: cuid(),
         userId: user.id,
         token,
         userAgent,
         ipAddress,
         expiresAt,
-        isActive: true
+        isActive: true,
+        updatedAt: new Date()
       }
     })
 
