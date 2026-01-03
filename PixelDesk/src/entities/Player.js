@@ -72,9 +72,16 @@ export class Player extends Phaser.GameObjects.Container {
             this.initCharacterFloatAnimation();
         }
 
-        // 修改碰撞体大小和偏移量
-        this.body.setSize(40, 60);
-        this.body.setOffset(-20, -12);
+        // 修改碰撞体大小和偏移量 - 缩小碰撞区域避免过于敏感
+        if (this.isOtherPlayer) {
+            // 工位角色使用更小的碰撞体(因为它们是静止的)
+            this.body.setSize(24, 36);
+            this.body.setOffset(-12, -6);
+        } else {
+            // 当前玩家使用正常碰撞体
+            this.body.setSize(28, 40);
+            this.body.setOffset(-14, -8);
+        }
 
         // 设置默认帧
         this.setDirectionFrame(this.currentDirection);
@@ -664,13 +671,19 @@ export class Player extends Phaser.GameObjects.Container {
             this.isColliding = true;
             this.collisionStartTime = Date.now();
 
+            // 🔧 修复：检查是否是工位角色,以及是否应该触发工位状态弹窗
+            const isWorkstationPlayer = this.playerData?.isWorkstationPlayer;
+            const shouldTriggerWorkstationPopup = isWorkstationPlayer && this.checkIsMyWorkstation(mainPlayer);
+
             // 创建碰撞事件数据
             const collisionEvent = {
                 type: 'collision_start',
                 mainPlayer: mainPlayer.playerData,
                 targetPlayer: this.playerData,
                 timestamp: this.collisionStartTime,
-                position: { x: this.x, y: this.y }
+                position: { x: this.x, y: this.y },
+                isWorkstationPlayer: isWorkstationPlayer,
+                shouldTriggerWorkstationPopup: shouldTriggerWorkstationPopup
             };
 
             // 使用事件总线触发碰撞开始事件
@@ -683,8 +696,29 @@ export class Player extends Phaser.GameObjects.Container {
                 window.onPlayerCollisionStart(collisionEvent);
             }
 
-            debugLog('碰撞开始:', this.playerData.name, 'at', new Date(this.collisionStartTime).toLocaleTimeString());
+            debugLog('碰撞开始:', this.playerData.name, 'at', new Date(this.collisionStartTime).toLocaleTimeString(),
+                     'isWorkstationPlayer:', isWorkstationPlayer,
+                     'shouldTriggerWorkstationPopup:', shouldTriggerWorkstationPopup);
         }
+    }
+
+    // 检查这个工位角色是否是当前玩家的工位
+    checkIsMyWorkstation() {
+        if (!this.playerData?.isWorkstationPlayer) {
+            return false;
+        }
+
+        // 从场景中获取 workstationManager
+        const scene = this.scene;
+        if (!scene || !scene.workstationManager || !scene.currentUser) {
+            return false;
+        }
+
+        const myWorkstation = scene.workstationManager.getWorkstationByUser(scene.currentUser.id);
+        const otherPlayerWorkstation = scene.workstationManager.getWorkstationByUser(this.playerData.id);
+
+        // 只有当两个工位是同一个时才返回 true
+        return myWorkstation && otherPlayerWorkstation && myWorkstation.id === otherPlayerWorkstation.id;
     }
 
     // 处理与主玩家的碰撞结束

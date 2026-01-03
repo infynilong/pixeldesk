@@ -2257,8 +2257,19 @@ export class Start extends Phaser.Scene {
       this.workstationManager.getWorkstationByUser(this.currentUser.id)
 
     if (!userWorkstation || String(userWorkstation.id) !== String(desk.workstationId)) {
-      // 只有在调试模式下才记录不匹配的情况，避免日志污染
-      // debugLog(`Skip: desk ${desk.workstationId} is not user's desk ${userWorkstation?.id}`)
+      // 调试：记录不匹配的情况
+      console.log(`⏭️ [工位碰撞] 跳过: desk ${desk.workstationId} 不是用户的工位 ${userWorkstation?.id}`)
+      return
+    }
+
+    // 🔧 新增：检查玩家是否真的非常靠近工位中心,避免误触发
+    const deskCenterX = desk.x + (desk.displayWidth || desk.width || 48) / 2
+    const deskCenterY = desk.y + (desk.displayHeight || desk.height || 48) / 2
+    const distance = Phaser.Math.Distance.Between(player.x, player.y, deskCenterX, deskCenterY)
+
+    // 只有距离小于 70 像素时才触发工位状态弹窗
+    if (distance > 70) {
+      console.log(`⏭️ [工位碰撞] 距离过远(${Math.round(distance)}px > 70px)，跳过触发`)
       return
     }
 
@@ -2269,10 +2280,11 @@ export class Start extends Phaser.Scene {
     if (!this.collisionManager.activeCollisions.has(collisionId)) {
       this.collisionManager.activeCollisions.add(collisionId)
 
-      console.log(`🚀 [Phaser] 触发工位碰撞! ID: ${workstationId}, 用户绑定ID: ${myBoundWorkstationId}`)
+      console.log(`🚀 [Phaser] 触发工位家具碰撞! workstationId: ${workstationId}, 用户ID: ${this.currentUser.id}, 用户绑定工位ID: ${myBoundWorkstationId}`)
 
       // 触发自定义事件给React组件
       if (typeof window !== 'undefined') {
+        console.log(`📢 [Phaser] 即将dispatch my-workstation-collision-start 事件`)
         window.dispatchEvent(new CustomEvent('my-workstation-collision-start', {
           detail: {
             workstationId,
