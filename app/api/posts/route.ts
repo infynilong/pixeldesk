@@ -211,7 +211,8 @@ export async function POST(request: NextRequest) {
           select: {
             id: true,
             name: true,
-            avatar: true
+            avatar: true,
+            customAvatar: true
           }
         }
       }
@@ -236,9 +237,16 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // 转换数据结构：将 users 映射为 author(与 GET 方法保持一致)
+    const formattedPost = {
+      ...post,
+      author: post.users,
+      users: undefined // 移除 users 字段
+    }
+
     return NextResponse.json({
       success: true,
-      data: post,
+      data: formattedPost,
       currentPoints
     })
 

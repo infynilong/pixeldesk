@@ -151,7 +151,7 @@ export default function SocialFeedTab({
 
             <button
               onClick={handlePostButtonClick}
-              className="bg-gray-800 hover:bg-gray-700 border border-gray-700 hover:border-gray-600 text-gray-300 hover:text-gray-200 py-2 px-3 rounded-lg  text-xs font-mono"
+              className="bg-gradient-to-r from-cyan-600/80 to-teal-600/80 hover:from-cyan-500/90 hover:to-teal-500/90 border border-cyan-500/30 hover:border-cyan-400/50 text-white py-2 px-3 rounded-lg shadow-sm shadow-cyan-500/20 hover:shadow-md hover:shadow-cyan-500/30 text-xs font-mono"
             >
               <div className="flex items-center gap-1.5">
                 <span className="text-xs">{showCreateForm ? '✕' : '+'}</span>
@@ -163,7 +163,7 @@ export default function SocialFeedTab({
               href="/posts/create"
               target="_blank"
               rel="noopener noreferrer"
-              className="bg-gradient-to-r from-retro-purple to-retro-blue hover:from-retro-blue hover:to-retro-cyan text-white font-bold py-2 px-3 rounded-lg border border-white/20 shadow-sm hover:shadow-md  text-xs font-pixel"
+              className="bg-gradient-to-r from-cyan-700 to-teal-700 hover:from-cyan-600 hover:to-teal-600 text-white font-bold py-2 px-3 rounded-lg border border-cyan-600/40 shadow-sm shadow-cyan-600/30 hover:shadow-md hover:shadow-cyan-500/40 text-xs font-pixel"
             >
               <div className="flex items-center gap-1.5">
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -317,13 +317,13 @@ export default function TabManager({
               onClick={() => handleTabSwitch(tab.id, 'manual')}
               className={`
                 relative ${tabLayout.tabButton}  transform
-                ${isActive 
-                  ? 'text-white bg-gradient-to-r from-retro-purple/30 to-retro-pink/30 border-b-2 border-retro-purple shadow-lg' 
-                  : 'text-retro-textMuted hover:text-white hover:bg-retro-purple/10 hover:scale-105'
+                ${isActive
+                  ? 'text-white bg-gradient-to-r from-cyan-600/30 to-teal-600/30 border-b-2 border-cyan-500 shadow-lg shadow-cyan-500/20'
+                  : 'text-retro-textMuted hover:text-white hover:bg-cyan-600/10 hover:scale-105'
                 }
-                ${isHighlighted || isHighlightedBySwitch ? ' bg-gradient-to-r from-retro-pink/40 to-retro-purple/40 shadow-lg shadow-retro-pink/50' : ''}
-                ${isCollisionInteraction ? 'bg-gradient-to-r from-retro-pink/30 to-retro-purple/30 shadow-lg shadow-retro-pink/30' : ''}
-                ${isClickInteraction ? 'bg-gradient-to-r from-retro-blue/30 to-retro-cyan/30 shadow-lg shadow-retro-blue/30' : ''}
+                ${isHighlighted || isHighlightedBySwitch ? ' bg-gradient-to-r from-cyan-500/40 to-teal-500/40 shadow-lg shadow-cyan-500/50' : ''}
+                ${isCollisionInteraction ? 'bg-gradient-to-r from-cyan-500/30 to-teal-500/30 shadow-lg shadow-cyan-500/30' : ''}
+                ${isClickInteraction ? 'bg-gradient-to-r from-cyan-600/30 to-teal-600/30 shadow-lg shadow-cyan-500/30' : ''}
                 ${isSwitching ? '' : ''}
                 ${index === 0 ? 'rounded-tl-lg' : ''}
                 ${index === tabs.length - 1 ? 'rounded-tr-lg' : ''}
@@ -357,20 +357,20 @@ export default function TabManager({
               {/* Enhanced Collision indicator */}
               {(isHighlighted || isHighlightedBySwitch) && (
                 <>
-                  <div className="absolute top-1 right-1 w-2 h-2 bg-retro-pink rounded-full "></div>
-                  <div className="absolute top-1 right-1 w-2 h-2 bg-retro-pink rounded-full"></div>
+                  <div className="absolute top-1 right-1 w-2 h-2 bg-cyan-400 rounded-full "></div>
+                  <div className="absolute top-1 right-1 w-2 h-2 bg-cyan-400 rounded-full"></div>
                 </>
               )}
-              
-              
+
+
               {/* Active tab glow effect */}
               {isActive && (
-                <div className="absolute inset-0 bg-gradient-to-r from-retro-purple/20 to-retro-pink/20 rounded-lg blur-sm -z-10"></div>
+                <div className="absolute inset-0 bg-gradient-to-r from-cyan-600/20 to-teal-600/20 rounded-lg blur-sm -z-10"></div>
               )}
-              
+
               {/* Switching animation overlay */}
               {isSwitching && (
-                <div className="absolute inset-0 bg-gradient-to-r from-retro-blue/30 to-retro-cyan/30 rounded-lg "></div>
+                <div className="absolute inset-0 bg-gradient-to-r from-cyan-600/30 to-teal-600/30 rounded-lg "></div>
               )}
             </button>
           )
@@ -419,9 +419,9 @@ export default function TabManager({
         {tabState.animationState === 'switching' && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-retro-bg-dark/80 to-retro-bg-darker/80 backdrop-blur-sm z-10">
             <div className="flex items-center space-x-3 mb-4">
-              <div className="w-3 h-3 bg-retro-purple rounded-full " style={{ animationDelay: '0ms' }}></div>
-              <div className="w-3 h-3 bg-retro-pink rounded-full " style={{ animationDelay: '150ms' }}></div>
-              <div className="w-3 h-3 bg-retro-blue rounded-full " style={{ animationDelay: '300ms' }}></div>
+              <div className="w-3 h-3 bg-cyan-500 rounded-full " style={{ animationDelay: '0ms' }}></div>
+              <div className="w-3 h-3 bg-teal-500 rounded-full " style={{ animationDelay: '150ms' }}></div>
+              <div className="w-3 h-3 bg-cyan-400 rounded-full " style={{ animationDelay: '300ms' }}></div>
             </div>
             <div className="text-center">
               <div className="text-white text-sm font-medium mb-1">切换标签页</div>
@@ -429,10 +429,10 @@ export default function TabManager({
                 {tabState.lastSwitchTrigger === 'collision' ? '检测到玩家碰撞' : '正在切换...'}
               </div>
             </div>
-            
+
             {/* Animated progress bar */}
             <div className="w-32 h-1 bg-retro-border rounded-full mt-4 overflow-hidden">
-              <div className="h-full bg-gradient-to-r from-retro-purple to-retro-pink rounded-full "></div>
+              <div className="h-full bg-gradient-to-r from-cyan-500 to-teal-500 rounded-full "></div>
             </div>
           </div>
         )}

@@ -162,7 +162,8 @@ export async function PUT(
           select: {
             id: true,
             name: true,
-            avatar: true
+            avatar: true,
+            customAvatar: true
           }
         }
       }
@@ -252,7 +253,8 @@ export async function PATCH(
           select: {
             id: true,
             name: true,
-            avatar: true
+            avatar: true,
+            customAvatar: true
           }
         }
       }

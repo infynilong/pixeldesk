@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
         }
 
         // 获取最近100条聊天历史
-        const history = await prisma.aiChatHistory.findMany({
+        const history = await prisma.ai_chat_history.findMany({
             where: { userId, npcId },
             orderBy: { createdAt: 'asc' }, // 按时间正序
             take: 100

@@ -30,7 +30,7 @@ export async function POST(
     }
 
     // 获取 AI 配置
-    const aiConfig = await prisma.aiGlobalConfig.findFirst({
+    const aiConfig = await prisma.ai_global_config.findFirst({
       where: { isActive: true }
     })
 

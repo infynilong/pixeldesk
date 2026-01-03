@@ -4,7 +4,7 @@ import { prisma } from '@/lib/db'
 export async function GET(request: NextRequest) {
     try {
         // 获取最近 14 天的统计数据
-        const stats = await prisma.aiUsage.findMany({
+        const stats = await prisma.ai_usage.findMany({
             orderBy: { date: 'desc' },
             take: 14,
             include: {

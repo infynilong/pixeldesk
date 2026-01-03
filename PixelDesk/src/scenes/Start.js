@@ -595,6 +595,9 @@ export class Start extends Phaser.Scene {
       });
 
     }
+
+    // 🔧 新增：监听用户登录事件,刷新玩家和工位状态
+    this.setupLoginListener()
   }
 
   update() {
@@ -2628,6 +2631,51 @@ export class Start extends Phaser.Scene {
       this.collisionManager.collisionThreshold = radius
       debugLog("碰撞敏感度已设置为:", radius)
     }
+  }
+
+  // 🔧 新增：设置登录监听器
+  setupLoginListener() {
+    if (typeof window === 'undefined') return
+
+    const handleLoginSuccess = async (event) => {
+      console.log('🔄 [Start] 检测到用户登录,开始刷新游戏状态:', event.detail)
+
+      const { userId, characterSprite } = event.detail
+
+      // 1. 更新当前用户信息
+      if (this.currentUser) {
+        this.currentUser.id = userId
+      }
+
+      // 2. 更新玩家角色形象
+      if (this.player && characterSprite) {
+        console.log('🎨 [Start] 更新玩家角色形象:', characterSprite)
+        this.player.updateCharacterSprite(characterSprite)
+      }
+
+      // 3. 重新同步工位绑定状态
+      if (this.workstationManager) {
+        console.log('🔄 [Start] 重新同步工位绑定状态')
+        await this.workstationManager.syncAllBindings()
+
+        // 4. 移除自己工位上的工位角色 (因为现在你就是工位的主人)
+        const myWorkstation = this.workstationManager.getWorkstationByUser(userId)
+        if (myWorkstation && myWorkstation.characterSprite) {
+          console.log('🗑️ [Start] 移除自己工位上的工位角色')
+          myWorkstation.characterSprite.destroy()
+          myWorkstation.characterSprite = null
+        }
+      }
+
+      console.log('✅ [Start] 登录刷新完成')
+    }
+
+    window.addEventListener('user-login-success', handleLoginSuccess)
+
+    // 清理函数
+    this.events.once('shutdown', () => {
+      window.removeEventListener('user-login-success', handleLoginSuccess)
+    })
   }
 
   // 已删除重复的碰撞检测函数

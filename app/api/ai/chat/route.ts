@@ -28,11 +28,11 @@ export async function POST(request: NextRequest) {
 
         // 3. 准备数据：NPC 信息、全局 AI 配置、系统实时上下文、聊天历史
         const [npc, aiConfig, systemContext, chatHistory] = await Promise.all([
-            prisma.aiNpc.findUnique({ where: { id: npcId } }),
-            prisma.aiGlobalConfig.findFirst({ where: { isActive: true } }),
+            prisma.ai_npcs.findUnique({ where: { id: npcId } }),
+            prisma.ai_global_config.findFirst({ where: { isActive: true } }),
             getSystemContext(),
             // 加载最近100条聊天历史
-            prisma.aiChatHistory.findMany({
+            prisma.ai_chat_history.findMany({
                 where: { userId, npcId },
                 orderBy: { createdAt: 'desc' },
                 take: 100
@@ -55,10 +55,19 @@ export async function POST(request: NextRequest) {
 
         // 4. 限制检查
         const today = new Date().toISOString().split('T')[0]
-        const usage = await prisma.aiUsage.upsert({
+        const usage = await prisma.ai_usage.upsert({
             where: { userId_date: { userId, date: today } },
-            update: { count: { increment: 1 } },
-            create: { userId, date: today, count: 1 }
+            update: {
+                count: { increment: 1 },
+                updatedAt: new Date()
+            },
+            create: {
+                id: `usage_${userId}_${today}`,
+                userId,
+                date: today,
+                count: 1,
+                updatedAt: new Date()
+            }
         })
 
         const currentLimit = aiConfig?.dailyLimit || DAILY_LIMIT;
@@ -141,7 +150,7 @@ ${systemContext?.latestBuzz}
 
             // 8. 更新 Token 使用记录
             if (aiResponse.usage) {
-                await prisma.aiUsage.update({
+                await prisma.ai_usage.update({
                     where: { id: usage.id },
                     data: {
                         promptTokens: { increment: aiResponse.usage.promptTokens },
@@ -152,7 +161,7 @@ ${systemContext?.latestBuzz}
             }
 
             // 9. 保存聊天历史（用户消息 + AI回复）
-            await prisma.aiChatHistory.createMany({
+            await prisma.ai_chat_history.createMany({
                 data: [
                     {
                         userId,

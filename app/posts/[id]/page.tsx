@@ -12,10 +12,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { id } = params
 
   try {
-    const post = await prisma.post.findUnique({
+    const post = await prisma.posts.findUnique({
       where: { id },
       include: {
-        author: {
+        users: {
           select: {
             id: true,
             name: true,
@@ -39,7 +39,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     return {
       title: `${title} - PixelDesk`,
       description,
-      authors: [{ name: post.author.name }],
+      authors: [{ name: post.users.name }],
       keywords: post.tags || [],
       openGraph: {
         title,
@@ -47,7 +47,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
         type: 'article',
         publishedTime: (post.publishedAt || post.createdAt).toISOString(),
         modifiedTime: post.updatedAt.toISOString(),
-        authors: [post.author.name],
+        authors: [post.users.name],
         tags: post.tags || [],
         images: [
           {
@@ -79,10 +79,10 @@ export default async function PostDetailPage({ params }: PageProps) {
 
   try {
     // 服务器端获取帖子数据
-    const post = await prisma.post.findUnique({
+    const post = await prisma.posts.findUnique({
       where: { id },
       include: {
-        author: {
+        users: {
           select: {
             id: true,
             name: true,
@@ -91,8 +91,8 @@ export default async function PostDetailPage({ params }: PageProps) {
         },
         _count: {
           select: {
-            replies: true,
-            likes: true
+            post_replies: true,
+            post_likes: true
           }
         }
       }
@@ -103,7 +103,7 @@ export default async function PostDetailPage({ params }: PageProps) {
     }
 
     // 增加浏览量
-    await prisma.post.update({
+    await prisma.posts.update({
       where: { id },
       data: { viewCount: { increment: 1 } }
     })
@@ -115,13 +115,14 @@ export default async function PostDetailPage({ params }: PageProps) {
       content: post.content,
       type: post.type as 'TEXT' | 'IMAGE' | 'MIXED' | 'MARKDOWN',
       imageUrl: post.imageUrl,
+      imageUrls: post.imageUrls,
       isPublic: post.isPublic,
-      likeCount: post._count.likes,
-      replyCount: post._count.replies,
+      likeCount: post._count.post_likes,
+      replyCount: post._count.post_replies,
       viewCount: post.viewCount,
       createdAt: post.createdAt.toISOString(),
       updatedAt: post.updatedAt.toISOString(),
-      author: post.author,
+      author: post.users,
       isLiked: false, // 客户端会更新这个值
       summary: post.summary,
       wordCount: post.wordCount,
@@ -143,7 +144,7 @@ export default async function PostDetailPage({ params }: PageProps) {
       dateModified: post.updatedAt.toISOString(),
       author: {
         '@type': 'Person',
-        name: post.author.name
+        name: post.users.name
       },
       publisher: {
         '@type': 'Organization',

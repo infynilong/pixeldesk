@@ -3,7 +3,7 @@ import { prisma } from '@/lib/db'
 
 export async function GET() {
     try {
-        const config = await prisma.aiGlobalConfig.findFirst({
+        const config = await prisma.ai_global_config.findFirst({
             where: { isActive: true }
         })
 

@@ -65,7 +65,8 @@ export async function GET(
           select: {
             id: true,
             name: true,
-            avatar: true
+            avatar: true,
+            customAvatar: true
           }
         },
         post_likes: currentUserId ? {
@@ -94,7 +95,8 @@ export async function GET(
           select: {
             id: true,
             name: true,
-            avatar: true
+            avatar: true,
+            customAvatar: true
           }
         },
         post_likes: currentUserId ? {

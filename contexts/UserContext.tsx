@@ -97,6 +97,19 @@ export function UserProvider({ children }: { children: ReactNode }) {
           // Initialize player sync after successful login
           const playerSyncResult = await initializePlayerSync()
           setPlayerExists(playerSyncResult.hasPlayer)
+
+          // 🔧 新增：通知Phaser游戏刷新玩家和工位状态
+          if (typeof window !== 'undefined') {
+            // 触发游戏刷新事件
+            window.dispatchEvent(new CustomEvent('user-login-success', {
+              detail: {
+                userId: data.data.id,
+                characterSprite: playerSyncResult.player?.characterSprite,
+                needsRefresh: true
+              }
+            }))
+          }
+
           return true
         }
       }

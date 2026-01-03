@@ -10,7 +10,7 @@ export async function PUT(
         const body = await request.json()
         const { name, role, personality, knowledge, greeting, isActive, x, y, isFixed } = body
 
-        const updated = await (prisma.aiNpc as any).update({
+        const updated = await prisma.ai_npcs.update({
             where: { id },
             data: {
                 name,
@@ -21,7 +21,8 @@ export async function PUT(
                 isActive,
                 isFixed: isFixed !== undefined ? Boolean(isFixed) : undefined,
                 x: x !== undefined ? Number(x) : undefined,
-                y: y !== undefined ? Number(y) : undefined
+                y: y !== undefined ? Number(y) : undefined,
+                updatedAt: new Date()
             }
         })
 
@@ -37,7 +38,7 @@ export async function DELETE(
     { params }: { params: { id: string } }
 ) {
     try {
-        await prisma.aiNpc.delete({
+        await prisma.ai_npcs.delete({
             where: { id: params.id }
         })
         return NextResponse.json({ success: true })

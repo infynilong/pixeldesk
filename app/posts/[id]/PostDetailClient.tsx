@@ -385,8 +385,8 @@ export default function PostDetailClient({ initialPost }: PostDetailClientProps)
                   </p>
                 )}
 
-                {/* 图片内容 - 非博客类型 */}
-                {post.type !== 'MARKDOWN' && post.imageUrl && (
+                {/* 图片内容 - 单图(优先使用 imageUrl) */}
+                {post.type !== 'MARKDOWN' && post.imageUrl && !post.imageUrls?.length && (
                   <div className="mt-6 overflow-hidden rounded-xl">
                     <img
                       src={post.imageUrl}
@@ -396,7 +396,7 @@ export default function PostDetailClient({ initialPost }: PostDetailClientProps)
                   </div>
                 )}
 
-                {/* 多图片展示 - imageUrls */}
+                {/* 多图片展示 - imageUrls(包括所有类型的帖子) */}
                 {post.imageUrls && post.imageUrls.length > 0 && (
                   <div className="mt-6">
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">

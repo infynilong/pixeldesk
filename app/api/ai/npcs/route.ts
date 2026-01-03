@@ -9,7 +9,7 @@ export async function GET(request: Request) {
 
         if (force) {
             console.log('🗑️ [NPC Seed] 正在强制清空 NPC 数据...');
-            await prisma.aiNpc.deleteMany({});
+            await prisma.ai_npcs.deleteMany({});
         }
 
         // 获取现有 NPC 名单 - 使用原生查询绕过 Prisma Client 缓存问题
@@ -129,11 +129,17 @@ export async function GET(request: Request) {
         if (missingNpcs.length > 0) {
             console.log(`✨ 发现缺失 NPC，正在补全: ${missingNpcs.map(n => n.name).join(', ')}`);
             await Promise.all(
-                missingNpcs.map(n => prisma.aiNpc.create({ data: n }))
+                missingNpcs.map(n => prisma.ai_npcs.create({
+                    data: {
+                        ...n,
+                        id: `npc_${n.name.toLowerCase().replace(/\s+/g, '_')}`,
+                        updatedAt: new Date()
+                    }
+                }))
             );
 
             // 重新获取完整列表
-            const allNpcs = await prisma.aiNpc.findMany({
+            const allNpcs = await prisma.ai_npcs.findMany({
                 where: { isActive: true }
             });
             return NextResponse.json({ success: true, data: allNpcs });
@@ -169,7 +175,7 @@ export async function POST(request: Request) {
         // 确保数值类型正确
         const parsedLimit = typeof dailyLimit === 'number' ? dailyLimit : parseInt(dailyLimit) || 20;
 
-        const config = await (prisma as any).aiGlobalConfig.upsert({
+        const config = await prisma.ai_global_config.upsert({
             where: { id: 'global_config' },
             update: {
                 provider,
@@ -178,7 +184,8 @@ export async function POST(request: Request) {
                 baseUrl: baseUrl || null,
                 dailyLimit: parsedLimit,
                 temperature: temperature !== undefined ? parseFloat(temperature) : 0.7,
-                isActive: true
+                isActive: true,
+                updatedAt: new Date()
             },
             create: {
                 id: 'global_config',
@@ -188,7 +195,8 @@ export async function POST(request: Request) {
                 baseUrl: baseUrl || null,
                 dailyLimit: parsedLimit,
                 temperature: temperature !== undefined ? parseFloat(temperature) : 0.7,
-                isActive: true
+                isActive: true,
+                updatedAt: new Date()
             }
         })
 
