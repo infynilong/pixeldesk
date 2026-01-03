@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { getPointsConfig } from '@/lib/pointsManager'
+import { randomUUID } from 'crypto'
 
 export async function GET(request: NextRequest) {
   try {
@@ -108,6 +109,7 @@ export async function POST(request: NextRequest) {
       // 记录积分历史
       await tx.points_history.create({
         data: {
+          id: randomUUID(),
           userId,
           amount: -cost,
           reason: '工位绑定',

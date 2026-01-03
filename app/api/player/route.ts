@@ -3,6 +3,7 @@ import { verifyAuthFromRequest } from '@/lib/serverAuth'
 import prisma from '@/lib/prisma'
 import { z } from 'zod'
 import { enrichPlayerWithCharacterUrl } from '@/lib/characterUtils'
+import { randomUUID } from 'crypto'
 
 /**
  * 验证角色名称是否在数据库中存在且可用
@@ -135,12 +136,14 @@ export async function POST(request: NextRequest) {
 
     const player = await prisma.players.create({
       data: {
+        id: randomUUID(),
         userId: user.id,
         playerName: validatedData.playerName,
         characterSprite: validatedData.characterSprite,
         currentX: 400,
         currentY: 300,
-        currentScene: 'Start'
+        currentScene: 'Start',
+        updatedAt: new Date()
       },
       include: {
         users: {
@@ -152,24 +155,30 @@ export async function POST(request: NextRequest) {
           }
         }
       }
+    }) as any
+
+    // 保存用户数据
+    const userData = player.users as { id: string; name: string; email: string; avatar: string | null }
+
+    // 添加角色图片URL
+    const playerWithUrl = enrichPlayerWithCharacterUrl({
+      id: player.id,
+      playerName: player.playerName,
+      characterSprite: player.characterSprite,
+      currentX: player.currentX,
+      currentY: player.currentY,
+      currentScene: player.currentScene,
+      lastActiveAt: player.lastActiveAt,
+      playerState: player.playerState,
+      createdAt: player.createdAt,
+      updatedAt: player.updatedAt
     })
 
     return NextResponse.json({
       success: true,
       data: {
-        player: {
-          id: player.id,
-          playerName: player.playerName,
-          characterSprite: player.characterSprite,
-          currentX: player.currentX,
-          currentY: player.currentY,
-          currentScene: player.currentScene,
-          lastActiveAt: player.lastActiveAt,
-          playerState: player.playerState,
-          createdAt: player.createdAt,
-          updatedAt: player.updatedAt
-        },
-        user: player.users
+        player: playerWithUrl,
+        user: userData
       }
     }, { status: 201 })
   } catch (error) {

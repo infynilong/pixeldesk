@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { rewardPoints } from '@/lib/pointsManager'
+import { randomUUID } from 'crypto'
 
 // 获取帖子列表
 export async function GET(request: NextRequest) {
@@ -185,6 +186,7 @@ export async function POST(request: NextRequest) {
 
     const post = await prisma.posts.create({
       data: {
+        id: randomUUID(),
         title: title?.trim() || null,
         content: content.trim(),
         type,
@@ -201,7 +203,8 @@ export async function POST(request: NextRequest) {
         publishedAt: publishedAt ? new Date(publishedAt) : null,
         // 审核相关字段 - 默认自动通过
         moderationStatus: 'approved',
-        isActive: true
+        isActive: true,
+        updatedAt: new Date()
       },
       include: {
         users: {

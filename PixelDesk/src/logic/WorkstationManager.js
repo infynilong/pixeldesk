@@ -63,8 +63,8 @@ export class WorkstationManager {
 
     // ===== 工位创建和管理 =====
     createWorkstation(tiledObject, sprite) {
-        // 检测工位方向
-        const direction = this.detectWorkstationDirection(tiledObject.name || tiledObject.type || '');
+        // 检测工位方向 (传入对象和精灵以进行多维度判断)
+        const direction = this.detectWorkstationDirection(tiledObject, sprite);
 
         const workstation = {
             id: tiledObject.id,
@@ -99,23 +99,26 @@ export class WorkstationManager {
         return metadata;
     }
 
-    detectWorkstationDirection(name) {
-        // 根据名称检测工位方向
-        if (!name) return 'single'; // 默认为单人桌
-
+    detectWorkstationDirection(tiledObject, sprite) {
+        // 1. 优先从 Tiled 对象的名称或类型检测
+        const name = tiledObject.name || tiledObject.type || '';
         const lowerName = name.toLowerCase();
 
-        if (lowerName.includes('_right')) {
-            return 'right';
-        } else if (lowerName.includes('_left')) {
-            return 'left';
-        } else if (lowerName.includes('single_desk') || lowerName === 'single_desk') {
-            return 'single';
-        } else if (lowerName.includes('center')) {
-            return 'center';
+        if (lowerName.includes('_right')) return 'right';
+        if (lowerName.includes('_left')) return 'left';
+        if (lowerName.includes('center')) return 'center';
+        if (lowerName.includes('single')) return 'single';
+
+        // 2. 其次从贴图 Key 检测 (更可靠的后备方案)
+        if (sprite && sprite.texture) {
+            const textureKey = sprite.texture.key.toLowerCase();
+            if (textureKey.includes('_right')) return 'right';
+            if (textureKey.includes('_left')) return 'left';
         }
 
-        // 默认根据宽度判断
+        // 3. 默认根据宽度推断：宽度大于高度通常是并排桌子
+        if (tiledObject.width > tiledObject.height * 1.5) return 'center';
+
         return 'single';
     }
 
@@ -1242,22 +1245,7 @@ export class WorkstationManager {
         }
     }
 
-    // 根据工位方向获取角色朝向（角色应该面向工位）
-    getCharacterDirectionFromWorkstation(workstation) {
-        switch (workstation.direction) {
-            case 'right':
-                return 'left';  // 右侧工位，角色面向左（面向工位）
-            case 'left':
-                return 'right'; // 左侧工位，角色面向右（面向工位）
-            case 'center':
-                return 'down';  // 中间工位，角色面向下（面向工位）
-            case 'single':
-            default:
-                return 'down';  // 单人桌，角色面向下（面向工位）
-        }
-    }
-
-    // 根据工位方向计算角色位置（复制Start.js的逻辑）
+    // 根据工位方向计算角色位置
     calculateCharacterPosition(workstation) {
         const position = workstation.position;
         const size = workstation.size;
@@ -1269,19 +1257,20 @@ export class WorkstationManager {
         let characterY = position.y;
         let characterDirection = 'down';
 
+        console.log('test direction', direction)
         switch (direction) {
-            case 'right':
-                // 右侧工位，角色放在工位右侧，面向左
-                characterX = position.x + size.width + offsetX;
-                characterY = position.y - offsetY;
-                characterDirection = 'left';
-                break;
-
             case 'left':
-                // 左侧工位，角色放在工位左侧，面向右
+                // 左侧工位 -> 角色站左侧，看右边桌子
                 characterX = position.x - offsetX;
                 characterY = position.y - offsetY;
                 characterDirection = 'right';
+                break;
+
+            case 'right':
+                // 右侧工位 -> 角色站右侧，看左边桌子
+                characterX = position.x + size.width + offsetX;
+                characterY = position.y - offsetY;
+                characterDirection = 'left';
                 break;
 
             case 'single':

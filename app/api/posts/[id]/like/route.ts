@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { randomUUID } from 'crypto'
 
 // 点赞/取消点赞帖子
 export async function POST(
@@ -98,6 +99,7 @@ export async function POST(
       await prisma.$transaction(async (tx) => {
         await tx.post_likes.create({
           data: {
+            id: randomUUID(),
             postId,
             userId
           }
@@ -112,12 +114,14 @@ export async function POST(
         if (post.authorId !== userId) {
           await tx.notifications.create({
             data: {
+              id: randomUUID(),
               userId: post.authorId, // 帖子作者接收通知
               type: 'POST_LIKE',
               title: '新的点赞',
               message: `${user.name} 点赞了你的帖子${post.title ? `"${post.title}"` : ''}`,
               relatedPostId: postId,
-              relatedUserId: userId // 点赞者
+              relatedUserId: userId, // 点赞者
+              updatedAt: new Date()
             }
           })
           console.log(`✅ [PostLike] 已为用户 ${post.authorId} 创建点赞通知`)

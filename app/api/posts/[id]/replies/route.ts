@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { rewardPoints } from '@/lib/pointsManager'
+import { randomUUID } from 'crypto'
 
 // 获取帖子的回复 - 带重试机制处理数据库连接问题
 export async function GET(
@@ -223,9 +224,11 @@ export async function POST(
       const result = await prisma.$transaction(async (tx) => {
         const reply = await tx.postReply.create({
           data: {
+            id: randomUUID(),
             postId,
             authorId: userId,
-            content: content.trim()
+            content: content.trim(),
+            updatedAt: new Date()
           },
           include: {
             author: {
@@ -249,13 +252,15 @@ export async function POST(
         if (post.authorId !== userId) {
           await tx.notification.create({
             data: {
+              id: randomUUID(),
               userId: post.authorId, // 帖子作者接收通知
               type: 'POST_REPLY',
               title: '新的回复',
               message: `${user.name} 回复了你的帖子${post.title ? `"${post.title}"` : ''}`,
               relatedPostId: postId,
               relatedReplyId: reply.id,
-              relatedUserId: userId // 回复者
+              relatedUserId: userId, // 回复者
+              updatedAt: new Date()
             }
           })
           console.log(`✅ [POST replies] 已为用户 ${post.authorId} 创建回复通知`)
