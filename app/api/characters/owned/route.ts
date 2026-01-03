@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
         userId: user.id
       },
       include: {
-        character: {
+        characters: {
           select: {
             id: true,
             name: true,
@@ -122,18 +122,18 @@ export async function GET(request: NextRequest) {
         purchasedAt: null // 默认角色没有购买时间
       })),
       ...purchases.map(purchase => ({
-        id: purchase.character.id,
-        name: purchase.character.name,
-        displayName: purchase.character.displayName,
-        description: purchase.character.description,
-        imageUrl: getCharacterImageUrl(purchase.character.name),
-        frameWidth: purchase.character.frameWidth,
-        frameHeight: purchase.character.frameHeight,
-        totalFrames: purchase.character.totalFrames,
-        isCompactFormat: purchase.character.isCompactFormat,
+        id: purchase.characters.id,
+        name: purchase.characters.name,
+        displayName: purchase.characters.displayName,
+        description: purchase.characters.description,
+        imageUrl: getCharacterImageUrl(purchase.characters.name),
+        frameWidth: purchase.characters.frameWidth,
+        frameHeight: purchase.characters.frameHeight,
+        totalFrames: purchase.characters.totalFrames,
+        isCompactFormat: purchase.characters.isCompactFormat,
         price: purchase.price,
-        isDefault: purchase.character.isDefault,
-        isCurrent: currentUser?.avatar === purchase.character.name,
+        isDefault: purchase.characters.isDefault,
+        isCurrent: currentUser?.avatar === purchase.characters.name,
         purchasedAt: purchase.purchasedAt
       }))
     ]

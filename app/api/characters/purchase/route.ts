@@ -123,9 +123,13 @@ export async function POST(request: NextRequest) {
         }
       })
 
+      // 生成唯一ID
+      const cuid = (await import('cuid')).default
+
       // 创建购买记录
       const purchase = await tx.character_purchases.create({
         data: {
+          id: cuid(),
           userId: user.id,
           characterId: character.id,
           price: character.price
@@ -135,6 +139,7 @@ export async function POST(request: NextRequest) {
       // 记录积分结算历史
       await tx.points_history.create({
         data: {
+          id: cuid(),
           userId: user.id,
           amount: -character.price,
           reason: `购买角色形象: ${character.displayName}`,
@@ -159,6 +164,7 @@ export async function POST(request: NextRequest) {
         // 记录创作者的收益历史
         await tx.points_history.create({
           data: {
+            id: cuid(),
             userId: character.creatorId!,
             amount: character.price,
             reason: `出售角色形象收益: ${character.displayName}`,

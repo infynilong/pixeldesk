@@ -6,8 +6,8 @@ import { Player } from '../entities/Player.js';
 
 // ===== 性能优化配置 =====
 const PERFORMANCE_CONFIG = {
-    // 禁用控制台日志以大幅减少CPU消耗
-    ENABLE_DEBUG_LOGGING: false,
+    // 临时启用日志用于调试工位角色显示问题
+    ENABLE_DEBUG_LOGGING: true,
     // 关键错误和警告仍然显示
     ENABLE_ERROR_LOGGING: true
 }
@@ -644,10 +644,11 @@ export class WorkstationManager {
                 // 将绑定存入映射表以便后续查询
                 this.userBindings.set(String(workstationId), String(binding.userId));
                 workstation.userInfo = {
-                    name: binding.user?.name,
-                    avatar: binding.user?.avatar,
-                    points: binding.user?.points,
-                    characterSprite: binding.user?.player?.characterSprite // 添加角色精灵字段
+                    name: binding.users?.name || binding.user?.name,
+                    avatar: binding.users?.avatar || binding.user?.avatar,
+                    points: binding.users?.points || binding.user?.points,
+                    // 修复：API返回的players是对象(不是数组),直接访问characterSprite
+                    characterSprite: binding.users?.players?.characterSprite || binding.user?.player?.characterSprite || binding.user?.avatar
                 };
                 workstation.boundAt = binding.boundAt;
 
@@ -1088,6 +1089,7 @@ export class WorkstationManager {
         const playerData = {
             id: userId,
             name: workstation.userInfo?.name || workstation.userInfo?.username || `玩家${userId.slice(-4)}`,
+            isWorkstationPlayer: true, // 🔧 标记为工位玩家，用于调试日志过滤
             currentStatus: {
                 type: 'working',
                 status: '工作中',
@@ -1124,6 +1126,16 @@ export class WorkstationManager {
             if (typeof character.setDirectionFrame === 'function') {
                 character.setDirectionFrame(characterDirection);
                 debugLog(`🧭 [createCharacterSprite] 角色朝向设置完成: ${characterDirection}`);
+
+                // 验证设置是否生效
+                debugLog(`🔍 [createCharacterSprite] 验证帧设置:`, {
+                    targetDirection: characterDirection,
+                    currentDirection: character.currentDirection,
+                    headFrame: character.headSprite?.frame?.name,
+                    bodyFrame: character.bodySprite?.frame?.name,
+                    headTexture: character.headSprite?.texture?.key,
+                    bodyTexture: character.bodySprite?.texture?.key
+                });
             } else {
                 debugWarn(`⚠️ [createCharacterSprite] character.setDirectionFrame 不是一个函数`);
             }
@@ -1256,18 +1268,17 @@ export class WorkstationManager {
         let characterX = position.x;
         let characterY = position.y;
         let characterDirection = 'down';
-
-        console.log('test direction', direction)
+        console.log('calculateCharacterPosition', workstation, direction)
         switch (direction) {
             case 'left':
-                // 左侧工位 -> 角色站左侧，看右边桌子
+                // 左侧朝向的桌子 -> 角色站在左边，面向右边
                 characterX = position.x - offsetX;
                 characterY = position.y - offsetY;
                 characterDirection = 'right';
                 break;
 
             case 'right':
-                // 右侧工位 -> 角色站右侧，看左边桌子
+                // 右侧朝向的桌子 -> 角色站在右边，面向左边
                 characterX = position.x + size.width + offsetX;
                 characterY = position.y - offsetY;
                 characterDirection = 'left';
@@ -1771,22 +1782,30 @@ export class WorkstationManager {
     applyBindingToWorkstation(workstation, binding) {
         debugLog(`🎯 [applyBindingToWorkstation] 开始应用工位 ${workstation.id} 的绑定:`, {
             userId: binding.userId,
-            userName: binding.user?.name,
+            userName: binding.users?.name || binding.user?.name,
             remainingDays: binding.remainingDays,
             isExpiringSoon: binding.isExpiringSoon,
             workstationSprite: !!workstation.sprite,
             currentlyOccupied: workstation.isOccupied,
-            hasCharacterSprite: !!workstation.characterSprite
+            hasCharacterSprite: !!workstation.characterSprite,
+            // 调试：显示API返回的数据结构
+            apiDataStructure: {
+                hasUsers: !!binding.users,
+                hasUser: !!binding.user,
+                usersPlayers: binding.users?.players,
+                characterSpriteFromAPI: binding.users?.players?.characterSprite
+            }
         });
 
         // 应用绑定状态（不调用完整的绑定方法，避免API调用）
         workstation.isOccupied = true;
         workstation.userId = binding.userId;
         workstation.userInfo = {
-            name: binding.user?.name,
-            avatar: binding.user?.avatar,
-            points: binding.user?.points,
-            characterSprite: binding.user?.player?.characterSprite // 添加角色精灵字段
+            name: binding.users?.name || binding.user?.name,
+            avatar: binding.users?.avatar || binding.user?.avatar,
+            points: binding.users?.points || binding.user?.points,
+            // 修复：API返回的players是对象(不是数组),直接访问characterSprite
+            characterSprite: binding.users?.players?.characterSprite || binding.user?.player?.characterSprite || binding.user?.avatar
         };
         workstation.boundAt = binding.boundAt;
         workstation.expiresAt = binding.expiresAt;
