@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
                 {
                     provider: aiConfig.provider,
                     apiKey: aiConfig.apiKey,
-                    modelName: finalModelName,
+                    modelName: desk.modelId || finalModelName, // 优先使用前台配置的modelId
                     temperature: 0.7, // 客服固定温度
                     baseUrl: aiConfig.baseUrl || undefined
                 }

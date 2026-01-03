@@ -41,6 +41,22 @@ export default function FrontDeskChatModal({ isOpen, onClose, deskInfo }: FrontD
     }
   }, [isOpen, deskInfo.greeting])
 
+  // ESC键关闭弹窗
+  useEffect(() => {
+    if (!isOpen) return
+
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose()
+      }
+    }
+
+    window.addEventListener('keydown', handleEsc)
+    return () => {
+      window.removeEventListener('keydown', handleEsc)
+    }
+  }, [isOpen, onClose])
+
   // 自动滚动到底部
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -112,6 +128,14 @@ export default function FrontDeskChatModal({ isOpen, onClose, deskInfo }: FrontD
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       handleSend()
+    }
+  }
+
+  // 处理ESC键 - 使用onKeyDown替代已废弃的onKeyPress
+  const handleInputKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      e.preventDefault()
+      onClose()
     }
   }
 
@@ -209,6 +233,7 @@ export default function FrontDeskChatModal({ isOpen, onClose, deskInfo }: FrontD
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyPress={handleKeyPress}
+              onKeyDown={handleInputKeyDown}
               placeholder="输入您的问题..."
               disabled={isLoading}
               className="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
