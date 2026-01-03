@@ -20,14 +20,7 @@ export async function DELETE(
 
     // 查询角色信息
     const character = await prisma.characters.findUnique({
-      where: { id },
-      include: {
-        _count: {
-          select: {
-            purchases: true
-          }
-        }
-      }
+      where: { id }
     })
 
     if (!character) {
@@ -53,13 +46,13 @@ export async function DELETE(
       )
     }
 
-    // 检查是否有购买记录
-    if (character._count.purchases > 0) {
+    // 检查销售记录（通过 salesCount 字段）
+    if (character.salesCount > 0) {
       return NextResponse.json(
         {
           success: false,
-          error: `无法删除：此角色已被购买 ${character._count.purchases} 次`,
-          purchaseCount: character._count.purchases
+          error: `无法删除：此角色已被购买 ${character.salesCount} 次`,
+          purchaseCount: character.salesCount
         },
         { status: 400 }
       )
@@ -162,7 +155,7 @@ export async function PUT(
     // 使用事务更新角色信息并记录日志
     const result = await prisma.$transaction(async (tx) => {
       // 更新角色信息
-      const updatedCharacter = await tx.character.update({
+      const updatedCharacter = await tx.characters.update({
         where: { id },
         data: {
           ...(displayName !== undefined && { displayName }),
@@ -172,8 +165,9 @@ export async function PUT(
       })
 
       // 创建日志记录
-      const log = await tx.characterLog.create({
+      const log = await tx.character_logs.create({
         data: {
+          id: `log_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           characterId: id,
           adminId: admin.id,
           action: 'UPDATE',
@@ -217,20 +211,7 @@ export async function GET(
     const { id } = params
 
     const character = await prisma.characters.findUnique({
-      where: { id },
-      include: {
-        _count: {
-          select: {
-            purchases: true
-          }
-        },
-        logs: {
-          orderBy: {
-            createdAt: 'desc'
-          },
-          take: 50 // 最多返回50条日志
-        }
-      }
+      where: { id }
     })
 
     if (!character) {
@@ -250,7 +231,7 @@ export async function GET(
       data: {
         ...character,
         userCount,
-        purchaseCount: character._count.purchases
+        purchaseCount: character.salesCount
       }
     })
   } catch (error) {

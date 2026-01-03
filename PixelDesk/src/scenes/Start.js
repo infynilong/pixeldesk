@@ -5,6 +5,7 @@ import { ZoomControl } from "../components/ZoomControl.js"
 import { WorkstationBindingUI } from "../components/WorkstationBindingUI.js"
 import { ChunkManager } from "../logic/ChunkManager.js"
 import { AiNpcManager } from "../logic/AiNpcManager.js"
+import { FrontDeskManager } from "../logic/FrontDeskManager.js"
 
 // ===== 性能优化配置 =====
 const PERFORMANCE_CONFIG = {
@@ -28,6 +29,8 @@ export class Start extends Phaser.Scene {
     this.workstationManager = null
     this.washroomManager = null // 添加洗手间管理器
     this.chunkManager = null // 区块管理器
+    this.aiNpcManager = null // AI NPC管理器
+    this.frontDeskManager = null // 前台客服管理器
     this.player = null
     this.cursors = null
     this.wasdKeys = null
@@ -418,6 +421,9 @@ export class Start extends Phaser.Scene {
       // 初始化 AI NPC 管理器
       this.aiNpcManager = new AiNpcManager(this)
 
+      // 初始化前台客服管理器
+      this.frontDeskManager = new FrontDeskManager(this)
+
       // 为UI更新设置定时器而不是每帧更新
       // 暂时禁用UI更新定时器以排查CPU占用问题
       // this.uiUpdateTimer = this.time.addEvent({
@@ -449,7 +455,17 @@ export class Start extends Phaser.Scene {
       // 创建floor图层
       this.renderObjectLayer(map, "floor")
 
-      // 创建前台图层
+      // 🔧 关键修复：在渲染前台对象之前，先初始化FrontDeskManager并等待API数据加载完成
+      if (this.frontDeskManager) {
+        try {
+          await this.frontDeskManager.init()
+          console.log('✅ [Start] FrontDeskManager 初始化完成，API数据已加载')
+        } catch (error) {
+          console.error('❌ [Start] FrontDeskManager 初始化失败:', error)
+        }
+      }
+
+      // 创建前台图层（确保在FrontDeskManager初始化之后）
       try {
         this.renderObjectLayer(map, "front_desk_objs")
       } catch (e) {
@@ -510,6 +526,9 @@ export class Start extends Phaser.Scene {
       if (this.aiNpcManager) {
         this.aiNpcManager.init()
       }
+
+      // 前台客服已在渲染前台对象之前初始化完成，这里不需要再次调用
+      // 如果frontDeskManager未初始化，在这里也不应该再初始化（会导致重复加载）
 
       // 设置相机
       this.setupCamera(map)
@@ -604,6 +623,11 @@ export class Start extends Phaser.Scene {
     // 只处理需要每帧更新的核心逻辑
     this.handlePlayerMovement()
 
+    // 更新前台标签位置
+    if (this.frontDeskManager) {
+      this.frontDeskManager.update()
+    }
+
     // 记录并在控制台打印坐标 (每隔 2 秒打印一次，避免刷屏)
     if (this.player && this.updateCounter % 120 === 0) {
       console.log(`📍 当前坐标: X=${Math.round(this.player.x)}, Y=${Math.round(this.player.y)}`);
@@ -613,6 +637,9 @@ export class Start extends Phaser.Scene {
     // if (this.teleportKey && Phaser.Input.Keyboard.JustDown(this.teleportKey)) {
     //   this.handleTeleportKeyPress()
     // }
+
+    // 🏢 前台交互已改为自动碰撞触发,不再使用F键
+    // 碰撞逻辑在 ensurePlayerDeskCollider() 中处理
 
     // 为 update 循环添加一个简单的计数器（如果还不存在）
     if (!this.updateCounter) this.updateCounter = 0
@@ -1190,6 +1217,23 @@ export class Start extends Phaser.Scene {
       this.addDeskCollision(sprite, obj)
     }
 
+    // 🏢 如果是前台对象，注册到前台管理器
+    if (obj.type === "front-desk") {
+      console.log(`🏢 [Start] 检测到前台对象: ${obj.name} at (${obj.x}, ${obj.y})`, {
+        hasSprite: !!sprite,
+        hasFrontDeskManager: !!this.frontDeskManager,
+        spriteTexture: sprite?.texture?.key
+      });
+
+      if (sprite && this.frontDeskManager) {
+        this.frontDeskManager.registerFrontDesk(obj, sprite)
+      } else if (!sprite) {
+        console.error(`❌ [Start] 前台对象 ${obj.name} 没有创建精灵！`);
+      } else if (!this.frontDeskManager) {
+        console.error(`❌ [Start] FrontDeskManager 未初始化！`);
+      }
+    }
+
     // 添加调试边界（已注释）
     // this.addDebugBounds(obj, adjustedY);
   }
@@ -1397,7 +1441,7 @@ export class Start extends Phaser.Scene {
     }
 
     // 创建group碰撞器（只有1个）
-    // 创建group碰撞器（只有1个），并添加回调函数处理书架交互
+    // 创建group碰撞器（只有1个），并添加回调函数处理书架和前台交互
     this.playerDeskCollider = this.physics.add.collider(
       this.player,
       this.deskColliders,
@@ -1418,6 +1462,27 @@ export class Start extends Phaser.Scene {
           }));
 
           debugLog(`📚 触发图书馆弹窗，书架ID: ${deskSprite.workstationId}`);
+        }
+        // 🏢 检查是否是前台客服
+        else if (deskSprite.deskId) {
+          // 防抖，防止频繁触发
+          if (this.lastFrontDeskTriggerTime && Date.now() - this.lastFrontDeskTriggerTime < 1000) {
+            return;
+          }
+          this.lastFrontDeskTriggerTime = Date.now();
+
+          // 触发前台聊天弹窗
+          window.dispatchEvent(new CustomEvent('open-front-desk-chat', {
+            detail: {
+              deskId: deskSprite.deskId,
+              deskName: deskSprite.deskName,
+              serviceScope: deskSprite.serviceScope,
+              greeting: deskSprite.greeting,
+              workingHours: deskSprite.workingHours
+            }
+          }));
+
+          console.log(`🏢 [碰撞触发] 打开前台聊天: ${deskSprite.deskName} (${deskSprite.serviceScope})`);
         }
       }
     )
@@ -1693,6 +1758,11 @@ export class Start extends Phaser.Scene {
     this.teleportKey = this.input.keyboard.addKey(
       Phaser.Input.Keyboard.KeyCodes.T
     )
+
+    // 🏢 [已废弃] F键与前台客服交互 - 已改为自动碰撞触发
+    // this.frontDeskKey = this.input.keyboard.addKey(
+    //   Phaser.Input.Keyboard.KeyCodes.F
+    // )
   }
 
   // ===== 全局函数方法 =====
@@ -1729,6 +1799,33 @@ export class Start extends Phaser.Scene {
       }
     }
   }
+
+  // 处理与前台客服的交互
+  // 🏢 [已废弃] 前台交互已改为自动碰撞触发,不再使用F键方式
+  // 保留此方法以防将来需要恢复F键交互
+  // handleFrontDeskInteraction() {
+  //   if (!this.player || !this.frontDeskManager) return
+  //
+  //   // 检查玩家附近是否有前台
+  //   const nearbyDesk = this.frontDeskManager.getNearbyDesk(this.player, 80)
+  //
+  //   if (nearbyDesk) {
+  //     console.log(`🏢 [Front Desk] 打开前台对话: ${nearbyDesk.deskName}`)
+  //
+  //     // 发送事件到React层，打开前台聊天弹窗
+  //     const event = new CustomEvent('open-front-desk-chat', {
+  //       detail: {
+  //         id: nearbyDesk.deskId,
+  //         name: nearbyDesk.deskName,
+  //         serviceScope: nearbyDesk.serviceScope,
+  //         greeting: nearbyDesk.greeting
+  //       }
+  //     })
+  //     window.dispatchEvent(event)
+  //   } else {
+  //     console.log('🏢 [Front Desk] 附近没有前台客服')
+  //   }
+  // }
 
   getWorkstationCount() {
     // 获取工位总数的全局函数

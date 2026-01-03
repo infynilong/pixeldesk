@@ -53,14 +53,7 @@ export async function GET(request: NextRequest) {
         where,
         orderBy: { [sortBy]: sortOrder },
         skip: (page - 1) * pageSize,
-        take: pageSize,
-        include: {
-          _count: {
-            select: {
-              purchases: true,
-            },
-          },
-        },
+        take: pageSize
       }),
       prisma.characters.count({ where }),
     ])
@@ -75,7 +68,7 @@ export async function GET(request: NextRequest) {
         return {
           ...char,
           userCount,
-          purchaseCount: char._count.purchases,
+          purchaseCount: char.salesCount,
         }
       })
     )

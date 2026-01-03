@@ -29,13 +29,6 @@ export async function POST(request: NextRequest) {
     const characters = await prisma.characters.findMany({
       where: {
         id: { in: ids }
-      },
-      include: {
-        _count: {
-          select: {
-            purchases: true
-          }
-        }
       }
     })
 
@@ -61,11 +54,11 @@ export async function POST(request: NextRequest) {
         }
 
         // 检查是否有购买记录
-        if (character._count.purchases > 0) {
+        if (character.salesCount > 0) {
           skipped.push({
             id: character.id,
             name: character.displayName,
-            reason: `已被购买 ${character._count.purchases} 次`
+            reason: `已被购买 ${character.salesCount} 次`
           })
           continue
         }

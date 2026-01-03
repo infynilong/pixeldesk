@@ -44,12 +44,14 @@ model admins {
 model ai_chat_history {
   id        String   @id
   userId    String
-  npcId     String
+  npcId     String   // 对应 ai_npcs.id 或 front_desk.id
+  chatType  String   @default("npc") // "npc" 或 "front_desk"
   role      String
   content   String
   createdAt DateTime @default(now())
 
   @@index([userId, npcId, createdAt])
+  @@index([userId, chatType, createdAt])
 }
 
 model ai_global_config {
@@ -79,6 +81,23 @@ model ai_npcs {
   knowledge   String?
   role        String?
   isFixed     Boolean  @default(false)
+}
+
+model front_desk {
+  id            String   @id
+  name          String
+  sprite        String
+  x             Int
+  y             Int
+  serviceScope  String   // 服务范围: "账户服务"、"技术支持"、"投诉建议"等
+  workingHours  String?  // 工作时间，如 "9:00-18:00"
+  greeting      String   // 打招呼语
+  systemPrompt  String   @db.Text // 专业客服的系统提示词
+  modelId       String?  // AI模型ID（支持不连接大模型的场景）
+  isActive      Boolean  @default(true)
+  isFixed       Boolean  @default(true) // 前台通常是固定位置
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime
 }
 
 model ai_usage {

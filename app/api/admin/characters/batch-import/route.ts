@@ -80,6 +80,7 @@ export async function POST(request: NextRequest) {
         // 创建角色记录
         await prisma.characters.create({
           data: {
+            id: `char_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             name,
             displayName,
             description: `自动导入的角色形象 - ${displayName}`,
@@ -91,7 +92,8 @@ export async function POST(request: NextRequest) {
             frameWidth: 48,
             frameHeight: 48,
             totalFrames: isCompactFormat ? 8 : 64,
-            sortOrder: 0
+            sortOrder: 0,
+            updatedAt: new Date()
           }
         })
 

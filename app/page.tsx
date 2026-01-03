@@ -102,6 +102,11 @@ const AiChatModal = dynamic(() => import('@/components/AiChatModal'), {
   ssr: false
 })
 
+// 前台客服聊天弹窗
+const FrontDeskChatModal = dynamic(() => import('@/components/FrontDeskChatModal'), {
+  ssr: false
+})
+
 // 图书馆弹窗
 const LibraryModal = dynamic(() => import('@/components/LibraryModal'), {
   ssr: false
@@ -206,6 +211,15 @@ export default function Home() {
     isOpen: false,
     npcId: '',
     npcName: '',
+    greeting: ''
+  })
+
+  // 前台客服聊天弹窗状态
+  const [frontDeskModal, setFrontDeskModal] = useState({
+    isOpen: false,
+    id: '',
+    name: '',
+    serviceScope: '',
     greeting: ''
   })
 
@@ -623,7 +637,21 @@ export default function Home() {
       })
     }
 
+    // 监听前台客服聊天事件
+    const handleOpenFrontDeskChat = (event: CustomEvent) => {
+      const { id, name, serviceScope, greeting } = event.detail
+      console.log('🏢 打开前台客服聊天:', name)
+      setFrontDeskModal({
+        isOpen: true,
+        id,
+        name,
+        serviceScope,
+        greeting: greeting || ''
+      })
+    }
+
     window.addEventListener('open-ai-chat', handleOpenAiChat as EventListener)
+    window.addEventListener('open-front-desk-chat', handleOpenFrontDeskChat as EventListener)
 
     // 监听碰到自己工位的事件
     const handleMyWorkstationCollision = (e: any) => {
@@ -640,6 +668,7 @@ export default function Home() {
 
     return () => {
       window.removeEventListener('open-ai-chat', handleOpenAiChat as EventListener)
+      window.removeEventListener('open-front-desk-chat', handleOpenFrontDeskChat as EventListener)
       window.removeEventListener('my-workstation-collision-start', handleMyWorkstationCollision)
       window.removeEventListener('my-workstation-collision-end', handleMyWorkstationCollisionEnd)
     }
@@ -1011,6 +1040,18 @@ export default function Home() {
         npcId={aiChatModal.npcId}
         npcName={aiChatModal.npcName}
         greeting={aiChatModal.greeting}
+      />
+
+      {/* 前台客服聊天弹窗 */}
+      <FrontDeskChatModal
+        isOpen={frontDeskModal.isOpen}
+        onClose={() => setFrontDeskModal(prev => ({ ...prev, isOpen: false }))}
+        deskInfo={{
+          id: frontDeskModal.id,
+          name: frontDeskModal.name,
+          serviceScope: frontDeskModal.serviceScope,
+          greeting: frontDeskModal.greeting
+        }}
       />
 
       {/* 错误消息弹窗 */}
