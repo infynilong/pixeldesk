@@ -122,7 +122,7 @@ export class DataMigration {
       // 迁移状态历史
       for (const status of data.statusHistory) {
         try {
-          await prisma.statusHistory.create({
+          await prisma.status_history.create({
             data: {
               id: status.id,
               userId: status.userId,

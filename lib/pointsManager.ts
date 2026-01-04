@@ -3,6 +3,7 @@
  * 用于获取积分配置和执行积分奖励/扣除操作
  */
 import { prisma } from './db'
+import { randomUUID } from 'crypto'
 
 // 积分配置缓存，避免频繁查询数据库
 let configCache: Record<string, number> | null = null
@@ -97,17 +98,18 @@ export async function rewardPoints(
 
     // 使用事务同时更新积分和记录历史
     const updatedUser = await prisma.$transaction(async (tx) => {
-      // 更新用户积分
-      const user = await tx.user.update({
+      // 更新用户积分 - 注意使用 tx.users 而不是 tx.user
+      const user = await tx.users.update({
         where: { id: userId },
         data: {
           points: { increment: points }
         }
       })
 
-      // 记录历史
-      await tx.pointsHistory.create({
+      // 记录历史 - 注意使用 tx.points_history 而不是 tx.points_history
+      await tx.points_history.create({
         data: {
+          id: randomUUID(),
           userId,
           amount: points,
           reason: reason || configKey,

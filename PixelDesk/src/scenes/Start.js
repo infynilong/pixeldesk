@@ -792,6 +792,16 @@ export class Start extends Phaser.Scene {
     )
     this.add.existing(this.player)
 
+    // 记录初始状态到 status_history（用于活动跟踪）
+    if (this.currentUser && typeof window !== 'undefined') {
+      this.time.delayedCall(1000, async () => {
+        if (window.updateMyStatus) {
+          await window.updateMyStatus(mainPlayerData.currentStatus)
+          debugLog('✅ 初始玩家状态已保存到 status_history')
+        }
+      })
+    }
+
     // 设置保存的朝向
     if (savedDirection) {
       this.player.setDirectionFrame(startDirection)
@@ -2213,6 +2223,35 @@ export class Start extends Phaser.Scene {
     if (typeof window !== "undefined") {
       window.updateMyStatus = async (statusData) => {
         this.myStatus = statusData
+
+        // 记录状态历史（用于活动跟踪）- 通过API调用，避免在前端直接使用Prisma
+        if (this.currentUser) {
+          try {
+            // 调用API来保存状态历史
+            const response = await fetch('/api/status-history', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                userId: this.currentUser.id,
+                status: statusData.status || statusData.type,
+                type: statusData.type,
+                emoji: statusData.emoji || '',
+                message: statusData.message || ''
+              })
+            })
+
+            if (response.ok) {
+              debugLog('状态历史已记录:', statusData.type, statusData.status)
+            } else {
+              debugWarn('记录状态历史失败:', response.status)
+            }
+          } catch (error) {
+            debugWarn('记录状态历史错误:', error)
+          }
+        }
+
         if (this.currentUser && this.workstationManager) {
           const userWorkstation = this.workstationManager.getWorkstationByUser(
             this.currentUser.id
