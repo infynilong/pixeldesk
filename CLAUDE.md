@@ -80,6 +80,115 @@ import Modal from '@/components/common/Modal'
 
 ---
 
+## ⌨️ 输入框键盘事件处理规范
+
+### 问题描述
+在 Phaser 游戏中使用输入框（input/textarea）时，输入的字符（如 WASD）会同时触发游戏角色的移动，因为键盘事件会冒泡到 Phaser 游戏层。
+
+### 解决方案
+
+所有在弹窗或 UI 组件中的输入框，必须正确处理键盘事件，阻止事件冒泡到 Phaser：
+
+#### 1. 输入框事件处理
+在 `onKeyDown` 事件处理函数中必须使用 `e.stopPropagation()`：
+
+```tsx
+// ❌ 错误示例 - 没有阻止事件冒泡
+const handleKeyPress = (e: React.KeyboardEvent) => {
+  if (e.key === 'Enter') {
+    e.preventDefault()
+    handleSend()
+  }
+}
+
+// ✅ 正确示例 - 阻止事件冒泡到 Phaser
+const handleKeyPress = (e: React.KeyboardEvent) => {
+  // 使用 stopPropagation 阻止事件冒泡到 Phaser
+  e.stopPropagation()
+
+  if (e.key === 'Enter') {
+    e.preventDefault()
+    handleSend()
+  }
+}
+```
+
+#### 2. 输入框组件绑定
+在输入框组件上绑定事件处理函数：
+
+```tsx
+<input
+  type="text"
+  value={inputValue}
+  onChange={(e) => setInputValue(e.target.value)}
+  onKeyPress={handleKeyPress}  // 处理 Enter 键发送
+  onKeyDown={handleInputKeyDown}  // 处理其他键盘事件
+  // 其他属性...
+/>
+```
+
+#### 3. FocusManager 集成（可选）
+项目中已经实现了 `FocusManager`（[PixelDesk/src/logic/FocusManager.js](PixelDesk/src/logic/FocusManager.js)），它会自动检测输入框焦点并禁用 Phaser 键盘输入：
+
+```tsx
+// 自动聚焦输入框时，FocusManager 会自动处理
+useEffect(() => {
+  if (isOpen && inputRef.current) {
+    // 延迟一点，等弹窗完全显示后再对焦
+    setTimeout(() => inputRef.current?.focus(), 100)
+  }
+}, [isOpen])
+```
+
+### 为什么会这样？
+
+- **事件冒泡**：键盘事件默认会向父元素冒泡，最终到达 document 对象
+- **Phaser 监听**：Phaser 在 document 上监听键盘事件来控制角色移动
+- **stopPropagation()**：阻止事件继续向上冒泡，Phaser 就收不到键盘事件
+
+### ✅ 键盘处理检查清单
+
+创建或修改包含输入框的组件时，必须检查：
+
+- [ ] 所有键盘事件处理函数（onKeyDown/onKeyPress）都调用了 `e.stopPropagation()`
+- [ ] 输入框在组件挂载时自动聚焦（使用 setTimeout 延迟）
+- [ ] 按 Enter 键发送消息时正确处理
+- [ ] 按 ESC 键关闭弹窗时阻止事件冒泡
+- [ ] 测试可以在输入框中正常输入 WASD 等游戏按键
+
+### 📌 特殊按键处理
+
+对于 WASD、方向键等游戏控制按键：
+
+```tsx
+const handleInputKeyDown = (e: React.KeyboardEvent) => {
+  // 阻止所有键盘事件冒泡
+  e.stopPropagation()
+
+  // 处理 ESC 键关闭弹窗
+  if (e.key === 'Escape') {
+    e.preventDefault()
+    onClose()
+  }
+
+  // 处理 Enter 键发送消息
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault()
+    handleSend()
+  }
+
+  // 其他按键（WASD）已经被 stopPropagation 阻止，不会触发游戏移动
+}
+```
+
+### 已正确实现的组件
+
+- ✅ [AiChatModal.tsx](components/AiChatModal.tsx) - AI NPC 聊天窗口
+- ✅ [FrontDeskChatModal.tsx](components/FrontDeskChatModal.tsx) - 前台客服聊天窗口
+- ✅ [WorkstationBindingModal.tsx](components/WorkstationBindingModal.tsx) - 工位绑定弹窗
+
+---
+
 ## 📝 其他开发规范
 
 （待补充...）

@@ -12,12 +12,14 @@ export default function AiAdminPage() {
         dailyLimit: 20
     })
     const [npcs, setNpcs] = useState<any[]>([])
+    const [frontDesks, setFrontDesks] = useState<any[]>([]) // 添加前台管理状态
     const [status, setStatus] = useState('')
     const [isLoading, setIsLoading] = useState(true)
     const [isTesting, setIsTesting] = useState(false)
     const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null)
     const [activeConfig, setActiveConfig] = useState<any>(null)
     const [usageStats, setUsageStats] = useState<any>(null)
+    const [activeTab, setActiveTab] = useState<'npcs' | 'frontDesks'>('npcs') // 添加标签页状态
 
     useEffect(() => {
         fetchInitialData()
@@ -26,15 +28,19 @@ export default function AiAdminPage() {
     const fetchInitialData = async () => {
         setIsLoading(true)
         try {
-            // Fetch NPCs, Config, and Usage in parallel
-            const [npcsRes, configRes, usageRes] = await Promise.all([
+            // Fetch NPCs, Front Desks, Config, and Usage in parallel
+            const [npcsRes, desksRes, configRes, usageRes] = await Promise.all([
                 fetch('/api/ai/npcs'),
+                fetch('/api/front-desk'),
                 fetch('/api/admin/ai/config'),
                 fetch('/api/admin/ai/usage')
             ])
 
             const npcsData = await npcsRes.json()
             if (npcsData.success) setNpcs(npcsData.data)
+
+            const desksData = await desksRes.json()
+            if (desksData.success) setFrontDesks(desksData.data)
 
             if (configRes.ok) {
                 const configData = await configRes.json()
@@ -125,6 +131,26 @@ export default function AiAdminPage() {
 
     const handleNpcChange = (id: string, field: string, value: any) => {
         setNpcs(prev => prev.map(n => n.id === id ? { ...n, [field]: value } : n))
+    }
+
+    const handleDeskChange = (id: string, field: string, value: any) => {
+        setFrontDesks(prev => prev.map(d => d.id === id ? { ...d, [field]: value } : d))
+    }
+
+    const saveDesk = async (desk: any) => {
+        setStatus(`正在保存 ${desk.name}...`)
+        try {
+            const res = await fetch(`/api/front-desk/${desk.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(desk)
+            })
+            if (res.ok) setStatus(`✅ ${desk.name} 已更新`)
+            else setStatus('❌ 保存失败')
+        } catch (e) {
+            setStatus('❌ 网络错误')
+        }
+        setTimeout(() => setStatus(''), 3000)
     }
 
     const syncNpcs = async () => {
@@ -345,20 +371,45 @@ export default function AiAdminPage() {
                 </section>
             )}
 
+            {/* Tabs for NPCs and Front Desks */}
+            <div className="flex gap-2 mb-6 border-b border-gray-800">
+                <button
+                    onClick={() => setActiveTab('npcs')}
+                    className={`px-6 py-3 font-bold text-sm transition-all ${
+                        activeTab === 'npcs'
+                            ? 'text-pink-400 border-b-2 border-pink-500'
+                            : 'text-gray-500 hover:text-gray-300'
+                    }`}
+                >
+                    NPC 管理
+                </button>
+                <button
+                    onClick={() => setActiveTab('frontDesks')}
+                    className={`px-6 py-3 font-bold text-sm transition-all ${
+                        activeTab === 'frontDesks'
+                            ? 'text-cyan-400 border-b-2 border-cyan-500'
+                            : 'text-gray-500 hover:text-gray-300'
+                    }`}
+                >
+                    前台客服管理
+                </button>
+            </div>
+
             {/* NPCs List Section */}
-            <div className="grid grid-cols-1 gap-6">
-                <div className="flex justify-between items-center">
-                    <h2 className="text-xl font-bold flex items-center gap-3">
-                        <div className="w-1.5 h-6 bg-pink-500 rounded-full"></div>
-                        活跃 NPC 灵魂工程
-                    </h2>
-                    <button
-                        onClick={syncNpcs}
-                        className="text-[10px] text-pink-400 border border-pink-500/30 px-3 py-1.5 rounded-lg hover:bg-pink-500/10 transition-all font-mono uppercase tracking-tighter"
-                    >
-                        ↻ 强制同步全员 / 重置
-                    </button>
-                </div>
+            {activeTab === 'npcs' && (
+                <div className="grid grid-cols-1 gap-6">
+                    <div className="flex justify-between items-center">
+                        <h2 className="text-xl font-bold flex items-center gap-3">
+                            <div className="w-1.5 h-6 bg-pink-500 rounded-full"></div>
+                            活跃 NPC 灵魂工程
+                        </h2>
+                        <button
+                            onClick={syncNpcs}
+                            className="text-[10px] text-pink-400 border border-pink-500/30 px-3 py-1.5 rounded-lg hover:bg-pink-500/10 transition-all font-mono uppercase tracking-tighter"
+                        >
+                            ↻ 强制同步全员 / 重置
+                        </button>
+                    </div>
 
                 {npcs.map(npc => (
                     <div key={npc.id} className="bg-gray-900/40 rounded-2xl border border-gray-800 p-6 space-y-6 hover:border-pink-500/30 transition-colors">
@@ -476,7 +527,128 @@ export default function AiAdminPage() {
                         </div>
                     </div>
                 ))}
-            </div>
+                </div>
+            )}
+
+            {/* Front Desks List Section */}
+            {activeTab === 'frontDesks' && (
+                <div className="grid grid-cols-1 gap-6">
+                    <div className="flex justify-between items-center">
+                        <h2 className="text-xl font-bold flex items-center gap-3">
+                            <div className="w-1.5 h-6 bg-cyan-500 rounded-full"></div>
+                            前台客服配置中心
+                        </h2>
+                        <button
+                            onClick={syncNpcs}
+                            className="text-[10px] text-cyan-400 border border-cyan-500/30 px-3 py-1.5 rounded-lg hover:bg-cyan-500/10 transition-all font-mono uppercase tracking-tighter"
+                        >
+                            ↻ 同步更新
+                        </button>
+                    </div>
+
+                {frontDesks.map(desk => (
+                    <div key={desk.id} className="bg-gray-900/40 rounded-2xl border border-gray-800 p-6 space-y-6 hover:border-cyan-500/30 transition-colors">
+                        <div className="flex justify-between items-start">
+                            <div className="flex gap-4">
+                                <div className="w-14 h-14 bg-gray-800 rounded-2xl border border-gray-700 flex items-center justify-center text-3xl shadow-inner">
+                                    🏢
+                                </div>
+                                <div>
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            className="bg-transparent text-xl font-bold text-white border-b border-transparent focus:border-cyan-500 outline-none"
+                                            value={desk.name}
+                                            onChange={e => handleDeskChange(desk.id, 'name', e.target.value)}
+                                        />
+                                        <span className="text-[10px] px-2 py-0.5 bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 rounded-full uppercase font-mono">
+                                            DESK_ID: {desk.id.substring(0, 8)}...
+                                        </span>
+                                    </div>
+                                    <input
+                                        className="bg-transparent text-sm text-gray-400 w-full border-b border-transparent focus:border-gray-600 outline-none mt-1"
+                                        value={desk.serviceScope || ''}
+                                        placeholder="服务范围，如 投诉与建议"
+                                        onChange={e => handleDeskChange(desk.id, 'serviceScope', e.target.value)}
+                                    />
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => saveDesk(desk)}
+                                className="text-[10px] font-bold py-1.5 px-4 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700 transition-all uppercase tracking-widest"
+                            >
+                                同步
+                            </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-4">
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-mono text-gray-500 uppercase">系统提示词 (System Prompt)</label>
+                                <textarea
+                                    className="w-full bg-gray-950 border border-gray-800 rounded-xl p-4 text-sm text-gray-300 h-32 focus:border-cyan-500 outline-none transition-all placeholder:italic"
+                                    placeholder="定义这个前台客服的角色、职责、回复风格..."
+                                    value={desk.systemPrompt || ''}
+                                    onChange={e => handleDeskChange(desk.id, 'systemPrompt', e.target.value)}
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-mono text-gray-500 uppercase">问候语 (Greeting Message)</label>
+                                <input
+                                    className="w-full bg-gray-950 border border-gray-800 rounded-xl p-3 text-sm text-gray-400 focus:border-gray-600 outline-none"
+                                    value={desk.greeting || ''}
+                                    onChange={e => handleDeskChange(desk.id, 'greeting', e.target.value)}
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-mono text-gray-500 uppercase">工作时间 (Working Hours)</label>
+                                <input
+                                    className="w-full bg-gray-950 border border-gray-800 rounded-xl p-3 text-sm text-gray-400 focus:border-gray-600 outline-none"
+                                    value={desk.workingHours || ''}
+                                    placeholder="如：9:00-18:00"
+                                    onChange={e => handleDeskChange(desk.id, 'workingHours', e.target.value)}
+                                />
+                            </div>
+
+                            <div className="space-y-4 pt-4 border-t border-gray-800">
+                                <label className="text-[10px] font-mono text-gray-500 uppercase flex items-center gap-2">
+                                    坐标位置 (POSITION)
+                                    <span className="text-[9px] bg-cyan-500/10 text-cyan-400 px-1.5 py-0.5 rounded border border-cyan-500/20 lowercase font-normal italic">
+                                        fixed_pos
+                                    </span>
+                                </label>
+                                <div className="flex flex-wrap items-center gap-6 bg-gray-950/50 p-4 rounded-xl border border-gray-800/50">
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xs font-mono text-gray-500">X:</span>
+                                            <input
+                                                type="number"
+                                                className="w-24 bg-gray-950 border border-gray-800 rounded-lg p-2 text-sm text-cyan-400 font-mono focus:border-cyan-500 outline-none"
+                                                value={desk.x || 0}
+                                                onChange={e => handleDeskChange(desk.id, 'x', parseInt(e.target.value) || 0)}
+                                            />
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xs font-mono text-gray-500">Y:</span>
+                                            <input
+                                                type="number"
+                                                className="w-24 bg-gray-950 border border-gray-800 rounded-lg p-2 text-sm text-cyan-400 font-mono focus:border-cyan-500 outline-none"
+                                                value={desk.y || 0}
+                                                onChange={e => handleDeskChange(desk.id, 'y', parseInt(e.target.value) || 0)}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <p className="text-[10px] text-gray-600 italic sm:ml-auto">
+                                        * 前台客服在地图上的固定位置坐标。
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                ))}
+                </div>
+            )}
 
             {status && (
                 <div className="fixed bottom-10 right-10 bg-gray-900 border border-purple-500/50 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">

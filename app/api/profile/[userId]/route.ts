@@ -35,7 +35,7 @@ export async function GET(
                 isPublic: true
               }
             },
-            postLikes: true
+            post_likes: true
           }
         }
       }
@@ -143,7 +143,7 @@ export async function GET(
         users: {
           ...user,
           postsCount: user._count.posts,
-          likesCount: user._count.postLikes,
+          likesCount: user._count.post_likes,
           _count: undefined
         },
         posts: postsWithLikeStatus,

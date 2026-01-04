@@ -7,16 +7,15 @@ const DAILY_LIMIT = 50 // 前台客服每天50次对话限制
 
 export async function POST(request: NextRequest) {
     try {
-        // 1. 验证用户身份
+        // 验证用户身份
         const authResult = await verifyAuthFromRequest(request)
         if (!authResult.success || !authResult.user) {
-            console.warn('⚠️ [Front Desk Chat] 身份验证失败:', authResult.error);
             return NextResponse.json({ error: 'Unauthorized', details: authResult.error }, { status: 401 })
         }
 
         const userId = authResult.user.id;
 
-        // 2. 解析请求体
+        // 解析请求体
         const body = await request.json()
         const { message, deskId } = body
 
@@ -24,44 +23,36 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: '消息或前台ID缺失' }, { status: 400 })
         }
 
-        // 3. 获取前台信息、AI配置、聊天历史
-        console.log(`🔍 [DEBUG] 开始获取前台信息: ${deskId}`);
-
-        const [desk, aiConfig, chatHistory] = await Promise.all([
+        // 获取前台信息、AI配置、聊天历史、最新博客文章
+        const [desk, aiConfig, chatHistory, recentPosts] = await Promise.all([
             prisma.front_desk.findUnique({ where: { id: deskId } }),
             prisma.ai_global_config.findFirst({ where: { isActive: true } }),
-            // 加载最近50条聊天历史
             prisma.ai_chat_history.findMany({
-                where: {
-                    userId,
-                    npcId: deskId,
-                    chatType: 'front_desk'
-                },
-                orderBy: { createdAt: 'desc' },
-                take: 50
+                where: { userId, npcId: deskId, chatType: 'front_desk' },
+                orderBy: { createdAt: 'desc' }, take: 50
+            }),
+            // 获取所有公开文章
+            prisma.posts.findMany({
+                where: { isActive: true, isPublic: true },
+                orderBy: { createdAt: 'desc' }, take: 20,
+                select: { id: true, title: true, summary: true, content: true, tags: true, type: true }
             })
         ])
 
-        console.log(`🔍 [DEBUG] 获取结果: desk=${!!desk}, aiConfig=${!!aiConfig}, historyCount=${chatHistory.length}`);
-        console.log(`🔍 [DEBUG] AI配置详情:`, aiConfig);
-
         if (!desk) {
-            console.error(`❌ [ERROR] 找不到前台: ${deskId}`);
             return NextResponse.json({ error: '找不到该前台' }, { status: 404 })
         }
 
         // 如果没有配置 AI Provider，回退到模拟
         if (!aiConfig || !aiConfig.apiKey) {
-            console.warn('⚠️ [Front Desk Chat] 未配置 AI API Key，回退到模拟模式');
-            console.warn('⚠️ aiConfig:', aiConfig);
             return NextResponse.json({
                 success: true,
-                reply: `[${desk.name}]: 抱歉，系统暂时无法连接，请稍后再试。如有紧急问题，请联系管理员。`,
+                reply: `[${desk.name}]: 抱歉，系统暂时无法连接，请稍后再试。`,
                 usage: { current: 0, limit: DAILY_LIMIT, remaining: DAILY_LIMIT }
             })
         }
 
-        // 4. 限制检查
+        // 限制检查
         const today = new Date().toISOString().split('T')[0]
         const usage = await prisma.ai_usage.upsert({
             where: { userId_date: { userId, date: today } },
@@ -78,56 +69,72 @@ export async function POST(request: NextRequest) {
             }
         })
 
-        const currentLimit = DAILY_LIMIT;
-
-        if (usage.count > currentLimit) {
+        if (usage.count > DAILY_LIMIT) {
             return NextResponse.json({
                 success: false,
-                reply: `[${desk.name}]: 抱歉，您今天的咨询次数已达上限。请明天再来，或通过其他方式联系我们。`,
-                error: 'Limit exceeded',
-                usage: {
-                    current: usage.count,
-                    limit: currentLimit,
-                    remaining: 0
-                }
+                reply: `[${desk.name}]: 抱歉，您今天的咨询次数已达上限。`,
+                usage: { current: usage.count, limit: DAILY_LIMIT, remaining: 0 }
             }, { status: 429 })
         }
 
-        // 5. 构建消息历史
+        // 构建消息历史
         const historicalMessages = chatHistory.reverse().map(h => ({
-            role: h.role as 'user' | 'assistant',
-            content: h.content
+            role: h.role as 'user' | 'assistant', content: h.content
         }))
 
-        console.log(`📞 [${desk.name}] 加载了 ${historicalMessages.length} 条历史消息`)
+        // 准备文章数据供AI参考（包含所有公开文章）
+        const postsData = recentPosts
+            .slice(0, 10)
+            .map((post: any) => ({
+                id: post.id,
+                title: post.title,
+                url: `/posts/${post.id}`,
+                tags: post.tags,
+                summary: post.summary || post.content.substring(0, 200) + '...',
+                type: post.type
+            }));
 
-        // 6. 调用 AI
+        // 创建文章详情映射，用于快速查找
+        const articleDetailsMap = new Map(
+            postsData.map(post => [
+                post.id,
+                {
+                    id: post.id,
+                    title: post.title,
+                    summary: post.summary,
+                    tags: post.tags,
+                    url: post.url
+                }
+            ])
+        );
+
+        // 构建增强的系统提示词
+        const blogInfo = `你是一位智能客服助手，可以访问平台的社区文章库。当前有以下${postsData.length}篇公开的文章可供推荐：\n\n${postsData.map((post: any, idx: number) => `${idx + 1}. "${post.title}" (${post.type})\n   摘要：${post.summary}\n   链接：${post.url}\n   标签：${post.tags?.join(', ') || '无'}`).join('\n\n')}\n\n当用户询问相关问题、寻求建议或对某些话题感兴趣时，你可以适当推荐相关的文章，并直接提供文章链接（URL）。\n\n重要限制：你只能推荐现有的文章，不能创建或修改。文章内容是只读的。`;
+
+        const enhancedSystemPrompt = `${desk.systemPrompt || ''}\n\n--- 文章库信息 ---\n\n${blogInfo}`;
+
+        // 调用 AI
         try {
-            const finalModelName = aiConfig.modelName || (
-                aiConfig.provider === 'deepseek' ? 'deepseek-chat' :
-                    aiConfig.provider === 'siliconflow' ? 'deepseek-ai/DeepSeek-V3' :
-                        'gemini-1.5-flash'
-            );
+            const finalModelName = aiConfig.modelName || 'gemini-1.5-flash';
 
-            const messagesToSend = [
-                { role: 'system', content: desk.systemPrompt },
-                ...historicalMessages,
-                { role: 'user', content: message }
-            ]
-
-            console.log(`🤖 [${desk.name}] 发送给AI: 系统提示词(1条) + 历史消息(${historicalMessages.length}条) + 新消息(1条) = 共${messagesToSend.length}条`)
-            console.log(`🤖 [${desk.name}] AI配置: provider=${aiConfig.provider}, model=${desk.modelId || finalModelName}, hasApiKey=${!!aiConfig.apiKey}`);
+            console.log(`🤖 [${desk.name}] 开始调用AI，使用模型: ${desk.modelId || finalModelName}`);
 
             const aiResponse = await callAiProvider(
-                messagesToSend,
+                [
+                    { role: 'system', content: enhancedSystemPrompt },
+                    ...historicalMessages,
+                    { role: 'user', content: message }
+                ],
                 {
                     provider: aiConfig.provider,
                     apiKey: aiConfig.apiKey,
-                    modelName: desk.modelId || finalModelName, // 优先使用前台配置的modelId
-                    temperature: 0.7, // 客服固定温度
+                    modelName: desk.modelId || finalModelName,
+                    temperature: 0.7,
                     baseUrl: aiConfig.baseUrl || undefined
                 }
             )
+
+            console.log(`🤖 [${desk.name}] AI调用成功，回复: ${aiResponse.reply.substring(0, 100)}...`);
 
             // 7. 更新 Token 使用记录
             if (aiResponse.usage) {
@@ -173,9 +180,10 @@ export async function POST(request: NextRequest) {
                 },
                 usage: {
                     current: usage.count,
-                    limit: currentLimit,
-                    remaining: Math.max(0, currentLimit - usage.count)
-                }
+                    limit: DAILY_LIMIT,
+                    remaining: Math.max(0, DAILY_LIMIT - usage.count)
+                },
+                articleDetailsMap: Array.from(articleDetailsMap.entries())
             })
         } catch (aiError: any) {
             console.error('❌ [Front Desk AI ERROR]:', aiError);
@@ -183,11 +191,17 @@ export async function POST(request: NextRequest) {
                 message: aiError.message,
                 stack: aiError.stack,
                 provider: aiConfig.provider,
-                model: desk.modelId || finalModelName
+                model: desk.modelId || aiConfig.modelName || 'unknown'
             });
+
+            // 特别检查是否是模型相关问题
+            if (aiError.message && aiError.message.includes('model')) {
+                console.error('💡 [HINT] 可能是模型名称或API配置问题');
+            }
+
             return NextResponse.json({
                 success: false,
-                reply: `[${desk.name}]: 系统暂时繁忙，请稍后再试。给您带来不便，敬请谅解。`,
+                reply: `[${desk.name}]: 系统暂时繁忙，请稍后再试。`,
                 error: aiError.message
             })
         }

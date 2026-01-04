@@ -77,7 +77,7 @@ export default function ProfilePage() {
       const data = await response.json()
 
       if (data.success) {
-        setProfile(data.data.user)
+        setProfile(data.data.users)  // 注意这里应该是 users 而不是 user
         setPosts(data.data.posts)
         setBlogs(data.data.blogs)
         setTotalBlogs(data.data.totalBlogs)

@@ -24,7 +24,7 @@ export async function GET(
     startDate.setDate(startDate.getDate() - days)
 
     // 获取状态历史记录
-    const statusHistory = await prisma.statusHistory.findMany({
+    const statusHistory = await prisma.status_history.findMany({
       where: {
         userId,
         timestamp: {

@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
         const category = searchParams.get('category')
 
         const where = category ? { category } : {}
-        const settings = await prisma.systemConfig.findMany({
+        const settings = await prisma.system_config.findMany({
             where,
             orderBy: { key: 'asc' }
         })
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
         // 使用事务批量更新
         const results = await prisma.$transaction(
             validatedData.map((setting) =>
-                prisma.systemConfig.upsert({
+                prisma.system_config.upsert({
                     where: { key: setting.key },
                     update: {
                         value: setting.value,

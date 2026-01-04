@@ -20,7 +20,7 @@ export async function GET(request: Request) {
         }
         // If no bookcaseId specified, return all books
 
-        const books = await prisma.libraryBook.findMany({
+        const books = await prisma.library_books.findMany({
             where: whereClause,
             orderBy: { createdAt: 'desc' }
         })
@@ -54,7 +54,7 @@ export async function POST(request: Request) {
             )
         }
 
-        const newBook = await prisma.libraryBook.create({
+        const newBook = await prisma.library_books.create({
             data: {
                 title,
                 author,
