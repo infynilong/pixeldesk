@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
 
     // 获取通知列表
     const [notifications, total, unreadCount] = await Promise.all([
-      prisma.notification.findMany({
+      prisma.notifications.findMany({
         where,
         include: {
           relatedPost: {
@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
               id: true,
               title: true,
               content: true,
-              author: {
+              users: {
                 select: {
                   id: true,
                   name: true,
@@ -57,17 +57,27 @@ export async function GET(request: NextRequest) {
         skip,
         take: limit
       }),
-      prisma.notification.count({ where: { userId } }),
-      prisma.notification.count({ where: { userId, isRead: false } })
+      prisma.notifications.count({ where: { userId } }),
+      prisma.notifications.count({ where: { userId, isRead: false } })
     ])
 
     const totalPages = Math.ceil(total / limit)
     const hasNextPage = page < totalPages
 
+    // 将 relatedPost.users 映射为 relatedPost.author 以保持 API 兼容性
+    const notificationsWithAuthor = notifications.map(notification => ({
+      ...notification,
+      relatedPost: notification.relatedPost ? {
+        ...notification.relatedPost,
+        author: notification.relatedPost.users,
+        users: undefined
+      } : null
+    }))
+
     return NextResponse.json({
       success: true,
       data: {
-        notifications,
+        notifications: notificationsWithAuthor,
         pagination: {
           page,
           totalPages,
@@ -108,7 +118,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    const notification = await prisma.notification.create({
+    const notification = await prisma.notifications.create({
       data: {
         userId,
         type,
@@ -124,7 +134,7 @@ export async function POST(request: NextRequest) {
             id: true,
             title: true,
             content: true,
-            author: {
+            users: {
               select: {
                 id: true,
                 name: true,
@@ -143,9 +153,19 @@ export async function POST(request: NextRequest) {
       }
     })
 
+    // 将 relatedPost.users 映射为 relatedPost.author 以保持 API 兼容性
+    const notificationWithAuthor = {
+      ...notification,
+      relatedPost: notification.relatedPost ? {
+        ...notification.relatedPost,
+        author: notification.relatedPost.users,
+        users: undefined
+      } : null
+    }
+
     return NextResponse.json({
       success: true,
-      data: notification
+      data: notificationWithAuthor
     })
 
   } catch (error) {

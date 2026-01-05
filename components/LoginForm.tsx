@@ -40,7 +40,7 @@ export default function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormPr
           <div className="w-16 h-16 bg-gradient-to-r from-retro-purple to-retro-pink rounded-full flex items-center justify-center mx-auto mb-4">
             <span className="text-2xl">🚀</span>
           </div>
-          <h2 className="text-white text-xl font-bold">欢迎回到 PixelDesk</h2>
+          <h2 className="text-white text-xl font-bold">欢迎回到 象素工坊</h2>
           <p className="text-retro-textMuted text-sm mt-1">登录您的账户继续游戏</p>
         </div>
         

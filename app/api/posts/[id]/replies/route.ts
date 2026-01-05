@@ -39,13 +39,13 @@ export async function GET(
       }
 
       const [replies, totalCount] = await Promise.all([
-        prisma.postReply.findMany({
+        prisma.post_replies.findMany({
           where: { postId },
           orderBy: { createdAt: 'asc' },
           skip,
           take: limit,
           include: {
-            author: {
+            users: {
               select: {
                 id: true,
                 name: true,
@@ -55,17 +55,24 @@ export async function GET(
             }
           }
         }),
-        prisma.postReply.count({ where: { postId } })
+        prisma.post_replies.count({ where: { postId } })
       ])
 
       const totalPages = Math.ceil(totalCount / limit)
+
+      // 将 users 字段映射为 author 以保持 API 兼容性
+      const repliesWithAuthor = replies.map(reply => ({
+        ...reply,
+        author: reply.users,
+        users: undefined
+      }))
 
       console.log(`✅ [GET replies] 成功获取回复:`, { count: replies.length, totalCount })
 
       return NextResponse.json({
         success: true,
         data: {
-          replies,
+          replies: repliesWithAuthor,
           pagination: {
             page,
             limit,
@@ -187,7 +194,7 @@ export async function POST(
           authorId: true,
           title: true,
           content: true,
-          author: {
+          users: {
             select: {
               id: true,
               name: true
@@ -222,7 +229,7 @@ export async function POST(
 
       // 使用事务创建回复并更新帖子的回复计数
       const result = await prisma.$transaction(async (tx) => {
-        const reply = await tx.postReply.create({
+        const reply = await tx.post_replies.create({
           data: {
             id: randomUUID(),
             postId,
@@ -231,7 +238,7 @@ export async function POST(
             updatedAt: new Date()
           },
           include: {
-            author: {
+            users: {
               select: {
                 id: true,
                 name: true,
@@ -243,14 +250,14 @@ export async function POST(
         })
 
         // 更新帖子回复计数
-        await tx.post.update({
+        await tx.posts.update({
           where: { id: postId },
           data: { replyCount: { increment: 1 } }
         })
 
         // 创建通知：如果回复者不是帖子作者，为帖子作者创建通知
         if (post.authorId !== userId) {
-          await tx.notification.create({
+          await tx.notifications.create({
             data: {
               id: randomUUID(),
               userId: post.authorId, // 帖子作者接收通知
@@ -282,9 +289,16 @@ export async function POST(
           console.error('❌ [POST replies] 积分奖励失败:', err)
         })
 
+      // 将 users 字段映射为 author 以保持 API 兼容性
+      const resultWithAuthor = {
+        ...result,
+        author: result.users,
+        users: undefined
+      }
+
       return NextResponse.json({
         success: true,
-        data: result
+        data: resultWithAuthor
       })
 
     } catch (error: any) {

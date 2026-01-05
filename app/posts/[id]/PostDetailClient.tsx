@@ -6,6 +6,7 @@ import { Post } from '@/types/social'
 import { useCurrentUser } from '@/lib/hooks/useCurrentUser'
 import { useUser } from '@/contexts/UserContext'
 import { usePostReplies } from '@/lib/hooks/usePostReplies'
+import { useBrandConfig } from '@/lib/hooks/useBrandConfig'
 import UserAvatar from '@/components/UserAvatar'
 import CreateReplyForm from '@/components/CreateReplyForm'
 import MarkdownRenderer from '@/components/MarkdownRenderer'
@@ -20,6 +21,7 @@ export default function PostDetailClient({ initialPost }: PostDetailClientProps)
   const router = useRouter()
   const { userId: currentUserId } = useCurrentUser()
   const { user } = useUser()
+  const { config: brandConfig, isLoading: isBrandLoading } = useBrandConfig('zh-CN')
 
   // 本地主题状态管理
   const [theme, setTheme] = useState<'light' | 'dark'>('dark')
@@ -246,12 +248,21 @@ export default function PostDetailClient({ initialPost }: PostDetailClientProps)
               onClick={() => router.push('/')}
               className="flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer"
             >
-              <div className="w-8 h-8 bg-gradient-to-br from-cyan-500 to-teal-500 rounded-lg flex items-center justify-center shadow-lg shadow-cyan-500/20">
-                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <span className="text-white font-bold text-base">PixelDesk</span>
+              {isBrandLoading ? (
+                <div className="w-8 h-8 bg-gray-700 rounded-lg animate-pulse"></div>
+              ) : (
+                <img
+                  src={brandConfig.app_logo}
+                  alt={brandConfig.app_name}
+                  className="w-8 h-8 rounded-lg object-cover"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none'
+                  }}
+                />
+              )}
+              <span className="text-white font-bold text-base">
+                {isBrandLoading ? '加载中...' : brandConfig.app_name}
+              </span>
             </button>
 
             <div className="flex items-center space-x-2">

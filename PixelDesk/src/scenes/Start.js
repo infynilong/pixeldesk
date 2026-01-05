@@ -402,7 +402,7 @@ export class Start extends Phaser.Scene {
 
       // 初始化其他玩家物理组（用于碰撞检测）
       // 🔧 关键修复：必须在WorkstationManager创建之前初始化，因为loadWorkstation可能会立即尝试添加角色到这个组
-      this.otherPlayersGroup = this.physics.add.group()
+      this.otherPlayersGroup = this.physics.add.group({ immovable: true })
       this.npcGroup = this.physics.add.group({ immovable: true })
       debugLog('✅ [Start] player groups 物理组已初始化')
 
@@ -633,11 +633,6 @@ export class Start extends Phaser.Scene {
       console.log(`📍 当前坐标: X=${Math.round(this.player.x)}, Y=${Math.round(this.player.y)}`);
     }
 
-    // 检查T键按下，快速回到工位（临时禁用）
-    // if (this.teleportKey && Phaser.Input.Keyboard.JustDown(this.teleportKey)) {
-    //   this.handleTeleportKeyPress()
-    // }
-
     // 为 update 循环添加一个简单的计数器（如果还不存在）
     if (!this.updateCounter) this.updateCounter = 0
     this.updateCounter++
@@ -664,6 +659,7 @@ export class Start extends Phaser.Scene {
       this.checkFrontDeskCollisionEnd()
     }
   }
+
 
   // 检查前台碰撞是否结束（玩家离开前台范围）
   checkFrontDeskCollisionEnd() {
@@ -2775,21 +2771,7 @@ export class Start extends Phaser.Scene {
     }
 
     // 创建 group 物理阻挡 (Collider) + 交互触发 (逻辑注入)
-    // 同时解决：1. 玩家与玩家/NPC 之间的穿透问题 2. 触发对话 Tab 的打开
-    this.physics.add.collider(
-      this.player,
-      this.otherPlayersGroup,
-      (player1, player2) => {
-        // 确保是其他角色触发了碰撞（包括其他玩家和 NPC）
-        if (player2.isOtherPlayer) {
-          this.handlePlayerCollision(player1, player2)
-        }
-      },
-      null,
-      this
-    )
-
-    // 锦上添花：保留 playerCharacterCollider 用于极少数重合情况的兜底（可选，但通常 Collider 里的回调已经足够）
+    // 仅使用 overlap 进行交互检测，允许穿透（防止推走其他玩家/NPC）
     this.playerCharacterCollider = this.physics.add.overlap(
       this.player,
       this.otherPlayersGroup,

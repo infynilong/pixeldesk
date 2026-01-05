@@ -211,7 +211,7 @@ export default function PostDetailModal({
               </div>
               <div>
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white">帖子详情</h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400">PixelDesk 社交平台</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">象素工坊 社交平台</p>
               </div>
             </div>
 

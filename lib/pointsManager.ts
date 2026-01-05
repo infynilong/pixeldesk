@@ -185,7 +185,7 @@ export async function deductPoints(
     // 使用事务更新积分和记录历史
     const updatedUser = await prisma.$transaction(async (tx) => {
       // 扣除积分
-      const user = await tx.user.update({
+      const user = await tx.users.update({
         where: { id: userId },
         data: {
           points: { decrement: points }
@@ -193,7 +193,7 @@ export async function deductPoints(
       })
 
       // 记录历史
-      await tx.pointsHistory.create({
+      await tx.points_history.create({
         data: {
           userId,
           amount: -points, // 扣除显示负数

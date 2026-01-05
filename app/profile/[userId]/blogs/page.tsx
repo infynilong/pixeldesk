@@ -138,7 +138,7 @@ export default function UserBlogsPage() {
               </svg>
             </div>
             <div className="flex flex-col">
-              <span className="text-white font-bold text-lg">PixelDesk</span>
+              <span className="text-white font-bold text-lg">象素工坊</span>
               <span className="text-gray-400 text-xs font-mono">Social Platform</span>
             </div>
           </button>

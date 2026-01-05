@@ -7,6 +7,7 @@ import PlayerInteractionTab from './tabs/PlayerInteractionTab' // Social功能�
 import MyPostsTab from './tabs/MyPostsTab' // Posts功能重新启用
 import NotificationsTab from './tabs/NotificationsTab' // Inbox功能重新启用
 import AuthenticationHeader from './AuthenticationHeader'
+import { useBrandConfig } from '@/lib/hooks/useBrandConfig'
 
 interface InfoPanelProps {
   children: ReactNode
@@ -27,6 +28,8 @@ export default function InfoPanel({
   isTablet = false,
   onPostClick
 }: InfoPanelProps) {
+  const { config: brandConfig, isLoading: isBrandLoading } = useBrandConfig('zh-CN')
+
   // Define available tabs
   const tabs: TabType[] = [
     {
@@ -82,12 +85,25 @@ export default function InfoPanel({
       <div className="p-6 border-b border-retro-border">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-gradient-to-r from-retro-purple to-retro-pink rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">P</span>
-            </div>
+            {isBrandLoading ? (
+              <div className="w-8 h-8 bg-gray-700 rounded-lg animate-pulse"></div>
+            ) : (
+              <img
+                src={brandConfig.app_logo}
+                alt={brandConfig.app_name}
+                className="w-8 h-8 rounded-lg object-cover"
+                onError={(e) => {
+                  e.currentTarget.src = '/assets/icon.png'
+                }}
+              />
+            )}
             <div>
-              <h1 className="text-xl font-bold text-white">PixelDesk</h1>
-              <p className="text-xs text-retro-textMuted">社交办公空间</p>
+              <h1 className="text-xl font-bold text-white">
+                {isBrandLoading ? '加载中...' : brandConfig.app_name}
+              </h1>
+              <p className="text-xs text-retro-textMuted">
+                {isBrandLoading ? 'Loading...' : brandConfig.app_slogan}
+              </p>
             </div>
           </div>
           
@@ -114,7 +130,7 @@ export default function InfoPanel({
             <span className="text-xs text-retro-textMuted">在线</span>
           </div>
           <div className="text-xs text-gray-500">
-            PixelDesk v1.0
+            {isBrandLoading ? 'Loading...' : `${brandConfig.app_name} v1.0`}
           </div>
         </div>
       </div>

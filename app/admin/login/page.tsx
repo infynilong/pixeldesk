@@ -51,7 +51,7 @@ export default function AdminLoginPage() {
               <span className="text-4xl">🔐</span>
             </div>
             <h1 className="text-3xl font-bold text-white mb-2">
-              PixelDesk 管理后台
+              象素工坊 管理后台
             </h1>
             <p className="text-retro-textMuted">
               请使用管理员账号登录

@@ -8,6 +8,7 @@ import PointsHistory from './PointsHistory'
 import UserSettingsModal from './UserSettingsModal'
 import ActivityHeatmap from './ActivityHeatmap'
 import ActivityStats from './ActivityStats'
+import { useBrandConfig } from '@/lib/hooks/useBrandConfig'
 
 interface LeftPanelProps {
   currentUser?: any
@@ -33,6 +34,7 @@ export default function LeftPanel({
   const { theme, toggleTheme } = useTheme()
   const [showHistory, setShowHistory] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
+  const { config: brandConfig, isLoading: isBrandLoading } = useBrandConfig('zh-CN')
 
   const handleToggle = (collapsed: boolean) => {
     if (onCollapsedChange) {
@@ -81,17 +83,37 @@ export default function LeftPanel({
         <div className="p-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gray-800 border border-gray-700 rounded-lg flex items-center justify-center">
+              {/* Logo图片 */}
+              {isBrandLoading ? (
+                <div className="w-8 h-8 bg-gray-700 rounded-lg animate-pulse"></div>
+              ) : (
+                <img
+                  src={brandConfig.app_logo}
+                  alt={brandConfig.app_name}
+                  className="w-8 h-8 rounded-lg object-cover border border-gray-700"
+                  onError={(e) => {
+                    // 图片加载失败时显示默认图标
+                    e.currentTarget.style.display = 'none'
+                    e.currentTarget.nextElementSibling?.classList.remove('hidden')
+                  }}
+                />
+              )}
+              {/* 备用图标（图片加载失败时显示） */}
+              <div className="hidden w-8 h-8 bg-gray-800 border border-gray-700 rounded-lg flex items-center justify-center">
                 <svg className="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h1 className="text-sm font-medium text-gray-200">PixelDesk</h1>
+                  <h1 className="text-sm font-medium text-gray-200">
+                    {isBrandLoading ? '加载中...' : brandConfig.app_name}
+                  </h1>
                   <span className="px-1.5 py-0.5 bg-blue-500/10 text-blue-400 text-[10px] leading-none font-mono rounded border border-blue-500/20">Beta</span>
                 </div>
-                <p className="text-xs text-gray-500 font-mono">Social Office</p>
+                <p className="text-xs text-gray-500 font-mono">
+                  {isBrandLoading ? 'Loading...' : brandConfig.app_slogan}
+                </p>
               </div>
             </div>
             <div className="flex items-center gap-1">
@@ -355,7 +377,7 @@ export default function LeftPanel({
               <span className="text-sm text-gray-400 font-mono">ONLINE</span>
             </div>
             <div className="text-xs text-gray-500 font-mono">
-              PixelDesk v2.0
+              {isBrandLoading ? 'Loading...' : `${brandConfig.app_name} v2.0`}
             </div>
           </div>
         </div>

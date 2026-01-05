@@ -1148,55 +1148,22 @@ export class WorkstationManager {
             character.setDepth(1000); // 在工位上方
             debugLog(`🔍 [createCharacterSprite] 角色深度设置完成: 1000`);
 
-            // 添加点击事件
-            try {
-                character.setInteractive(new Phaser.Geom.Rectangle(-20, -30, 40, 60), Phaser.Geom.Rectangle.Contains);
-                character.on('pointerdown', () => {
-                    this.onCharacterClick(userId, workstation);
-                });
-                debugLog(`🔧 [createCharacterSprite] 角色交互设置完成`);
-            } catch (interactiveError) {
-                debugWarn(`⚠️ [createCharacterSprite] 设置交互失败:`, interactiveError);
-            }
-
-            // 添加悬停效果
-            try {
-                character.on('pointerover', () => {
-                    character.setScale(0.88); // 稍微放大
-                    if (this.scene && this.scene.input) {
-                        this.scene.input.setDefaultCursor('pointer');
-                    }
-                });
-
-                character.on('pointerout', () => {
-                    character.setScale(0.8); // 恢复原大小
-                    if (this.scene && this.scene.input) {
-                        this.scene.input.setDefaultCursor('default');
-                    }
-                });
-                debugLog(`🔧 [createCharacterSprite] 角色悬停效果设置完成`);
-            } catch (hoverError) {
-                debugWarn(`⚠️ [createCharacterSprite] 设置悬停效果失败:`, hoverError);
-            }
+            // 设置可交互
+            character.setInteractive(new Phaser.Geom.Rectangle(-20, -30, 40, 60), Phaser.Geom.Rectangle.Contains);
+            character.on('pointerdown', () => {
+                this.onCharacterClick(userId, workstation);
+            });
 
             // 添加到场景
-            try {
-                this.scene.add.existing(character);
-                debugLog(`🎬 [createCharacterSprite] 角色已添加到场景`);
+            this.scene.add.existing(character);
 
-                // 验证角色是否正确添加到场景
-                const sceneChildren = this.scene.children.list;
-                const isInScene = sceneChildren.includes(character);
-                debugLog(`🔍 [createCharacterSprite] 角色在场景中验证:`, {
-                    isInScene,
-                    sceneChildrenCount: sceneChildren.length,
-                    characterInList: isInScene,
-                    characterPosition: { x: character.x, y: character.y },
-                    characterVisible: character.visible
-                });
-            } catch (addError) {
-                console.error(`❌ [createCharacterSprite] 添加角色到场景失败:`, addError);
-                return; // 如果添加失败，直接返回
+            // 加入物理组（关键：用于碰撞检测）
+            if (this.scene.otherPlayersGroup) {
+                this.scene.otherPlayersGroup.add(character);
+                // 确保碰撞器已创建
+                if (typeof this.scene.ensurePlayerCharacterOverlap === 'function') {
+                    this.scene.ensurePlayerCharacterOverlap();
+                }
             }
 
             // 保存引用
@@ -1204,24 +1171,10 @@ export class WorkstationManager {
             workstation.characterKey = characterKey;
             workstation.characterDirection = characterDirection;
 
-            debugLog(`✅ [createCharacterSprite] 工位 ${workstation.id} 角色创建完成:`, {
-                characterKey,
-                position: { x, y },
-                direction: characterDirection,
-                workstationHasCharacterSprite: !!workstation.characterSprite,
-                characterSpriteId: workstation.characterSprite?.playerData?.id,
-                finalCharacterVisible: character.visible,
-                finalCharacterActive: character.active
-            });
+            debugLog(`✅ [createCharacterSprite] 工位 ${workstation.id} 角色创建完成`);
 
         } catch (error) {
-            console.error(`❌ [createCharacterSprite] 工位 ${workstation.id} 角色创建失败:`, {
-                error: error.message,
-                stack: error.stack,
-                characterKey,
-                position: { x, y },
-                playerData
-            });
+            console.error(`❌ [createCharacterSprite] 工位 ${workstation.id} 角色创建失败:`, error);
         }
     }
 

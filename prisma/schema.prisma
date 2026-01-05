@@ -519,6 +519,20 @@ model workstations {
   createdAt  DateTime @default(now())
 }
 
+model brand_config {
+  id        String   @id
+  key       String
+  locale    String   @default("zh-CN")
+  value     String
+  type      String   @default("text")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([key, locale])
+  @@index([key])
+  @@index([locale])
+}
+
 enum AdminRole {
   SUPER_ADMIN
   ADMIN

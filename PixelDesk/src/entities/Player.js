@@ -77,6 +77,7 @@ export class Player extends Phaser.GameObjects.Container {
             // 工位角色使用更小的碰撞体(因为它们是静止的)
             this.body.setSize(24, 36);
             this.body.setOffset(-12, -6);
+            this.body.setImmovable(true);
         } else {
             // 当前玩家使用正常碰撞体
             this.body.setSize(28, 40);
@@ -697,8 +698,8 @@ export class Player extends Phaser.GameObjects.Container {
             }
 
             debugLog('碰撞开始:', this.playerData.name, 'at', new Date(this.collisionStartTime).toLocaleTimeString(),
-                     'isWorkstationPlayer:', isWorkstationPlayer,
-                     'shouldTriggerWorkstationPopup:', shouldTriggerWorkstationPopup);
+                'isWorkstationPlayer:', isWorkstationPlayer,
+                'shouldTriggerWorkstationPopup:', shouldTriggerWorkstationPopup);
         }
     }
 

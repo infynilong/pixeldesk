@@ -15,7 +15,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     // 更新所有未读通知为已读
-    const result = await prisma.notification.updateMany({
+    const result = await prisma.notifications.updateMany({
       where: {
         userId,
         isRead: false

@@ -34,7 +34,7 @@ export async function GET(
         skip,
         take: limit,
         include: {
-          author: {
+          users: {
             select: {
               id: true,
               name: true,
@@ -61,9 +61,11 @@ export async function GET(
       })
     ])
 
-    // 处理点赞状态
+    // 处理点赞状态和字段映射
     const blogsWithLikeStatus = blogs.map(blog => ({
       ...blog,
+      author: blog.users, // 将 users 字段映射为 author 以保持 API 兼容性
+      users: undefined, // 移除 users 字段
       isLiked: currentUserId ? (blog.likes && blog.likes.length > 0) : false,
       likes: undefined
     }))

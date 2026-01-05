@@ -16,8 +16,13 @@ const vt323 = VT323({
 })
 
 export const metadata = {
-  title: 'PixelDesk - 社交办公游戏',
+  title: '象素工坊 - 社交办公游戏',
   description: '一个有趣的社交办公游戏平台',
+  icons: {
+    icon: '/assets/icon.png',
+    shortcut: '/assets/icon.png',
+    apple: '/assets/icon.png',
+  },
 }
 
 export default function RootLayout({
