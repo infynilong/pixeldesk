@@ -8,7 +8,7 @@ interface CreateReplyFormProps {
   onCancel: () => void
   isMobile?: boolean
   isSubmitting?: boolean
-  variant?: 'dark' | 'light' // 新增：支持不同主题变体
+  variant?: 'dark' | 'light' | 'chat' // 新增：支持不同主题变体
 }
 
 export default function CreateReplyForm({
@@ -37,15 +37,10 @@ export default function CreateReplyForm({
 
   const finalIsSubmitting = isSubmitting || isInternalSubmitting
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
 
-    console.log('🚀 [CreateReplyForm] 开始提交回复，内容:', content.trim())
-
-    if (!content.trim()) {
-      setError('请输入回复内容')
-      return
-    }
+    if (!content.trim()) return
 
     if (content.length > 1000) {
       setError('回复过长（最多1000字符）')
@@ -60,21 +55,15 @@ export default function CreateReplyForm({
         content: content.trim()
       }
 
-      console.log('📤 [CreateReplyForm] 调用onSubmit，数据:', replyData)
       const success = await onSubmit(replyData)
-      console.log('📥 [CreateReplyForm] onSubmit结果:', success)
 
       if (success) {
         setContent('')
-        console.log('✅ [CreateReplyForm] 回复成功，表单已清空')
       } else {
-        setError('回复失败，请重试')
-        console.error('❌ [CreateReplyForm] 回复失败')
+        setError('回复失败')
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : '回复失败'
-      setError(errorMessage)
-      console.error('❌ [CreateReplyForm] 回复异常:', err)
+      setError('回复失败')
     } finally {
       setIsInternalSubmitting(false)
     }
@@ -82,6 +71,16 @@ export default function CreateReplyForm({
 
   // 根据variant设置样式
   const getVariantStyles = () => {
+    if (variant === 'chat') {
+      return {
+        container: "relative bg-[#24272a]/60 backdrop-blur-2xl border border-white/10 rounded-2xl p-2 shadow-2xl flex items-end gap-2",
+        textarea: "flex-1 bg-transparent border-none focus:ring-0 text-white placeholder-gray-500 text-sm py-2 px-2 max-h-32 overflow-y-auto resize-none min-h-[40px]",
+        counter: "hidden",
+        error: "absolute -top-6 left-2 text-red-500 text-[10px] bg-black/80 px-2 py-0.5 rounded",
+        clearButton: "hidden",
+        submitButton: "bg-cyan-500 hover:bg-cyan-400 text-black p-2 rounded-xl transition-all disabled:opacity-30 disabled:grayscale shrink-0"
+      }
+    }
     if (variant === 'light') {
       return {
         container: "relative bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm",
@@ -104,6 +103,48 @@ export default function CreateReplyForm({
   }
 
   const styles = getVariantStyles()
+
+  // 处理键盘事件，支持回车发送 (仅在聊天模式下)
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (variant === 'chat' && e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handleSubmit()
+    }
+  }
+
+  if (variant === 'chat') {
+    return (
+      <div className={styles.container}>
+        {error && <span className={styles.error}>{error}</span>}
+        <textarea
+          placeholder="Type a message..."
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          onFocus={handleInputFocus}
+          onBlur={handleInputBlur}
+          onKeyDown={handleKeyDown}
+          className={styles.textarea}
+          rows={1}
+          disabled={finalIsSubmitting}
+          data-input-container="true"
+        />
+        <button
+          type="button"
+          onClick={() => handleSubmit()}
+          disabled={finalIsSubmitting || !content.trim()}
+          className={styles.submitButton}
+        >
+          {finalIsSubmitting ? (
+            <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+          ) : (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+            </svg>
+          )}
+        </button>
+      </div>
+    )
+  }
 
   return (
     <div className={styles.container}>
@@ -159,7 +200,7 @@ export default function CreateReplyForm({
             <div className="flex items-center gap-2">
               {finalIsSubmitting ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full "></div>
+                  <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
                   <span>发布中...</span>
                 </>
               ) : (

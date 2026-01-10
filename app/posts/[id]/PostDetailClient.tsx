@@ -62,12 +62,24 @@ export default function PostDetailClient({ initialPost }: PostDetailClientProps)
     error: repliesError,
     pagination: repliesPagination,
     createReply,
-    loadMoreReplies
+    loadMoreReplies,
+    fetchReplies // Added fetchReplies here
   } = usePostReplies({
     postId: post.id,
     userId: currentUserId || '',
-    autoFetch: !!post.id && !!currentUserId
+    autoFetch: false // 🔧 关键：改为手动控制加载时机
   })
+
+  // 延迟加载回复列表，优化初始渲染性能
+  useEffect(() => {
+    if (post.id) {
+      const timer = setTimeout(() => {
+        console.log('💬 [PostDetail] 开始延迟加载评论区...');
+        fetchReplies();
+      }, 800); // 延迟 800ms，在正文展示后加载
+      return () => clearTimeout(timer);
+    }
+  }, [post.id, fetchReplies]);
 
   // 处理点赞
   const handleLike = async () => {
@@ -187,14 +199,9 @@ export default function PostDetailClient({ initialPost }: PostDetailClientProps)
     <div className="min-h-screen bg-gray-950 relative">
       {/* 动态背景装饰 */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        {/* 渐变光晕 - 紫色 */}
         <div className="absolute top-20 -left-20 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl" />
-        {/* 渐变光晕 - 蓝色 */}
         <div className="absolute top-40 right-20 w-80 h-80 bg-cyan-600/10 rounded-full blur-3xl" />
-        {/* 渐变光晕 - 粉色 */}
         <div className="absolute bottom-40 left-1/3 w-96 h-96 bg-pink-600/8 rounded-full blur-3xl" />
-
-        {/* 网格背景 */}
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#4f4f4f2e_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f2e_1px,transparent_1px)] bg-[size:32px_32px]" />
       </div>
 
@@ -203,488 +210,179 @@ export default function PostDetailClient({ initialPost }: PostDetailClientProps)
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
           <div className="bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-700 rounded-xl p-6 max-w-md mx-4 shadow-2xl">
             <div className="text-center space-y-4">
-              {/* 图标 */}
               <div className="w-16 h-16 bg-gradient-to-br from-cyan-600 to-teal-600 rounded-full flex items-center justify-center mx-auto shadow-lg shadow-cyan-500/20">
                 <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                 </svg>
               </div>
-
-              {/* 标题和消息 */}
               <div>
                 <h3 className="text-xl font-bold text-white mb-2">需要登录</h3>
                 <p className="text-gray-300 text-sm">请先登录后再进行操作</p>
               </div>
-
-              {/* 按钮 */}
               <div className="flex gap-3 pt-2">
-                <button
-                  onClick={() => setShowLoginPrompt(false)}
-                  className="cursor-pointer flex-1 bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded-lg border border-gray-600 text-sm transition-all"
-                >
-                  取消
-                </button>
-                <button
-                  onClick={() => {
-                    setShowLoginPrompt(false)
-                    router.push('/')
-                  }}
-                  className="cursor-pointer flex-1 bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-white font-bold py-2 px-4 rounded-lg text-sm transition-all"
-                >
-                  前往登录
-                </button>
+                <button onClick={() => setShowLoginPrompt(false)} className="cursor-pointer flex-1 bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded-lg border border-gray-600 text-sm transition-all">取消</button>
+                <button onClick={() => { setShowLoginPrompt(false); router.push('/'); }} className="cursor-pointer flex-1 bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-white font-bold py-2 px-4 rounded-lg text-sm transition-all">前往登录</button>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* 导航栏 - 精简高度 */}
+      {/* 导航栏 */}
       <nav className="bg-gray-900/80 backdrop-blur-sm border-b border-gray-800 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 py-2">
           <div className="flex items-center justify-between">
-            {/* Logo - 精简版 */}
-            <button
-              onClick={() => router.push('/')}
-              className="flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer"
-            >
-              {isBrandLoading ? (
-                <div className="w-8 h-8 bg-gray-700 rounded-lg animate-pulse"></div>
-              ) : (
-                <img
-                  src={brandConfig.app_logo}
-                  alt={brandConfig.app_name}
-                  className="w-8 h-8 rounded-lg object-cover"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none'
-                  }}
-                />
-              )}
-              <span className="text-white font-bold text-base">
-                {isBrandLoading ? '加载中...' : brandConfig.app_name}
-              </span>
+            <button onClick={() => router.push('/')} className="flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer">
+              {isBrandLoading ? <div className="w-8 h-8 bg-gray-700 rounded-lg animate-pulse"></div> : <img src={brandConfig.app_logo} alt={brandConfig.app_name} className="w-8 h-8 rounded-lg object-cover" />}
+              <span className="text-white font-bold text-base">{isBrandLoading ? '加载中...' : brandConfig.app_name}</span>
             </button>
-
             <div className="flex items-center space-x-2">
-              {/* 主题切换按钮 */}
-              <button
-                onClick={toggleTheme}
-                className="p-1.5 bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white rounded-lg border border-gray-700 transition-all"
-                title={theme === 'dark' ? '切换到浅色模式' : '切换到深色模式'}
-              >
-                {theme === 'dark' ? (
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clipRule="evenodd" />
-                  </svg>
-                ) : (
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
-                  </svg>
-                )}
+              <button onClick={toggleTheme} className="p-1.5 bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white rounded-lg border border-gray-700 transition-all">
+                {theme === 'dark' ? <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clipRule="evenodd" /></svg> : <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" /></svg>}
               </button>
-
-              {isAuthor && (
-                <button
-                  onClick={() => router.push(`/posts/${post.id}/edit`)}
-                  className="cursor-pointer px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-cyan-400 rounded-lg border border-gray-700 hover:border-cyan-500/50 text-sm font-medium transition-all"
-                >
-                  编辑
-                </button>
-              )}
+              {isAuthor && <button onClick={() => router.push(`/posts/${post.id}/edit`)} className="cursor-pointer px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-cyan-400 rounded-lg border border-gray-700 hover:border-cyan-500/50 text-sm font-medium transition-all">编辑</button>}
             </div>
           </div>
         </div>
       </nav>
 
-      {/* 主要内容 - 左右布局 */}
+      {/* 主要内容 */}
       <main className="relative z-10 max-w-7xl mx-auto px-4 py-8">
         <div className="flex gap-8 items-start">
-          {/* 左侧主要内容区 */}
-          <div className="flex-1 min-w-0 space-y-8">
-          {/* 帖子内容卡片 */}
-          <article className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl overflow-hidden">
-            <div className="p-8">
-              {/* 作者信息 */}
-              <header className="flex items-start space-x-6 mb-6">
-                <UserAvatar
-                  userId={post.author.id}
-                  userName={post.author.name}
-                  userAvatar={post.author.avatar}
-                  size="xl"
-                  showStatus={true}
-                />
-                <div className="flex-1">
-                  <div className="flex items-center space-x-3 mb-2">
-                    <Link
-                      href={`/profile/${post.author.id}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="font-bold text-white hover:text-cyan-400 text-2xl transition-colors"
-                    >
-                      {post.author.name}
-                    </Link>
-                    <span className="text-retro-textMuted">•</span>
-                    <time className="text-retro-textMuted" dateTime={post.createdAt}>
-                      {formatTimeAgo(post.createdAt)}
-                    </time>
+          <div className="flex-1 min-w-0 flex flex-col gap-1">
+            {/* 帖子主体 - 气泡首句 */}
+            <article className="bg-[#1a1c1e]/80 backdrop-blur-xl border border-white/5 rounded-t-3xl overflow-hidden shadow-2xl">
+              <div className="p-8 pb-4">
+                <header className="flex items-center space-x-4 mb-6">
+                  <div className="relative">
+                    <UserAvatar userId={post.author.id} userName={post.author.name} userAvatar={post.author.avatar} size="xl" showStatus={true} />
+                    <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 border-4 border-[#1a1c1e] rounded-full"></div>
                   </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <Link href={`/profile/${post.author.id}`} className="font-black text-white hover:text-cyan-400 text-xl tracking-tight transition-colors">{post.author.name}</Link>
+                      <span className="w-1 h-1 bg-gray-600 rounded-full"></span>
+                      <time className="text-gray-500 text-sm font-medium">{formatTimeAgo(post.createdAt)}</time>
+                    </div>
+                    {post.title && <h1 className="text-2xl font-bold bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent mt-1">{post.title}</h1>}
+                  </div>
+                </header>
 
-                  {/* 帖子标题 */}
-                  {post.title && (
-                    <h1 className="text-3xl font-bold text-white mb-4 leading-tight">
-                      {post.title}
-                    </h1>
+                <div className="mb-6">
+                  {post.type === 'MARKDOWN' ? (
+                    <div className="prose prose-invert max-w-none"><MarkdownRenderer content={post.content} /></div>
+                  ) : (
+                    <p className="text-gray-100 whitespace-pre-wrap leading-relaxed text-lg font-medium">{post.content}</p>
                   )}
-
-                  {/* 博客元信息 */}
-                  {post.type === 'MARKDOWN' && (
-                    <div className="flex items-center gap-4 text-sm text-gray-400 mt-3">
-                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-cyan-600/20 text-cyan-400 border border-cyan-500/30 rounded font-pixel text-xs">
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                        </svg>
-                        博客
-                      </span>
-                      {post.readTime && (
-                        <span className="font-mono">
-                          <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          {post.readTime} 分钟阅读
-                        </span>
-                      )}
-                      {post.wordCount && (
-                        <span className="font-mono">{post.wordCount.toLocaleString()} 字</span>
-                      )}
+                  {post.type === 'MARKDOWN' && post.coverImage && (
+                    <div className="mt-6 overflow-hidden rounded-2xl border border-white/10 shadow-lg">
+                      <img src={post.coverImage} alt="Cover" className="w-full h-auto object-cover" />
                     </div>
                   )}
-
-                  {/* 标签 */}
-                  {post.type === 'MARKDOWN' && post.tags && post.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-3">
-                      {post.tags.map((tag, index) => (
-                        <span
-                          key={index}
-                          className="inline-block px-2 py-1 bg-gray-800/50 text-gray-400 border border-gray-700/50 rounded text-xs"
-                        >
-                          #{tag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </header>
-
-              {/* 封面图片 */}
-              {post.type === 'MARKDOWN' && post.coverImage && (
-                <div className="mb-6 overflow-hidden rounded-xl">
-                  <img
-                    src={post.coverImage}
-                    alt="Cover"
-                    className="w-full max-h-[400px] object-cover"
-                  />
-                </div>
-              )}
-
-              {/* 帖子内容 */}
-              <div className="mb-6">
-                {post.type === 'MARKDOWN' ? (
-                  <MarkdownRenderer content={post.content} />
-                ) : (
-                  <p className="text-gray-200 whitespace-pre-wrap leading-relaxed text-lg">
-                    {post.content}
-                  </p>
-                )}
-
-                {/* 图片内容 - 单图(优先使用 imageUrl) */}
-                {post.type !== 'MARKDOWN' && post.imageUrl && !post.imageUrls?.length && (
-                  <div className="mt-6 overflow-hidden rounded-xl">
-                    <img
-                      src={post.imageUrl}
-                      alt="Post image"
-                      className="w-full max-h-[500px] object-cover"
-                    />
-                  </div>
-                )}
-
-                {/* 多图片展示 - imageUrls(包括所有类型的帖子) */}
-                {post.imageUrls && post.imageUrls.length > 0 && (
-                  <div className="mt-6">
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                  {post.imageUrls && post.imageUrls.length > 0 && (
+                    <div className="mt-6 grid grid-cols-2 gap-3">
                       {post.imageUrls.map((url, index) => (
-                        <div
-                          key={index}
-                          className="relative aspect-square overflow-hidden rounded-lg bg-gray-800 cursor-pointer group"
-                          onClick={() => openLightbox(index)}
-                        >
-                          <img
-                            src={url}
-                            alt={`图片 ${index + 1}`}
-                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-                            onError={(e) => {
-                              e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23374151" width="200" height="200"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em" fill="%239CA3AF" font-size="16"%3E图片加载失败%3C/text%3E%3C/svg%3E'
-                            }}
-                          />
-                          {/* 悬停遮罩 */}
-                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors duration-300 flex items-center justify-center">
-                            <svg
-                              className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
-                            </svg>
+                        <div key={index} onClick={() => openLightbox(index)} className="relative aspect-video overflow-hidden rounded-xl bg-gray-800 cursor-pointer group">
+                          <img src={url} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                          <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition-colors"></div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <footer className="flex items-center justify-between pt-6 border-t border-white/5 mt-8 mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center bg-white/5 rounded-full px-4 py-1.5 gap-4 border border-white/5 text-gray-400 text-xs font-mono">
+                      <div className="flex items-center gap-1.5"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0zM2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg><span>{post.viewCount}</span></div>
+                      <div className="w-px h-3 bg-white/10"></div>
+                      <div className="flex items-center gap-1.5"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg><span>{post.replyCount}</span></div>
+                    </div>
+                    <button onClick={handleLike} disabled={isLiking} className={`flex items-center gap-2 px-5 py-2 rounded-full font-bold transition-all border ${post.isLiked ? 'text-pink-500 bg-pink-500/10 border-pink-500/20 shadow-lg' : 'text-gray-400 bg-white/5 border-white/5 hover:border-pink-500/30'}`}>
+                      <svg className={`w-5 h-5 ${post.isLiked ? 'fill-current' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                      <span>{post.likeCount}</span>
+                    </button>
+                  </div>
+                </footer>
+              </div>
+            </article>
+
+            {/* 回复列表 - 气泡连流 */}
+            <section className="bg-[#1a1c1e]/40 backdrop-blur-md border-x border-b border-white/5 rounded-b-3xl min-h-[500px] flex flex-col">
+              <div className="p-8 pt-4 flex-1">
+                <div className="flex items-center gap-4 mb-8">
+                  <div className="h-px bg-white/5 flex-1"></div>
+                  <div className="text-gray-600 font-mono text-[10px] uppercase tracking-[0.3em]">Replies Stream</div>
+                  <div className="h-px bg-white/5 flex-1"></div>
+                </div>
+
+                <div className="space-y-6">
+                  {isLoadingReplies && replies.length === 0 ? (
+                    <div className="flex justify-center py-20 text-cyan-500/50 animate-pulse font-mono text-xs">BUFFERING MESSAGES...</div>
+                  ) : replies.length > 0 ? (
+                    <div className="space-y-6">
+                      {replies.map((reply) => (
+                        <div key={reply.id} className="flex gap-4 group animate-in fade-in slide-in-from-bottom-2 duration-500">
+                          <UserAvatar userId={reply.author.id} userName={reply.author.name} userAvatar={reply.author.avatar} size="md" />
+                          <div className="flex-1">
+                            <div className="inline-block max-w-full">
+                              <div className="bg-[#24272a] border border-white/5 rounded-2xl rounded-tl-none px-4 py-3 shadow-md">
+                                <div className="flex items-center gap-3 mb-1">
+                                  <span className="font-bold text-cyan-400 text-sm">{reply.author.name}</span>
+                                  <time className="text-[10px] text-gray-600 font-mono">{formatTimeAgo(reply.createdAt)}</time>
+                                </div>
+                                <p className="text-gray-200 text-sm leading-relaxed">{reply.content}</p>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       ))}
                     </div>
+                  ) : (
+                    <div className="text-center py-20 grayscale opacity-20"><div className="text-4xl mb-4">💬</div><div className="text-[10px] font-mono tracking-widest uppercase">Start the flow</div></div>
+                  )}
+                </div>
+
+                {repliesPagination.hasNextPage && (
+                  <div className="mt-8 flex justify-center">
+                    <button onClick={loadMoreReplies} disabled={isLoadingReplies} className="text-[10px] font-mono text-cyan-500/40 hover:text-cyan-400 uppercase tracking-widest transition-colors">
+                      {isLoadingReplies ? 'SYNCING...' : '↑ Show earlier messages'}
+                    </button>
                   </div>
                 )}
-              </div>
 
-              {/* 统计和操作 */}
-              <footer className="flex items-center justify-between pt-6 border-t border-gray-800">
-                <div className="flex items-center space-x-6">
-                  {/* 浏览数 */}
-                  <div className="flex items-center space-x-2 text-gray-400">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                    </svg>
-                    <span className="text-sm font-medium">{post.viewCount}</span>
-                  </div>
-
-                  {/* 回复数 */}
-                  <div className="flex items-center space-x-2 text-gray-400">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                    </svg>
-                    <span className="text-sm font-medium">{post.replyCount}</span>
-                  </div>
-
-                  {/* 点赞按钮 */}
-                  <button
-                    onClick={handleLike}
-                    disabled={isLiking}
-                    className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all ${
-                      post.isLiked
-                        ? 'text-orange-400 bg-orange-500/10 hover:bg-orange-500/20'
-                        : 'text-gray-400 hover:text-orange-400 hover:bg-gray-800'
-                    } ${isLiking ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105 active:scale-95'}`}
-                  >
-                    <svg
-                      className={`w-5 h-5 ${post.isLiked ? 'fill-current' : ''}`}
-                      fill={post.isLiked ? 'currentColor' : 'none'}
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                    </svg>
-                    <span className="text-sm">{post.likeCount}</span>
-                  </button>
-                </div>
-              </footer>
-            </div>
-          </article>
-
-          {/* 回复区域 */}
-          <section className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl overflow-hidden">
-            <div className="p-8 space-y-6">
-              <div className="flex items-center gap-3 pb-4 border-b border-gray-800">
-                <svg className="w-6 h-6 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                </svg>
-                <h3 className="text-2xl font-bold text-white">
-                  回复 ({post.replyCount || 0})
-                </h3>
-              </div>
-
-              {/* 回复输入表单 */}
-              {currentUserId && (
-                <CreateReplyForm
-                  onSubmit={handleReplySubmit}
-                  onCancel={() => {}}
-                  isMobile={false}
-                  isSubmitting={isCreatingReply}
-                  variant="light"
-                />
-              )}
-
-              {/* 错误显示 */}
-              {repliesError && (
-                <div className="p-4 bg-red-900/20 border border-red-800/50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span className="text-red-300 text-sm">{repliesError}</span>
-                  </div>
-                </div>
-              )}
-
-              {/* 加载状态 */}
-              {isLoadingReplies && replies.length === 0 && (
-                <div className="flex items-center justify-center py-12">
-                  <div className="flex items-center gap-4">
-                    <div className="w-3 h-3 bg-cyan-500 rounded-full animate-pulse"></div>
-                    <div className="w-3 h-3 bg-teal-500 rounded-full animate-pulse" style={{ animationDelay: '150ms' }}></div>
-                    <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse" style={{ animationDelay: '300ms' }}></div>
-                  </div>
-                </div>
-              )}
-
-              {/* 回复列表 */}
-              {replies.length > 0 && (
-                <div className="space-y-4">
-                  {replies.map((reply) => (
-                    <div key={reply.id} className="bg-gray-800/50 hover:bg-gray-800/70 rounded-xl p-6 transition-all">
-                      <div className="flex items-start space-x-4">
-                        {/* 回复者头像 */}
-                        <div className="flex-shrink-0 pt-1">
-                          <UserAvatar
-                            userId={reply.author.id}
-                            userName={reply.author.name}
-                            userAvatar={reply.author.avatar}
-                            size="md"
-                            showStatus={true}
-                          />
-                        </div>
-
-                        {/* 回复内容 */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center space-x-3 mb-3">
-                            <Link
-                              href={`/profile/${reply.author.id}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="font-bold text-white hover:text-cyan-400 transition-colors"
-                            >
-                              {reply.author.name}
-                            </Link>
-                            <span className="text-gray-600">•</span>
-                            <time className="text-sm text-gray-400" dateTime={reply.createdAt}>
-                              {formatTimeAgo(reply.createdAt)}
-                            </time>
-                          </div>
-                          <p className="text-gray-200 leading-relaxed">
-                            {reply.content}
-                          </p>
-                        </div>
-                      </div>
+                {/* 输入区 - 悬浮聊天框形态 */}
+                <div className="mt-12 sticky bottom-4">
+                  {currentUserId ? (
+                    <CreateReplyForm onSubmit={handleReplySubmit} onCancel={() => { }} isSubmitting={isCreatingReply} variant="chat" />
+                  ) : (
+                    <div onClick={() => setShowLoginPrompt(true)} className="bg-[#24272a]/80 backdrop-blur-xl border border-white/5 rounded-2xl p-4 text-center cursor-pointer hover:bg-[#2a2d32] transition-all">
+                      <span className="text-gray-500 text-sm">Please <span className="text-cyan-500 font-bold underline">Login</span> to join the flow</span>
                     </div>
-                  ))}
+                  )}
                 </div>
-              )}
-
-              {/* 没有回复时的空状态 */}
-              {!isLoadingReplies && replies.length === 0 && (
-                <div className="text-center py-12">
-                  <div className="w-16 h-16 bg-gray-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                    <svg className="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                    </svg>
-                  </div>
-                  <h4 className="text-xl font-semibold text-white mb-2">还没有回复</h4>
-                  <p className="text-gray-400">成为第一个回复的人!</p>
-                </div>
-              )}
-
-              {/* 加载更多回复按钮 */}
-              {repliesPagination.hasNextPage && (
-                <div className="flex justify-center pt-6">
-                  <button
-                    onClick={loadMoreReplies}
-                    disabled={isLoadingReplies}
-                    className="cursor-pointer px-8 py-3 bg-gray-800 hover:bg-gray-700 text-cyan-400 rounded-lg border border-gray-700 hover:border-cyan-500/50 disabled:opacity-50 font-medium transition-all"
-                  >
-                    {isLoadingReplies ? '加载中...' : `加载更多回复 (${repliesPagination.totalPages - repliesPagination.page})`}
-                  </button>
-                </div>
-              )}
-            </div>
-          </section>
+              </div>
+            </section>
           </div>
 
-          {/* 右侧边栏 */}
           <aside className="hidden lg:block w-80 flex-shrink-0 sticky top-20">
-            <PostSidebar
-              currentPostId={post.id}
-              currentUserId={currentUserId || undefined}
-            />
+            <PostSidebar currentPostId={post.id} currentUserId={currentUserId || undefined} />
           </aside>
         </div>
       </main>
 
-      {/* 图片Lightbox模态框 */}
+      {/* Lightbox */}
       {lightboxOpen && post.imageUrls && post.imageUrls.length > 0 && (
-        <div
-          className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
-          onClick={closeLightbox}
-        >
-          {/* 关闭按钮 */}
-          <button
-            onClick={closeLightbox}
-            className="absolute top-4 right-4 p-2 bg-gray-800/80 hover:bg-gray-700 text-white rounded-lg transition-all z-10"
-            title="关闭 (ESC)"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-
-          {/* 上一张按钮 */}
-          {post.imageUrls.length > 1 && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                prevImage()
-              }}
-              className="absolute left-4 p-3 bg-gray-800/80 hover:bg-gray-700 text-white rounded-lg transition-all z-10"
-              title="上一张"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-          )}
-
-          {/* 图片容器 */}
-          <div
-            className="max-w-7xl max-h-[90vh] w-full h-full flex items-center justify-center p-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <img
-              src={post.imageUrls[lightboxImageIndex]}
-              alt={`图片 ${lightboxImageIndex + 1}`}
-              className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
-              onError={(e) => {
-                e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="400"%3E%3Crect fill="%23374151" width="400" height="400"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em" fill="%239CA3AF" font-size="20"%3E图片加载失败%3C/text%3E%3C/svg%3E'
-              }}
-            />
+        <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center" onClick={closeLightbox}>
+          <button onClick={closeLightbox} className="absolute top-4 right-4 p-2 bg-gray-800/80 text-white rounded-lg">✕</button>
+          <div className="max-w-7xl max-h-[90vh] p-4" onClick={e => e.stopPropagation()}>
+            <img src={post.imageUrls[lightboxImageIndex]} alt="" className="max-w-full max-h-full object-contain rounded-lg" />
           </div>
-
-          {/* 下一张按钮 */}
           {post.imageUrls.length > 1 && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                nextImage()
-              }}
-              className="absolute right-4 p-3 bg-gray-800/80 hover:bg-gray-700 text-white rounded-lg transition-all z-10"
-              title="下一张"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-          )}
-
-          {/* 图片计数器 */}
-          {post.imageUrls.length > 1 && (
-            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 px-4 py-2 bg-gray-800/80 text-white rounded-lg text-sm font-medium">
-              {lightboxImageIndex + 1} / {post.imageUrls.length}
-            </div>
+            <>
+              <button onClick={e => { e.stopPropagation(); prevImage(); }} className="absolute left-4 p-3 bg-gray-800/80 text-white rounded-lg">←</button>
+              <button onClick={e => { e.stopPropagation(); nextImage(); }} className="absolute right-4 p-3 bg-gray-800/80 text-white rounded-lg">→</button>
+            </>
           )}
         </div>
       )}
