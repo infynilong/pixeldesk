@@ -19,6 +19,7 @@ export interface Post {
   likeCount: number
   replyCount: number
   viewCount: number
+  promotionCount: number
   createdAt: string
   updatedAt: string
   author: SocialUser

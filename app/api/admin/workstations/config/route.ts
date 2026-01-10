@@ -12,6 +12,7 @@ const configSchema = z.object({
   teleportCost: z.number().int().min(0),
   defaultDuration: z.number().int().positive(),
   maxBindingsPerUser: z.number().int().positive(),
+  billboardPromotionCost: z.number().int().min(0),
 })
 
 export async function GET() {

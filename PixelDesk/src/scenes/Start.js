@@ -8,6 +8,7 @@ import { AiNpcManager } from "../logic/AiNpcManager.js"
 import { FrontDeskManager } from "../logic/FrontDeskManager.js"
 import { DayNightManager } from "../logic/DayNightManager.js"
 import { IndoorAreasManager } from "../logic/IndoorAreasManager.js"
+import { BillboardManager } from "../logic/BillboardManager.js"
 
 // ===== 性能优化配置 =====
 const PERFORMANCE_CONFIG = {
@@ -39,6 +40,7 @@ export class Start extends Phaser.Scene {
     this.cursors = null
     this.wasdKeys = null
     this.deskColliders = null
+    this.billboardSensors = null // 📺 大屏近场感应区
     this.currentUser = null
     this.bindingUI = null
     this.otherPlayers = new Map() // 存储其他玩家
@@ -430,6 +432,10 @@ export class Start extends Phaser.Scene {
       // 初始化前台客服管理器
       this.frontDeskManager = new FrontDeskManager(this)
 
+      // 📺 初始化大屏管理器
+      this.billboardManager = new BillboardManager(this)
+      this.billboardSensors = this.physics.add.group() // 动态组，作为触发器用
+
       // 为UI更新设置定时器而不是每帧更新
       // 暂时禁用UI更新定时器以排查CPU占用问题
       // this.uiUpdateTimer = this.time.addEvent({
@@ -652,6 +658,15 @@ export class Start extends Phaser.Scene {
     // 更新前台标签位置
     if (this.frontDeskManager) {
       this.frontDeskManager.update()
+    }
+
+    // 📺 更新大屏管理器 (处理玩家靠近检测 - 使用碰撞组而非数学计算)
+    if (this.billboardManager && this.player && this.billboardSensors) {
+      if (this.updateCounter % 5 === 0) { // 每5帧检查一次 overlap
+        const isNear = this.physics.overlap(this.player, this.billboardSensors);
+        this.billboardManager.setProximity(isNear);
+      }
+      this.billboardManager.update()
     }
 
     // 记录并在控制台打印坐标 (每隔 2 秒打印一次，避免刷屏)
@@ -1304,6 +1319,27 @@ export class Start extends Phaser.Scene {
       if (sprite) {
         // 为大屏添加物理碰撞，使其不可穿透
         this.addDeskCollision(sprite, obj);
+
+        // 注册到大屏管理器
+        if (this.billboardManager) {
+          this.billboardManager.createBillboard(obj, sprite);
+        }
+
+        // 创建感应区 (比大屏本身大的感应对象，确保容易触发)
+        if (this.billboardSensors) {
+          // GID 对象在 Phaser 中 origin 为 (0, 0)，adjustedY 使其 top 为 adjustedY
+          // 所以中心点计算如下：
+          const centerX = obj.x + (obj.width / 2);
+          const centerY = adjustedY + (obj.height / 2);
+
+          const sensor = this.add.rectangle(centerX, centerY, obj.width + 120, obj.height + 120, 0x000000, 0);
+          this.physics.add.existing(sensor, false);
+          if (sensor.body) {
+            sensor.body.setImmovable(true);
+            sensor.body.allowGravity = false;
+          }
+          this.billboardSensors.add(sensor);
+        }
       }
     }
 
@@ -1366,8 +1402,8 @@ export class Start extends Phaser.Scene {
       // 沙发 - 特殊的碰撞边界
       return { scaleX: 0.5, scaleY: 0.3, offsetX: 0, offsetY: 0 }
     } else if (objName.includes("display") || objType.includes("display") || objName.includes("board")) {
-      // 电子告示牌/大屏 - 较窄的横向碰撞边界
-      return { scaleX: 0.8, scaleY: 0.3, offsetX: 0, offsetY: 0 }
+      // 电子告示牌/大屏 - 完全碰撞边界
+      return { scaleX: 1.0, scaleY: 1.0, offsetX: 0, offsetY: 0 }
     } else {
       // 默认设置
       return { scaleX: 0.5, scaleY: 0.5, offsetX: 0, offsetY: 0 }

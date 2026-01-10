@@ -44,11 +44,11 @@ model admins {
 model ai_chat_history {
   id        String   @id
   userId    String
-  npcId     String   // 对应 ai_npcs.id 或 front_desk.id
-  chatType  String   @default("npc") // "npc" 或 "front_desk"
+  npcId     String
   role      String
   content   String
   createdAt DateTime @default(now())
+  chatType  String   @default("npc")
 
   @@index([userId, npcId, createdAt])
   @@index([userId, chatType, createdAt])
@@ -84,20 +84,20 @@ model ai_npcs {
 }
 
 model front_desk {
-  id            String   @id
-  name          String
-  sprite        String
-  x             Int
-  y             Int
-  serviceScope  String   // 服务范围: "账户服务"、"技术支持"、"投诉建议"等
-  workingHours  String?  // 工作时间，如 "9:00-18:00"
-  greeting      String   // 打招呼语
-  systemPrompt  String   @db.Text // 专业客服的系统提示词
-  modelId       String?  // AI模型ID（支持不连接大模型的场景）
-  isActive      Boolean  @default(true)
-  isFixed       Boolean  @default(true) // 前台通常是固定位置
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime
+  id           String   @id
+  name         String
+  sprite       String
+  x            Int
+  y            Int
+  serviceScope String
+  workingHours String?
+  greeting     String
+  systemPrompt String
+  isActive     Boolean  @default(true)
+  isFixed      Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime
+  modelId      String?
 }
 
 model ai_usage {
@@ -268,11 +268,10 @@ model players {
   @@index([userId])
 }
 
-// 象素币(PixelCoin)配置表 - 虚拟货币系统配置
 model points_config {
   id          String         @id
   key         String         @unique
-  value       Int            // 象素币数量
+  value       Int
   description String
   category    PointsCategory
   isActive    Boolean        @default(true)
@@ -283,14 +282,13 @@ model points_config {
   @@index([key])
 }
 
-// 象素币(PixelCoin)历史记录表 - 用户虚拟货币交易记录
 model points_history {
   id        String   @id
   userId    String
-  amount    Int      // 象素币变动数量(正数为获得,负数为消费)
-  reason    String   // 变动原因
-  type      String   // 交易类型
-  balance   Int      // 交易后余额
+  amount    Int
+  reason    String
+  type      String
+  balance   Int
   createdAt DateTime @default(now())
   users     users    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -326,37 +324,39 @@ model post_replies {
 }
 
 model posts {
-  id              String          @id
-  authorId        String
-  title           String?
-  content         String
-  type            PostType        @default(TEXT)
-  imageUrl        String?
-  isPublic        Boolean         @default(true)
-  likeCount       Int             @default(0)
-  replyCount      Int             @default(0)
-  viewCount       Int             @default(0)
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime
-  coverImage      String?
-  isDraft         Boolean         @default(false)
-  publishedAt     DateTime?
-  readTime        Int             @default(1)
-  summary         String?
-  tags            String[]        @default([])
-  wordCount       Int             @default(0)
-  imageUrls       String[]        @default([])
-  moderationStatus String         @default("pending")  // pending, approved, rejected, flagged
-  isActive        Boolean         @default(true)       // 是否启用（禁用后不显示）
-  aiReviewResult  String?                              // AI审查结果
-  aiReviewedAt    DateTime?                            // AI审查时间
-  reviewedBy      String?                              // 审查人ID
-  reviewedAt      DateTime?                            // 人工审查时间
-  reviewNotes     String?                              // 审查备注
-  notifications   notifications[]
-  post_likes      post_likes[]
-  post_replies    post_replies[]
-  users           users           @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  id                   String                 @id
+  authorId             String
+  title                String?
+  content              String
+  type                 PostType               @default(TEXT)
+  imageUrl             String?
+  isPublic             Boolean                @default(true)
+  likeCount            Int                    @default(0)
+  replyCount           Int                    @default(0)
+  viewCount            Int                    @default(0)
+  promotionCount       Int                    @default(0)
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime
+  coverImage           String?
+  isDraft              Boolean                @default(false)
+  publishedAt          DateTime?
+  readTime             Int                    @default(1)
+  summary              String?
+  tags                 String[]               @default([])
+  wordCount            Int                    @default(0)
+  imageUrls            String[]               @default([])
+  aiReviewResult       String?
+  aiReviewedAt         DateTime?
+  isActive             Boolean                @default(true)
+  moderationStatus     String                 @default("pending")
+  reviewNotes          String?
+  reviewedAt           DateTime?
+  reviewedBy           String?
+  billboard_promotions billboard_promotions[]
+  notifications        notifications[]
+  post_likes           post_likes[]
+  post_replies         post_replies[]
+  users                users                  @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   @@index([authorId])
   @@index([createdAt])
@@ -365,6 +365,22 @@ model posts {
   @@index([publishedAt])
   @@index([moderationStatus])
   @@index([isActive])
+}
+
+model billboard_promotions {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  amount    Int
+  duration  Int
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  posts     posts    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  users     users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+  @@index([postId])
+  @@index([userId])
 }
 
 model status_history {
@@ -440,10 +456,10 @@ model user_workstations {
   boundAt       DateTime  @default(now())
   cost          Int       @default(0)
   expiresAt     DateTime?
-  adText        String?   // 广告文案
-  adImage       String?   // 广告图片 URL
-  adUrl         String?   // 广告链接 URL
-  adUpdatedAt   DateTime? // 广告更新时间
+  adImage       String?
+  adText        String?
+  adUpdatedAt   DateTime?
+  adUrl         String?
   users         users     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, workstationId])
@@ -455,7 +471,7 @@ model user_workstations {
 
 model users {
   id                                               String                      @id
-  points                                           Int                         @default(100) // 象素币(PixelCoin)余额
+  points                                           Int                         @default(100)
   createdAt                                        DateTime                    @default(now())
   updatedAt                                        DateTime
   avatar                                           String?
@@ -467,6 +483,8 @@ model users {
   password                                         String?
   customAvatar                                     String?
   ai_usage                                         ai_usage[]
+  billboard_promotions                             billboard_promotions[]
+  books                                            books[]
   character_purchases                              character_purchases[]
   characters                                       characters[]
   conversation_participants                        conversation_participants[]
@@ -478,7 +496,6 @@ model users {
   post_likes                                       post_likes[]
   post_replies                                     post_replies[]
   posts                                            posts[]
-  books                                            books[]
   status_history                                   status_history[]
   time_tracking                                    time_tracking[]
   user_online_status                               user_online_status?
@@ -512,6 +529,7 @@ model workstation_config {
   teleportCost       Int      @default(2)
   defaultDuration    Int      @default(24)
   maxBindingsPerUser Int      @default(1)
+  billboardPromotionCost Int      @default(50)
   createdAt          DateTime @default(now())
   updatedAt          DateTime
   updatedBy          String?
@@ -540,6 +558,49 @@ model brand_config {
   @@index([locale])
 }
 
+model books {
+  id          String          @id @default(cuid())
+  userId      String
+  title       String
+  description String?
+  coverUrl    String?
+  status      BookStatus      @default(DRAFT)
+  category    String?
+  viewCount   Int             @default(0)
+  likeCount   Int             @default(0)
+  reviewNote  String?
+  reviewedAt  DateTime?
+  reviewedBy  String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  publishedAt DateTime?
+  bookcaseId  String?
+  chapters    book_chapters[]
+  user        users           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@index([publishedAt])
+  @@index([viewCount])
+}
+
+model book_chapters {
+  id        String      @id @default(cuid())
+  bookId    String
+  title     String
+  content   String?
+  linkUrl   String?
+  postId    String?
+  type      ChapterType @default(TEXT)
+  order     Int         @default(0)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  book      books       @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@index([bookId])
+  @@index([order])
+}
+
 enum AdminRole {
   SUPER_ADMIN
   ADMIN
@@ -564,73 +625,16 @@ enum PostType {
   MARKDOWN
 }
 
-// 用户出版系统模型
-
 enum BookStatus {
-  DRAFT       // 草稿
-  PENDING     // 审核中
-  PUBLISHED   // 已发布
-  REJECTED    // 已驳回
-  ARCHIVED    // 已下架
+  DRAFT
+  PENDING
+  PUBLISHED
+  REJECTED
+  ARCHIVED
 }
 
 enum ChapterType {
-  TEXT        // 纯文本/Markdown
-  LINK        // 外部链接
-  POST        // 站内帖子引用
-}
-
-model books {
-  id          String         @id @default(cuid())
-  userId      String
-  title       String
-  description String?        
-  coverUrl    String?
-  status      BookStatus     @default(DRAFT)
-  category    String?        // 分类: Tech, Life, Art...
-  
-  // 统计与激励
-  viewCount   Int            @default(0)
-  likeCount   Int            @default(0)
-  
-  // 审核信息
-  reviewNote  String?        // 审核意见
-  reviewedAt  DateTime?
-  reviewedBy  String?        // 审核人ID
-  
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-  publishedAt DateTime?      // 发布时间(用于排序)
-  bookcaseId  String?        // 所在书架ID
-
-  // 关系
-  user        users          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  chapters    book_chapters[]
-  
-  @@index([userId])
-  @@index([status])
-  @@index([publishedAt])
-  @@index([viewCount])
-}
-
-model book_chapters {
-  id          String      @id @default(cuid())
-  bookId      String
-  title       String
-  
-  // 内容载体
-  content     String?     // Markdown内容或纯文本
-  linkUrl     String?     // 外部链接地址
-  postId      String?     // 关联的内部帖子ID
-  
-  type        ChapterType @default(TEXT)
-  order       Int         @default(0)
-  
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  
-  book        books       @relation(fields: [bookId], references: [id], onDelete: Cascade)
-  
-  @@index([bookId])
-  @@index([order])
+  TEXT
+  LINK
+  POST
 }

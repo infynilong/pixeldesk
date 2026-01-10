@@ -26,9 +26,21 @@ export default function SocialFeedTab({
 }: SocialFeedTabProps) {
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [showLoginPrompt, setShowLoginPrompt] = useState(false)
+  const [promotionCost, setPromotionCost] = useState(50)
+
+  useEffect(() => {
+    fetch('/api/billboard/cost')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setPromotionCost(data.cost)
+        }
+      })
+      .catch(console.error)
+  }, [])
+
   const { t } = useTranslation()
 
-  // 使用新的用户hook获取当前用户信息
   const { currentUser, userId: currentUserId, isLoading: isUserLoading, error: userError } = useCurrentUser()
 
   // 使用 UserContext 获取真实的登录状态（排除临时玩家）
@@ -262,6 +274,8 @@ export default function SocialFeedTab({
                   onLike={() => handleLikePost(post.id)}
                   isAuthenticated={isAuthenticated}
                   onShowLoginPrompt={() => setShowLoginPrompt(true)}
+                  currentPoints={user?.points || 0}
+                  billboardPromotionCost={promotionCost}
                 />
               ))}
 

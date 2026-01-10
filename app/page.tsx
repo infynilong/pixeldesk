@@ -118,6 +118,11 @@ const WorkstationStatusPopup = dynamic(() => import('@/components/WorkstationSta
   ssr: false
 })
 
+// 大屏推流 UI
+const BillboardUI = dynamic(() => import('@/components/billboard/BillboardUI'), {
+  ssr: false
+})
+
 export default function Home() {
   // 认证相关状态
   const { user, isLoading, playerExists, setPlayerExists } = useUser()
@@ -1224,6 +1229,7 @@ export default function Home() {
 
       {/* 图书馆弹窗 - 始终监听，组件内部通过事件控制显示 */}
       <LibraryModal onClose={() => console.log('Library closed')} />
+      <BillboardUI />
 
       {/* 工位状态更新弹窗 */}
       <WorkstationStatusPopup

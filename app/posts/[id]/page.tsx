@@ -129,6 +129,10 @@ export default async function PostDetailPage({ params }: PageProps) {
       }
     })
 
+    // 获取工位配置，特别是推流成本
+    const wsConfig = await prisma.workstation_config.findFirst()
+    const billboardPromotionCost = (wsConfig as any)?.billboardPromotionCost ?? 50
+
     if (!post) {
       notFound()
     }
@@ -151,6 +155,7 @@ export default async function PostDetailPage({ params }: PageProps) {
       likeCount: post._count.post_likes,
       replyCount: post._count.post_replies,
       viewCount: post.viewCount,
+      promotionCount: (post as any).promotionCount || 0,
       createdAt: post.createdAt.toISOString(),
       updatedAt: post.updatedAt.toISOString(),
       author: post.users,
@@ -198,7 +203,10 @@ export default async function PostDetailPage({ params }: PageProps) {
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
 
-        <PostDetailClient initialPost={postData} />
+        <PostDetailClient
+          initialPost={postData}
+          billboardPromotionCost={billboardPromotionCost}
+        />
       </>
     )
   } catch (error) {

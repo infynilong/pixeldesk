@@ -12,12 +12,15 @@ import CreateReplyForm from '@/components/CreateReplyForm'
 import MarkdownRenderer from '@/components/MarkdownRenderer'
 import PostSidebar from '@/components/blog/PostSidebar'
 import Link from 'next/link'
+import { useTranslation } from '@/lib/hooks/useTranslation'
+import BillboardConfirmModal from '@/components/billboard/BillboardConfirmModal'
 
 interface PostDetailClientProps {
   initialPost: Post
+  billboardPromotionCost: number
 }
 
-export default function PostDetailClient({ initialPost }: PostDetailClientProps) {
+export default function PostDetailClient({ initialPost, billboardPromotionCost }: PostDetailClientProps) {
   const router = useRouter()
   const { userId: currentUserId } = useCurrentUser()
   const { user } = useUser()
@@ -81,6 +84,10 @@ export default function PostDetailClient({ initialPost }: PostDetailClientProps)
     }
   }, [post.id, fetchReplies]);
 
+  const [isPromoting, setIsPromoting] = useState(false)
+  const [showPromoteModal, setShowPromoteModal] = useState(false)
+  const { t } = useTranslation()
+
   // 处理点赞
   const handleLike = async () => {
     // 检查登录状态
@@ -89,27 +96,57 @@ export default function PostDetailClient({ initialPost }: PostDetailClientProps)
       return
     }
 
-    if (!post || isLiking || !currentUserId) return
-
+    if (isLiking) return
     setIsLiking(true)
     try {
-      const response = await fetch(`/api/posts/${post.id}/like?userId=${currentUserId}`, {
+      const res = await fetch(`/api/posts/${post.id}/like`, {
         method: 'POST'
       })
-
-      const data = await response.json()
-
-      if (response.ok && data.success) {
+      const result = await res.json()
+      if (result.success) {
         setPost(prev => ({
           ...prev,
-          isLiked: data.data.isLiked,
-          likeCount: data.data.likeCount
+          isLiked: result.isLiked,
+          likeCount: result.likeCount
         }))
       }
     } catch (error) {
-      console.error('Error liking post:', error)
+      console.error('Like failed:', error)
     } finally {
       setIsLiking(false)
+    }
+  }
+
+  const handlePromote = () => {
+    // 检查登录状态
+    if (!isAuthenticated) {
+      setShowLoginPrompt(true)
+      return
+    }
+
+    if (isPromoting) return
+    setShowPromoteModal(true)
+  }
+
+  const handleConfirmPromote = async () => {
+    setIsPromoting(true)
+    try {
+      const res = await fetch(`/api/posts/${post.id}/promote`, {
+        method: 'POST'
+      })
+      const result = await res.json()
+      if (result.success) {
+        alert(t.billboard.push_success)
+        setShowPromoteModal(false)
+        setPost(prev => ({ ...prev, promotionCount: (prev.promotionCount || 0) + 1 }))
+      } else {
+        alert(result.error || t.billboard.push_failed)
+      }
+    } catch (error) {
+      console.error('Promotion failed:', error)
+      alert(t.billboard.push_failed)
+    } finally {
+      setIsPromoting(false)
     }
   }
 
@@ -336,6 +373,26 @@ export default function PostDetailClient({ initialPost }: PostDetailClientProps)
                       <svg className={`w-5 h-5 ${post.isLiked ? 'fill-current' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
                       <span>{post.likeCount}</span>
                     </button>
+
+                    {/* 大屏推流按钮 (只有非作者可见) */}
+                    {!isAuthor && (
+                      <button
+                        onClick={handlePromote}
+                        disabled={isPromoting}
+                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white rounded-xl shadow-lg shadow-cyan-900/20 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed group cursor-pointer"
+                      >
+                        <span className="text-lg group-hover:rotate-12 transition-transform">📢</span>
+                        <div className="text-left">
+                          <div className="text-[10px] font-black uppercase tracking-tighter opacity-70 leading-none">
+                            {t.billboard.short_title}
+                          </div>
+                          <div className="text-xs font-bold leading-tight flex items-center gap-1.5">
+                            {t.billboard.push}
+                            <span className="bg-white/20 px-1.5 rounded-md text-[10px]">{post.promotionCount || 0}</span>
+                          </div>
+                        </div>
+                      </button>
+                    )}
                   </div>
                 </footer>
               </div>
@@ -426,6 +483,16 @@ export default function PostDetailClient({ initialPost }: PostDetailClientProps)
           )}
         </div>
       )}
+
+      {/* 📺 Billboard Promotion Modal */}
+      <BillboardConfirmModal
+        isVisible={showPromoteModal}
+        onConfirm={handleConfirmPromote}
+        onCancel={() => setShowPromoteModal(false)}
+        currentPoints={user?.points || 0}
+        cost={billboardPromotionCost}
+        postTitle={post.title || ''}
+      />
     </div>
   )
 }

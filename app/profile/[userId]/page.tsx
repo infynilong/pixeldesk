@@ -42,6 +42,7 @@ interface Post {
     name: string
     avatar: string | null
   }
+  promotionCount: number
 }
 
 interface WorkstationAd {
@@ -70,6 +71,19 @@ export default function ProfilePage() {
   const [isLoadingAd, setIsLoadingAd] = useState(false)
 
   const isOwnProfile = currentUserId === userId
+
+  const [billboardCost, setBillboardCost] = useState(50)
+
+  useEffect(() => {
+    fetch('/api/billboard/cost')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setBillboardCost(data.cost)
+        }
+      })
+      .catch(console.error)
+  }, [])
 
   useEffect(() => {
     if (userId) {
@@ -448,11 +462,10 @@ export default function ProfilePage() {
           <div className="flex border-b border-gray-800">
             <button
               onClick={() => setActiveTab('posts')}
-              className={`flex-1 px-6 py-4 font-medium transition-all relative cursor-pointer ${
-                activeTab === 'posts'
-                  ? 'text-cyan-400 bg-gray-800/50'
-                  : 'text-gray-400 hover:text-white hover:bg-gray-800/30'
-              }`}
+              className={`flex-1 px-6 py-4 font-medium transition-all relative cursor-pointer ${activeTab === 'posts'
+                ? 'text-cyan-400 bg-gray-800/50'
+                : 'text-gray-400 hover:text-white hover:bg-gray-800/30'
+                }`}
             >
               <span className="flex items-center justify-center gap-2">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -468,11 +481,10 @@ export default function ProfilePage() {
 
             <button
               onClick={() => setActiveTab('blogs')}
-              className={`flex-1 px-6 py-4 font-medium transition-all relative cursor-pointer ${
-                activeTab === 'blogs'
-                  ? 'text-cyan-400 bg-gray-800/50'
-                  : 'text-gray-400 hover:text-white hover:bg-gray-800/30'
-              }`}
+              className={`flex-1 px-6 py-4 font-medium transition-all relative cursor-pointer ${activeTab === 'blogs'
+                ? 'text-cyan-400 bg-gray-800/50'
+                : 'text-gray-400 hover:text-white hover:bg-gray-800/30'
+                }`}
             >
               <span className="flex items-center justify-center gap-2">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -509,6 +521,8 @@ export default function ProfilePage() {
                       currentUserId={currentUserId || ''}
                       onLike={() => handleLikePost(post.id)}
                       isAuthenticated={!!currentUserId}
+                      currentPoints={currentUser?.points || 0}
+                      billboardPromotionCost={billboardCost}
                     />
                   ))
                 )}
@@ -536,6 +550,8 @@ export default function ProfilePage() {
                         currentUserId={currentUserId || ''}
                         onLike={() => handleLikePost(blog.id)}
                         isAuthenticated={!!currentUserId}
+                        currentPoints={currentUser?.points || 0}
+                        billboardPromotionCost={billboardCost}
                       />
                     ))}
 

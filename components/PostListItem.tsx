@@ -7,6 +7,7 @@ import { useState } from 'react'
 import { useTranslation } from '@/lib/hooks/useTranslation'
 import { createPortal } from 'react-dom'
 import Image from 'next/image'
+import BillboardConfirmModal from './billboard/BillboardConfirmModal'
 
 interface PostListItemProps {
   post: Post
@@ -14,6 +15,8 @@ interface PostListItemProps {
   onLike: () => void
   isAuthenticated?: boolean
   onShowLoginPrompt?: () => void
+  currentPoints?: number
+  billboardPromotionCost?: number
 }
 
 /**
@@ -24,12 +27,15 @@ export default function PostListItem({
   currentUserId,
   onLike,
   isAuthenticated = true,
-  onShowLoginPrompt
+  onShowLoginPrompt,
+  currentPoints = 0,
+  billboardPromotionCost = 50
 }: PostListItemProps) {
   const { t, locale } = useTranslation()
   const isLiked = post.isLiked || false
   const isOwnPost = post.author.id === currentUserId
   const [showImageModal, setShowImageModal] = useState(false)
+  const [showPromoteModal, setShowPromoteModal] = useState(false)
 
   const handleLike = () => {
     if (!isAuthenticated) {
@@ -37,6 +43,43 @@ export default function PostListItem({
       return
     }
     onLike()
+  }
+
+  const [isPromoting, setIsPromoting] = useState(false)
+
+  const handlePromote = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    if (!isAuthenticated) {
+      onShowLoginPrompt?.()
+      return
+    }
+
+    setShowPromoteModal(true)
+  }
+
+  const handleConfirmPromote = async () => {
+    setIsPromoting(true)
+    try {
+      const res = await fetch(`/api/posts/${post.id}/promote`, {
+        method: 'POST'
+      })
+      const result = await res.json()
+      if (result.success) {
+        alert(t.billboard.push_success)
+        setShowPromoteModal(false)
+        // 可以触发列表刷新或本地更新计数
+        post.promotionCount = (post.promotionCount || 0) + 1
+      } else {
+        alert(result.error || t.billboard.push_failed)
+      }
+    } catch (error) {
+      console.error('Promotion failed:', error)
+      alert(t.billboard.push_failed)
+    } finally {
+      setIsPromoting(false)
+    }
   }
 
   // 格式化时间
@@ -199,8 +242,8 @@ export default function PostListItem({
                 }}
                 disabled={isOwnPost}
                 className={`flex items-center gap-1 group/like transition-colors ${isLiked
-                    ? 'text-retro-red'
-                    : 'text-gray-500 hover:text-retro-red'
+                  ? 'text-retro-red'
+                  : 'text-gray-500 hover:text-retro-red'
                   } ${isOwnPost ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
               >
                 <svg className="w-3.5 h-3.5" fill={isLiked ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
@@ -231,10 +274,32 @@ export default function PostListItem({
                 </svg>
                 <span className="font-mono">{post.viewCount || 0}</span>
               </div>
+
+              {/* 大屏提请上榜 - 极简图标 (与点赞/浏览对齐) */}
+              {!isOwnPost && (
+                <button
+                  onClick={handlePromote}
+                  disabled={isPromoting}
+                  className="flex items-center gap-1 group/promote transition-colors text-gray-500 hover:text-cyan-400 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                  title={t.billboard.push_to_billboard}
+                >
+                  <span className="text-sm group-hover/promote:scale-110 transition-transform">📢</span>
+                  <span className="font-mono">{post.promotionCount || 0}</span>
+                </button>
+              )}
             </div>
           </div>
         </div>
       </div>
+
+      <BillboardConfirmModal
+        isVisible={showPromoteModal}
+        onConfirm={handleConfirmPromote}
+        onCancel={() => setShowPromoteModal(false)}
+        currentPoints={currentPoints}
+        cost={billboardPromotionCost}
+        postTitle={post.title || ''}
+      />
 
       {/* 图片放大模态框 - 使用 Portal 渲染到 body */}
       {showImageModal && (post.imageUrl || (post.imageUrls && post.imageUrls.length > 0)) && typeof window !== 'undefined' && createPortal(
@@ -246,18 +311,10 @@ export default function PostListItem({
             e.stopPropagation()
             setShowImageModal(false)
           }}
-          onMouseDown={(e) => e.stopPropagation()}
-          onMouseUp={(e) => e.stopPropagation()}
-          onPointerDown={(e) => e.stopPropagation()}
-          onPointerUp={(e) => e.stopPropagation()}
         >
           <div
             className="relative max-w-[90vw] max-h-[90vh] flex flex-col items-center"
             onClick={(e) => e.stopPropagation()}
-            onMouseDown={(e) => e.stopPropagation()}
-            onMouseUp={(e) => e.stopPropagation()}
-            onPointerDown={(e) => e.stopPropagation()}
-            onPointerUp={(e) => e.stopPropagation()}
           >
             {/* 关闭按钮 */}
             <button

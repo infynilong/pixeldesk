@@ -12,6 +12,7 @@ interface WorkstationConfig {
   teleportCost: number
   defaultDuration: number
   maxBindingsPerUser: number
+  billboardPromotionCost: number
   updatedAt: string
 }
 
@@ -298,6 +299,22 @@ export default function WorkstationsPage() {
               value={editForm.maxBindingsPerUser || ''}
               onChange={(e) =>
                 setEditForm({ ...editForm, maxBindingsPerUser: parseInt(e.target.value) })
+              }
+              disabled={!editing}
+              className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white disabled:opacity-60 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/50 outline-none"
+            />
+          </div>
+
+          {/* 大屏推流消耗 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-400 mb-2">
+              大屏推流消耗积分
+            </label>
+            <input
+              type="number"
+              value={editForm.billboardPromotionCost || ''}
+              onChange={(e) =>
+                setEditForm({ ...editForm, billboardPromotionCost: parseInt(e.target.value) })
               }
               disabled={!editing}
               className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white disabled:opacity-60 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/50 outline-none"
