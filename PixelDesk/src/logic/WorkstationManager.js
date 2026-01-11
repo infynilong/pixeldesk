@@ -1342,6 +1342,9 @@ export class WorkstationManager {
 
     // ===== 交互图标管理 =====
     addInteractionIcon(workstation) {
+        // 用户要求去掉这个图标，直接返回
+        return;
+
         if (workstation.interactionIcon) {
             return; // 已有交互图标
         }
