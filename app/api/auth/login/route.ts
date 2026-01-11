@@ -110,7 +110,8 @@ export async function POST(request: NextRequest) {
       avatar: user.avatar,
       points: user.points,
       emailVerified: user.emailVerified,
-      lastLogin: new Date()
+      lastLogin: new Date(),
+      inviteCode: user.inviteCode
     }
 
     // 设置安全cookie

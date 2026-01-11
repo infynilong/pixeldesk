@@ -19,7 +19,8 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
     name: '',
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    inviteCode: ''
   })
   const [errors, setErrors] = useState<string[]>([])
 
@@ -62,7 +63,8 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
       const result = await register(
         formData.name.trim(),
         formData.email.trim(),
-        formData.password
+        formData.password,
+        formData.inviteCode?.trim()
       )
 
       if (result.success) {
@@ -148,6 +150,15 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
             placeholder={t.auth.confirm_password_placeholder}
             error={errors.find(err => err.includes(t.auth.confirm_password) || err.includes(t.auth.err_password_mismatch))}
             required
+          />
+
+          <GameCompatibleInput
+            type="text"
+            value={formData.inviteCode}
+            onChange={handleInputChange('inviteCode')}
+            label={`${(t.auth as any).invite_code || '邀请码'} (${(t.auth as any).optional || '可选'})`}
+            placeholder={(t.auth as any).invite_code_placeholder || '请输入邀请码'}
+            required={false}
           />
 
           {/* 显示其他错误 */}

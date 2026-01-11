@@ -476,6 +476,7 @@ model users {
   updatedAt                                        DateTime
   avatar                                           String?
   email                                            String?                     @unique
+  inviteCode                                       String?                     @unique
   name                                             String
   emailVerified                                    Boolean                     @default(false)
   isActive                                         Boolean                     @default(true)

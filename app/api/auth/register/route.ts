@@ -5,7 +5,9 @@ import { sendWelcomeEmail } from '@/lib/email'
 
 export async function POST(request: NextRequest) {
   try {
-    const { name, email, password } = await request.json()
+    const { name, email, password, inviteCode } = await request.json()
+
+    // ... (validations remain same)
 
     // 输入验证
     if (!name?.trim() || !email?.trim() || !password?.trim()) {
@@ -53,12 +55,41 @@ export async function POST(request: NextRequest) {
       }, { status: 409 })
     }
 
+    // 处理邀请码奖励
+    if (inviteCode) {
+      const inviter = await prisma.users.findUnique({
+        where: { inviteCode: inviteCode.trim() }
+      })
+
+      if (inviter) {
+        // 给邀请人增加100积分
+        await prisma.users.update({
+          where: { id: inviter.id },
+          data: { points: { increment: 100 } }
+        })
+
+        // 记录积分历史
+        await prisma.points_history.create({
+          data: {
+            id: (await import('cuid')).default(),
+            userId: inviter.id,
+            amount: 100,
+            reason: `邀请新用户注册: ${name.trim()}`,
+            type: 'INVITE_REWARD',
+            balance: inviter.points + 100
+          }
+        })
+      }
+    }
+
     // 哈希密码
     const hashedPassword = await hashPassword(password)
 
-    // 生成用户 ID
+    // 生成用户 ID 和 邀请码
     const cuid = (await import('cuid')).default
     const userId = cuid()
+    // 生成简单的8位随机邀请码
+    const newInviteCode = Math.random().toString(36).substring(2, 10).toUpperCase()
 
     // 创建用户
     const user = await prisma.users.create({
@@ -70,7 +101,8 @@ export async function POST(request: NextRequest) {
         points: 100,  // 初始积分
         emailVerified: false,
         isActive: true,
-        updatedAt: new Date()
+        updatedAt: new Date(),
+        inviteCode: newInviteCode
       }
     })
 
@@ -116,7 +148,8 @@ export async function POST(request: NextRequest) {
       avatar: user.avatar,
       points: user.points,
       emailVerified: user.emailVerified,
-      createdAt: user.createdAt
+      createdAt: user.createdAt,
+      inviteCode: user.inviteCode
     }
 
     // 设置HTTP-only cookie

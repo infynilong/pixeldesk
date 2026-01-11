@@ -57,10 +57,10 @@ export async function sendEmail({ to, subject, html }: SendEmailParams) {
  * 发送欢迎邮件
  */
 export async function sendWelcomeEmail(email: string, name: string) {
-    const subject = '🎉 欢迎来到 PixelDesk!';
+    const subject = '🎉 欢迎来到 象素工坊!';
     const html = `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <h1 style="color: #8b5cf6;">欢迎来到 PixelDesk, ${name}!</h1>
+      <h1 style="color: #8b5cf6;">欢迎来到 象素工坊, ${name}!</h1>
       <p>很高兴你能加入我们的像素世界。在这里，你可以创建你心仪的像素分身，与其他玩家互动，并在这个创意无限的世界里探索。</p>
       <div style="background: #f3f4f6; padding: 15px; border-radius: 8px; margin: 20px 0;">
         <h2 style="margin-top: 0; font-size: 18px;">你的旅程从这里开始：</h2>

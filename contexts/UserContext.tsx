@@ -12,6 +12,7 @@ export interface User {
   points?: number
   emailVerified?: boolean
   workstationId?: string
+  inviteCode?: string
 }
 
 interface UserContextType {
@@ -19,9 +20,9 @@ interface UserContextType {
   isLoading: boolean
   playerExists: boolean | null
   login: (email: string, password: string) => Promise<boolean>
-  register: (name: string, email: string, password: string) => Promise<{ success: boolean; error?: string }>
+  register: (name: string, email: string, password: string, inviteCode?: string) => Promise<{ success: boolean; error?: string }>
   logout: () => Promise<void>
-  refreshUser: () => Promise<void>
+  refreshUser: (silent?: boolean) => Promise<void>
   setPlayerExists: (exists: boolean) => void
 }
 
@@ -33,8 +34,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [playerExists, setPlayerExists] = useState<boolean | null>(null)
   const authCheckedRef = useRef(false)
 
-  const checkAuth = async () => {
-    setIsLoading(true)
+  const checkAuth = async (silent = false) => {
+    if (!silent) setIsLoading(true)
     try {
       console.log('🌐 [UserContext] 正在验证身份...')
       const response = await fetch('/api/auth/settings', {
@@ -60,7 +61,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       console.error('❌ [UserContext] 身份验证请求失败:', error)
       setUser(null)
     } finally {
-      setIsLoading(false)
+      if (!silent) setIsLoading(false)
     }
   }
 
@@ -103,12 +104,12 @@ export function UserProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const register = async (name: string, email: string, password: string) => {
+  const register = async (name: string, email: string, password: string, inviteCode?: string) => {
     try {
       const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ name, email, password, inviteCode }),
       })
 
       const data = await response.json()

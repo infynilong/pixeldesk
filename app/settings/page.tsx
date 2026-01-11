@@ -13,6 +13,7 @@ interface UserSettings {
   avatar: string | null
   points: number
   emailVerified: boolean
+  inviteCode?: string
 }
 
 export default function SettingsPage() {
@@ -359,6 +360,76 @@ export default function SettingsPage() {
                 className="w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded-lg text-gray-500 cursor-not-allowed"
               />
               <p className="text-gray-500 text-xs mt-1">邮箱不可修改</p>
+            </div>
+          </div>
+        </div>
+
+        {/* 邀请码设置 */}
+        <div className="bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-700 rounded-2xl p-6">
+          <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+            <svg className="w-6 h-6 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
+            </svg>
+            邀请码 / Invitation Code
+          </h2>
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-gray-300 text-sm font-medium mb-2">
+                我的邀请码
+              </label>
+              {settings.inviteCode ? (
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 px-4 py-3 bg-gray-900 border border-gray-700 rounded-lg text-cyan-400 font-mono text-lg font-bold tracking-wider">
+                    {settings.inviteCode}
+                  </div>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(settings.inviteCode!)
+                      setSuccess('邀请码已复制到剪贴板！')
+                      setTimeout(() => setSuccess(null), 3000)
+                    }}
+                    className="p-3 bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 rounded-lg transition-colors cursor-pointer"
+                    title="复制邀请码"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                  </button>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  <p className="text-gray-400 text-sm">还没有邀请码？生成一个邀请码，邀请朋友加入可获得奖励！</p>
+                  <button
+                    onClick={async () => {
+                      try {
+                        setIsSaving(true)
+                        const response = await fetch('/api/auth/settings/invite-code', {
+                          method: 'POST'
+                        })
+                        const data = await response.json()
+                        if (data.success) {
+                          setSettings(prev => prev ? { ...prev, inviteCode: data.inviteCode } : null)
+                          setSuccess('邀请码生成成功！')
+                        } else {
+                          setError(data.error || '生成失败')
+                        }
+                      } catch (err) {
+                        setError('生成失败')
+                      } finally {
+                        setIsSaving(false)
+                      }
+                    }}
+                    disabled={isSaving}
+                    className="w-full md:w-auto px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white rounded-lg transition-all font-medium disabled:opacity-50 cursor-pointer"
+                  >
+                    {isSaving ? '生成中...' : '生成邀请码'}
+                  </button>
+                </div>
+              )}
+              <p className="text-gray-500 text-xs mt-2">
+                邀请朋友注册时填写您的邀请码，您将获得 <span className="text-yellow-500 font-bold">100 TP</span> 奖励。
+              </p>
             </div>
           </div>
         </div>
