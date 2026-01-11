@@ -23,30 +23,64 @@ export interface AiResponse {
 
 /**
  * AI 请求适配器
- * 支持多供应商扩展
+ * 支持多供应商扩展、API Key 轮询及故障自动重试
  */
 export async function callAiProvider(messages: ChatMessage[], options: AiOptions): Promise<AiResponse> {
     const { provider, apiKey, modelName, temperature, baseUrl } = options;
 
-    switch (provider.toLowerCase()) {
-        case 'gemini':
-            return callGemini(messages, apiKey, modelName, temperature);
-        case 'openai':
-        case 'deepseek':
-        case 'siliconflow':
-            const fallbacks: Record<string, string> = {
-                'deepseek': 'https://api.deepseek.com',
-                'siliconflow': 'https://api.siliconflow.cn/v1',
-                'openai': 'https://api.openai.com/v1'
-            };
-            const finalBaseUrl = baseUrl || fallbacks[provider.toLowerCase()] || 'https://api.openai.com/v1';
+    // 支持多 API Key 轮询 (逗号或换行符分割)
+    const keys = apiKey ? apiKey.split(/[,\n]+/).map(k => k.trim()).filter(Boolean) : [];
 
-            console.log(`📡 [AI Adapter] Calling OpenAI-Compatible: Provider=${provider}, Model=${modelName}, URL=${finalBaseUrl}`);
-
-            return callOpenAiCompatible(messages, apiKey, modelName, temperature, finalBaseUrl);
-        default:
-            throw new Error(`Unsupported AI provider: ${provider}`);
+    if (keys.length === 0) {
+        throw new Error(`API Key is missing for provider: ${provider}`);
     }
+
+    // 洗牌 API Keys，用于重试逻辑
+    const shuffledKeys = [...keys].sort(() => Math.random() - 0.5);
+    let lastError: any = null;
+
+    // 尝试每一个 Key，直到成功或全部失败
+    for (let i = 0; i < shuffledKeys.length; i++) {
+        const selectedApiKey = shuffledKeys[i];
+
+        try {
+            if (keys.length > 1) {
+                console.log(`🔄 [AI Adapter] Attempting with Key ${i + 1}/${keys.length}`);
+            }
+
+            switch (provider.toLowerCase()) {
+                case 'gemini':
+                    return await callGemini(messages, selectedApiKey, modelName, temperature);
+                case 'openai':
+                case 'deepseek':
+                case 'siliconflow':
+                    const fallbacks: Record<string, string> = {
+                        'deepseek': 'https://api.deepseek.com',
+                        'siliconflow': 'https://api.siliconflow.cn/v1',
+                        'openai': 'https://api.openai.com/v1'
+                    };
+                    const finalBaseUrl = baseUrl || fallbacks[provider.toLowerCase()] || 'https://api.openai.com/v1';
+                    // console.log(`📡 [AI Adapter] Calling OpenAI-Compatible: Provider=${provider}, Model=${modelName}, URL=${finalBaseUrl}`); // This log was removed in the instruction, so I'm commenting it out.
+                    return await callOpenAiCompatible(messages, selectedApiKey, modelName, temperature, finalBaseUrl);
+                default:
+                    throw new Error(`Unsupported AI provider: ${provider}`);
+            }
+        } catch (error: any) {
+            console.warn(`⚠️ [AI Adapter] Key ${i + 1} failed:`, error.message);
+            lastError = error;
+
+            // 如果是授权错误或频率限制，且还有备用 Key，则继续重试
+            if (i < shuffledKeys.length - 1 && (error.message.includes('401') || error.message.includes('429') || error.message.includes('rate limit'))) {
+                console.log('🔄 [AI Adapter] Switching to next available token...');
+                continue;
+            }
+
+            // 否则直接抛出错误
+            throw error;
+        }
+    }
+
+    throw lastError || new Error(`All ${keys.length} API keys failed.`);
 }
 
 async function callGemini(messages: ChatMessage[], apiKey: string, model: string, temp = 0.7): Promise<AiResponse> {

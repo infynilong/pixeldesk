@@ -26,10 +26,10 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: '消息或NPC ID缺失' }, { status: 400 })
         }
 
-        // 3. 准备数据：NPC 信息、全局 AI 配置、系统实时上下文、聊天历史
-        const [npc, aiConfig, systemContext, chatHistory] = await Promise.all([
+        // 3. 准备数据：NPC 信息、所有活跃 AI 配置、系统实时上下文、聊天历史
+        const [npc, aiConfigs, systemContext, chatHistory] = await Promise.all([
             prisma.ai_npcs.findUnique({ where: { id: npcId } }),
-            prisma.ai_global_config.findFirst({ where: { isActive: true } }),
+            prisma.ai_global_config.findMany({ where: { isActive: true } }),
             getSystemContext(),
             // 加载最近100条聊天历史
             prisma.ai_chat_history.findMany({
@@ -42,6 +42,11 @@ export async function POST(request: NextRequest) {
         if (!npc) {
             return NextResponse.json({ error: '找不到该 NPC' }, { status: 404 })
         }
+
+        // 随机选择一个活跃配置进行轮询
+        const aiConfig = aiConfigs.length > 0
+            ? aiConfigs[Math.floor(Math.random() * aiConfigs.length)]
+            : null;
 
         // 如果没有配置 AI Provider，回退到模拟
         if (!aiConfig || !aiConfig.apiKey) {
