@@ -289,6 +289,14 @@ export default function PostDetailModal({
                         size="lg"
                         showStatus={true}
                       />
+                      {post.author.workstationId && (
+                        <div className="mt-2 flex justify-center">
+                          <span className="inline-flex items-center px-1.5 py-0.5 bg-amber-500/10 border-t border-l border-amber-500/30 border-b border-r border-amber-900/50 rounded-sm text-amber-500 font-pixel text-[9px] leading-none shadow-[1px_1px_0px_0px_rgba(0,0,0,0.5)] transform hover:scale-105 transition-transform cursor-help" title={`Workstation Owner: #${post.author.workstationId}`}>
+                            <span className="text-[8px] mr-1 opacity-70">№</span>
+                            {post.author.workstationId}
+                          </span>
+                        </div>
+                      )}
                       <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center shadow-lg">
                         <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
                           <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -367,8 +375,8 @@ export default function PostDetailModal({
                         onClick={handleLike}
                         disabled={isLiking}
                         className={`group flex items-center space-x-3 px-4 py-2.5 rounded-xl  font-medium shadow-sm ${post.isLiked
-                            ? 'bg-gradient-to-r from-pink-500 to-red-500 text-white shadow-lg'
-                            : 'bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 hover:shadow-md'
+                          ? 'bg-gradient-to-r from-pink-500 to-red-500 text-white shadow-lg'
+                          : 'bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 hover:shadow-md'
                           } ${isLiking ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105 active:scale-95'}`}
                       >
                         <div className={`w-8 h-8 ${post.isLiked ? 'bg-white/20' : 'bg-gradient-to-br from-pink-100 to-red-100 dark:from-pink-900/30 dark:to-red-900/30'} rounded-xl flex items-center justify-center `}>
@@ -469,12 +477,21 @@ export default function PostDetailModal({
                                   size="md"
                                   showStatus={true}
                                 />
+                                {reply.author.workstationId && (
+                                  <div className="mt-1.5 flex justify-center">
+                                    <span className="inline-flex items-center px-1 py-0.5 bg-amber-500/10 border-t border-l border-amber-500/30 border-b border-r border-amber-900/50 rounded-sm text-amber-500 font-pixel text-[8px] leading-none shadow-[1px_1px_0px_0px_rgba(0,0,0,0.5)] transform hover:scale-110 transition-transform cursor-help" title={`Workstation Owner: #${reply.author.workstationId}`}>
+                                      <span className="text-[7px] mr-1 opacity-70">№</span>
+                                      {reply.author.workstationId}
+                                    </span>
+                                  </div>
+                                )}
                                 <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full flex items-center justify-center shadow-lg">
                                   <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 24 24">
                                     <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                   </svg>
                                 </div>
                               </div>
+
                             </div>
 
                             {/* 回复内容 */}

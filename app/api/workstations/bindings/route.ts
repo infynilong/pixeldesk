@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
         }
       })
 
-      // 计算30天后的到期时间
+      // 合约初始有效期：30天
       const expiresAt = new Date()
       expiresAt.setDate(expiresAt.getDate() + 30)
 

@@ -161,6 +161,32 @@ export async function GET(request: NextRequest) {
       }, { status: 401 })
     }
 
+    // 自动延长工位租期 & 更新最后登录时间
+    const now = new Date();
+    const sevenDaysLater = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+    // 1. 更新用户最后活动时间
+    await prisma.users.update({
+      where: { id: authResult.user.id },
+      data: { lastLogin: now }
+    });
+
+    // 2. 如果用户有绑定工位，自动续期到 7 天后
+    const binding = await prisma.user_workstations.findFirst({
+      where: { userId: authResult.user.id }
+    });
+
+    if (binding) {
+      await prisma.user_workstations.update({
+        where: { id: binding.id },
+        data: {
+          expiresAt: sevenDaysLater,
+          lastInactivityWarningAt: null // 重置警告状态
+        }
+      });
+      console.log(`📡 [Workstation] Auto-extended lease for User ${authResult.user.id} to ${sevenDaysLater.toISOString()}`);
+    }
+
     // 返回用户信息
     const userResponse = {
       id: authResult.user.id,

@@ -19,6 +19,7 @@ interface UserProfile {
   points: number
   postsCount: number
   likesCount: number
+  workstationId?: number | null
 }
 
 interface Post {
@@ -292,11 +293,21 @@ export default function ProfilePage() {
                   showStatus={false}
                   className="ring-4 ring-cyan-500/30"
                 />
+                {profile.workstationId && (
+                  <div className="mt-3 flex justify-center">
+                    <span className="inline-flex items-center px-2 py-1 bg-amber-500/10 border-t border-l border-amber-500/30 border-b border-r border-amber-900/50 rounded-sm text-amber-500 font-pixel text-xs leading-none shadow-[1px_1px_0px_0px_rgba(0,0,0,0.5)] transform hover:scale-105 transition-transform cursor-help" title={`Workstation Owner: #${profile.workstationId}`}>
+                      <span className="text-[10px] mr-1.5 opacity-70">№</span>
+                      {profile.workstationId}
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* 用户信息 */}
               <div className="flex-1 text-center md:text-left">
-                <h1 className="text-3xl font-bold text-white mb-2">{profile.name}</h1>
+                <div className="flex items-center gap-3 mb-2 justify-center md:justify-start">
+                  <h1 className="text-3xl font-bold text-white">{profile.name}</h1>
+                </div>
                 <p className="text-gray-400 text-sm mb-4">加入于 {formatDate(profile.createdAt)}</p>
 
                 {/* 统计数据 */}

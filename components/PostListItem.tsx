@@ -121,6 +121,14 @@ export default function PostListItem({
               size="xs"
               showStatus={false}
             />
+            {post.author.workstationId && (
+              <div className="mt-1 flex justify-center">
+                <span className="inline-flex items-center px-1 py-0.5 bg-amber-500/10 border-t border-l border-amber-500/30 border-b border-r border-amber-900/50 rounded-sm text-amber-500 font-pixel text-[8px] scale-[0.8] origin-top leading-none shadow-[1px_1px_0px_0px_rgba(0,0,0,0.5)] transform hover:scale-[0.9] transition-transform" title={`Workstation #${post.author.workstationId}`}>
+                  <span className="text-[7px] mr-0.5 opacity-70">№</span>
+                  {post.author.workstationId}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* 右侧内容区域 */}

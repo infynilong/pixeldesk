@@ -172,16 +172,6 @@ const WorkstationStatusPopup = memo(({
                     notes: fullStatus.message
                 })
             }).catch(err => console.error('Time tracking error:', err))
-
-            // 同步生成社交帖子
-            fetch(`/api/posts?userId=${userId}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    content: fullStatus.message,
-                    type: 'TEXT'
-                })
-            }).catch(err => console.error('Post creation error:', err))
         }
 
         onStatusUpdate(fullStatus)

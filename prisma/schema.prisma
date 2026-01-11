@@ -460,6 +460,7 @@ model user_workstations {
   adText        String?
   adUpdatedAt   DateTime?
   adUrl         String?
+  lastInactivityWarningAt DateTime?
   users         users     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, workstationId])

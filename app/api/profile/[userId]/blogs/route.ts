@@ -38,7 +38,14 @@ export async function GET(
             select: {
               id: true,
               name: true,
-              avatar: true
+              avatar: true,
+              customAvatar: true,
+              user_workstations: {
+                select: {
+                  workstationId: true
+                },
+                take: 1
+              }
             }
           },
           post_likes: currentUserId ? {
@@ -66,7 +73,11 @@ export async function GET(
       const b = blog as any
       return {
         ...blog,
-        author: blog.users, // 将 users 字段映射为 author 以保持 API 兼容性
+        author: {
+          ...blog.users,
+          workstationId: (blog.users as any)?.user_workstations?.[0]?.workstationId || null,
+          user_workstations: undefined
+        },
         users: undefined, // 移除 users 字段
         isLiked: currentUserId ? (b.post_likes && b.post_likes.length > 0) : false,
         post_likes: undefined

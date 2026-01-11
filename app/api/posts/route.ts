@@ -63,7 +63,13 @@ export async function GET(request: NextRequest) {
               id: true,
               name: true,
               avatar: true,
-              customAvatar: true
+              customAvatar: true,
+              user_workstations: {
+                select: {
+                  workstationId: true
+                },
+                take: 1
+              }
             }
           },
           _count: {
@@ -82,7 +88,11 @@ export async function GET(request: NextRequest) {
     // 转换数据结构：将 users 映射为 author
     const formattedPosts = posts.map((post: any) => ({
       ...post,
-      author: post.users,
+      author: {
+        ...post.users,
+        workstationId: post.users?.user_workstations?.[0]?.workstationId || null,
+        user_workstations: undefined
+      },
       users: undefined // 移除 users 字段
     }))
 
@@ -212,7 +222,13 @@ export async function POST(request: NextRequest) {
             id: true,
             name: true,
             avatar: true,
-            customAvatar: true
+            customAvatar: true,
+            user_workstations: {
+              select: {
+                workstationId: true
+              },
+              take: 1
+            }
           }
         }
       }
@@ -240,7 +256,11 @@ export async function POST(request: NextRequest) {
     // 转换数据结构：将 users 映射为 author(与 GET 方法保持一致)
     const formattedPost = {
       ...post,
-      author: post.users,
+      author: {
+        ...post.users,
+        workstationId: post.users?.user_workstations?.[0]?.workstationId || null,
+        user_workstations: undefined
+      },
       users: undefined // 移除 users 字段
     }
 

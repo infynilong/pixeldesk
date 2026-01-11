@@ -24,9 +24,16 @@ export async function GET(
         id: true,
         name: true,
         avatar: true,
+        customAvatar: true,
         email: true,
         createdAt: true,
         points: true,
+        user_workstations: {
+          select: {
+            workstationId: true
+          },
+          take: 1
+        },
         _count: {
           select: {
             posts: {
@@ -66,7 +73,13 @@ export async function GET(
             id: true,
             name: true,
             avatar: true,
-            customAvatar: true
+            customAvatar: true,
+            user_workstations: {
+              select: {
+                workstationId: true
+              },
+              take: 1
+            }
           }
         },
         post_likes: currentUserId ? {
@@ -96,7 +109,13 @@ export async function GET(
             id: true,
             name: true,
             avatar: true,
-            customAvatar: true
+            customAvatar: true,
+            user_workstations: {
+              select: {
+                workstationId: true
+              },
+              take: 1
+            }
           }
         },
         post_likes: currentUserId ? {
@@ -123,7 +142,11 @@ export async function GET(
     // 处理点赞状态并转换数据结构
     const postsWithLikeStatus = posts.map((post: any) => ({
       ...post,
-      author: post.users,
+      author: {
+        ...post.users,
+        workstationId: post.users?.user_workstations?.[0]?.workstationId || null,
+        user_workstations: undefined
+      },
       users: undefined,
       isLiked: currentUserId ? (post.post_likes && post.post_likes.length > 0) : false,
       post_likes: undefined
@@ -131,7 +154,11 @@ export async function GET(
 
     const blogsWithLikeStatus = blogs.map((blog: any) => ({
       ...blog,
-      author: blog.users,
+      author: {
+        ...blog.users,
+        workstationId: blog.users?.user_workstations?.[0]?.workstationId || null,
+        user_workstations: undefined
+      },
       users: undefined,
       isLiked: currentUserId ? (blog.post_likes && blog.post_likes.length > 0) : false,
       post_likes: undefined
@@ -142,6 +169,8 @@ export async function GET(
       data: {
         users: {
           ...user,
+          workstationId: user.user_workstations?.[0]?.workstationId || null,
+          user_workstations: undefined,
           postsCount: user._count.posts,
           likesCount: user._count.post_likes,
           _count: undefined

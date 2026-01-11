@@ -159,6 +159,7 @@ export default function SocialFeedTab({
 
             <Link
               href="/library/studio"
+              target="_blank"
               className="bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 text-purple-400 py-2 rounded-lg text-[10px] font-bold tracking-tighter transition-all flex items-center justify-center gap-1"
             >
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -169,6 +170,7 @@ export default function SocialFeedTab({
 
             <Link
               href="/posts/create"
+              target="_blank"
               className="bg-amber-600/20 hover:bg-amber-600/30 border border-amber-500/30 text-amber-400 py-2 rounded-lg text-[10px] font-bold tracking-tighter transition-all flex items-center justify-center gap-1"
             >
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">

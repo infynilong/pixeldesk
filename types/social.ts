@@ -6,6 +6,7 @@ export interface SocialUser {
   isOnline?: boolean
   lastSeen?: string | null
   points?: number
+  workstationId?: number | null
 }
 
 export interface Post {

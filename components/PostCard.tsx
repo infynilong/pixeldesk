@@ -78,7 +78,7 @@ export default function PostCard({
   const handleToggleReplies = () => {
     const newShowReplies = !showReplies
     setShowReplies(newShowReplies)
-    
+
     // 如果要显示回复且还没有数据，则获取数据
     if (newShowReplies && replies.length === 0) {
       fetchReplies()
@@ -94,7 +94,7 @@ export default function PostCard({
     if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}分钟前`
     if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}小时前`
     if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}天前`
-    
+
     return date.toLocaleDateString('zh-CN')
   }
 
@@ -119,6 +119,14 @@ export default function PostCard({
               isOnline={post.author.isOnline}
               lastSeen={post.author.lastSeen}
             />
+            {post.author.workstationId && (
+              <div className="mt-1.5 flex justify-center">
+                <span className="inline-flex items-center px-1 py-0.5 bg-amber-500/10 border-t border-l border-amber-500/30 border-b border-r border-amber-900/50 rounded-sm text-amber-500 font-pixel text-[8px] leading-none shadow-[1px_1px_0px_0px_rgba(0,0,0,0.5)] transform hover:scale-110 transition-transform cursor-help" title={`Workstation Owner: #${post.author.workstationId}`}>
+                  <span className="text-[7px] mr-1 opacity-70">№</span>
+                  {post.author.workstationId}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* 作者信息和时间 */}
@@ -257,11 +265,10 @@ export default function PostCard({
             <button
               onClick={handleLike}
               disabled={isLiking}
-              className={`flex items-center space-x-2 px-2 py-1 rounded  ${
-                post.isLiked
-                  ? 'text-red-400 bg-red-950/30 border border-red-800/30'
-                  : 'text-gray-500 hover:text-red-400 hover:bg-gray-800/50'
-              } ${isLiking ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`flex items-center space-x-2 px-2 py-1 rounded  ${post.isLiked
+                ? 'text-red-400 bg-red-950/30 border border-red-800/30'
+                : 'text-gray-500 hover:text-red-400 hover:bg-gray-800/50'
+                } ${isLiking ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               <div className={`w-4 h-4 ${post.isLiked ? 'bg-red-900/40' : 'bg-gray-800'} rounded flex items-center justify-center `}>
                 <svg
@@ -295,7 +302,7 @@ export default function PostCard({
             {/* 回复输入表单 */}
             <CreateReplyForm
               onSubmit={handleReplySubmit}
-              onCancel={() => {}}
+              onCancel={() => { }}
               isMobile={isMobile}
               isSubmitting={isCreatingReply}
               variant="dark"
@@ -322,7 +329,7 @@ export default function PostCard({
                 REPLIES ({post.replyCount || 0})
               </h4>
             </div>
-            
+
             {/* 加载状态 */}
             {isLoadingReplies && replies.length === 0 && (
               <div className="flex items-center justify-center py-6">
@@ -333,7 +340,7 @@ export default function PostCard({
                 </div>
               </div>
             )}
-            
+
             {/* 回复列表 */}
             {replies.length > 0 && (
               <div className="space-y-3">
@@ -360,6 +367,12 @@ export default function PostCard({
                           <span className="font-medium text-gray-300 text-sm">
                             {reply.author.name}
                           </span>
+                          {reply.author.workstationId && (
+                            <span className="inline-flex items-center px-1 py-0.5 bg-amber-500/10 border-t border-l border-amber-500/30 border-b border-r border-amber-900/50 rounded-sm text-amber-500 font-pixel text-[8px] leading-none shadow-[1px_1px_0px_0px_rgba(0,0,0,0.5)] transform hover:scale-105 transition-transform cursor-help" title={`Workstation Owner: #${reply.author.workstationId}`}>
+                              <span className="text-[7px] mr-1 opacity-70">№</span>
+                              {reply.author.workstationId}
+                            </span>
+                          )}
                           <span className="text-gray-600">•</span>
                           <span className="text-xs text-gray-500 font-mono">
                             {formatTimeAgo(reply.createdAt)}
@@ -374,7 +387,7 @@ export default function PostCard({
                 ))}
               </div>
             )}
-            
+
             {/* 没有回复时的空状态 */}
             {!isLoadingReplies && replies.length === 0 && (
               <div className="text-center py-6">
@@ -387,7 +400,7 @@ export default function PostCard({
                 <p className="text-xs text-gray-500 font-mono mt-1">Be the first to reply</p>
               </div>
             )}
-            
+
             {/* 加载更多回复按钮 */}
             {repliesPagination.hasNextPage && (
               <div className="flex justify-center pt-2">

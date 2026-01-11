@@ -19,7 +19,13 @@ export async function GET(
             id: true,
             name: true,
             avatar: true,
-            customAvatar: true
+            customAvatar: true,
+            user_workstations: {
+              select: {
+                workstationId: true
+              },
+              take: 1
+            }
           }
         },
         post_replies: {
@@ -31,7 +37,13 @@ export async function GET(
                 id: true,
                 name: true,
                 avatar: true,
-                customAvatar: true
+                customAvatar: true,
+                user_workstations: {
+                  select: {
+                    workstationId: true
+                  },
+                  take: 1
+                }
               }
             }
           }
@@ -74,10 +86,18 @@ export async function GET(
     // 转换数据结构：将 users 映射为 author，post_replies 映射为 replies
     const formattedPost = {
       ...post,
-      author: post.users,
+      author: {
+        ...post.users,
+        workstationId: post.users?.user_workstations?.[0]?.workstationId || null,
+        user_workstations: undefined
+      },
       replies: post.post_replies?.map((reply: any) => ({
         ...reply,
-        author: reply.users,
+        author: {
+          ...reply.users,
+          workstationId: reply.users?.user_workstations?.[0]?.workstationId || null,
+          user_workstations: undefined
+        },
         users: undefined
       })),
       users: undefined,
@@ -163,7 +183,13 @@ export async function PUT(
             id: true,
             name: true,
             avatar: true,
-            customAvatar: true
+            customAvatar: true,
+            user_workstations: {
+              select: {
+                workstationId: true
+              },
+              take: 1
+            }
           }
         }
       }
@@ -172,7 +198,11 @@ export async function PUT(
     // 转换数据结构
     const formattedPost = {
       ...updatedPost,
-      author: updatedPost.users,
+      author: {
+        ...updatedPost.users,
+        workstationId: updatedPost.users?.user_workstations?.[0]?.workstationId || null,
+        user_workstations: undefined
+      },
       users: undefined
     }
 
@@ -254,7 +284,13 @@ export async function PATCH(
             id: true,
             name: true,
             avatar: true,
-            customAvatar: true
+            customAvatar: true,
+            user_workstations: {
+              select: {
+                workstationId: true
+              },
+              take: 1
+            }
           }
         }
       }
@@ -263,7 +299,11 @@ export async function PATCH(
     // 转换数据结构
     const formattedPost = {
       ...updatedPost,
-      author: updatedPost.users,
+      author: {
+        ...updatedPost.users,
+        workstationId: updatedPost.users?.user_workstations?.[0]?.workstationId || null,
+        user_workstations: undefined
+      },
       users: undefined
     }
 

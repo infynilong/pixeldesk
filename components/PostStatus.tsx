@@ -118,49 +118,6 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
     // 更新 React 组件状态（直接同步调用，避免requestAnimationFrame开销）
     onStatusUpdate(fullStatus)
 
-    // 同步生成社交帖子
-    try {
-      const statusEmoji = statusOptions.find(s => s.id === selectedStatus)?.emoji || '📝'
-      const statusLabel = statusOptions.find(s => s.id === selectedStatus)?.label || selectedStatus
-      const postContent = customMessage || `${statusEmoji} ${statusLabel}`
-
-      // console.log('🎯 [PostStatus] 同步生成社交帖子:', { postContent, userId })
-
-      const postResponse = await fetch(`/api/posts?userId=${userId}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          title: null,
-          content: postContent,
-          type: 'TEXT'
-        })
-      })
-
-      if (!postResponse.ok) {
-        console.error('❌ [PostStatus] 状态同步帖子创建失败:', postResponse.status)
-      } else {
-        // 尝试获取积分更新信息
-        try {
-          const postData = await postResponse.json()
-          if (postData.success && postData.currentPoints !== undefined) {
-            console.log('💰 [PostStatus] 收到积分更新:', postData.currentPoints)
-            if (typeof window !== 'undefined') {
-              const event = new CustomEvent('user-points-updated', {
-                detail: { userId, points: postData.currentPoints }
-              })
-              window.dispatchEvent(event)
-            }
-          }
-        } catch (e) {
-          console.warn('Error parsing post response:', e)
-        }
-      }
-    } catch (error) {
-      console.error('Error creating status sync post:', error)
-    }
-
     // 平滑收起面板
     setIsExpanded(false)
     setCustomMessage('')
