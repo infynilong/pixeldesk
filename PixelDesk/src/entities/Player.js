@@ -37,9 +37,9 @@ export class Player extends Phaser.GameObjects.Container {
         };
 
         // 初始化数据库保存相关的定时器（用于较低频率的数据库同步）
-        this.dbSaveTimer = null;
-        this.lastDbSave = 0;
-        this.dbSaveInterval = 5000; // 每5秒保存一次到数据库
+        this.dbSaveInterval = 60000; // 后台定时保存间隔改为60秒（仅作兜底）
+        this.dbSaveTimer = null; // 停止移动后的延时保存定时器
+        this.periodicSaveTimer = null; // 周期性保存定时器
         this.dbSaveEnabled = true; // 启用数据库保存（跨设备同步）
 
         // 初始化碰撞检测状态
@@ -186,77 +186,103 @@ export class Player extends Phaser.GameObjects.Container {
         // 设置速度和方向
         this.move(velocityX, velocityY, direction);
 
-        // 保存位置（在移动过程中持续保存）
+        // 🔧 改进后的持久化逻辑
         if (velocityX !== 0 || velocityY !== 0) {
+            // 移动中：同步到 localStorage，并取消“停止移动”的保存计划
             this.saveState();
+
+            if (this.dbSaveTimer) {
+                clearTimeout(this.dbSaveTimer);
+                this.dbSaveTimer = null;
+            }
+
+            // 检查是否需要启动背景周期性保存
+            this.startPeriodicSave();
+        } else {
+            // 停止移动：启动延时保存到数据库的任务（1秒后）
+            this.planDatabaseSave();
+            this.stopPeriodicSave();
         }
     }
 
-    // 保存玩家状态到localStorage和数据库
-    saveState() {
-        // 如果状态保存功能被禁用，直接返回
-        if (!this.enableStateSave) {
-            return;
+    // 启动背景周期性保存（针对长距离旅行）
+    startPeriodicSave() {
+        if (!this.dbSaveEnabled || this.isOtherPlayer || this.periodicSaveTimer) return;
+
+        this.periodicSaveTimer = setInterval(() => {
+            debugLog('🕒 背景周期性位置同步...');
+            this.saveToDatabase();
+        }, this.dbSaveInterval);
+    }
+
+    // 停止背景周期性保存
+    stopPeriodicSave() {
+        if (this.periodicSaveTimer) {
+            clearInterval(this.periodicSaveTimer);
+            this.periodicSaveTimer = null;
         }
+    }
+
+    // 计划在停止移动后保存
+    planDatabaseSave() {
+        if (!this.dbSaveEnabled || this.isOtherPlayer || this.dbSaveTimer) return;
+
+        this.dbSaveTimer = setTimeout(() => {
+            debugLog('🛑 停止移动，执行数据库位置同步...');
+            this.saveToDatabase();
+            this.dbSaveTimer = null;
+        }, 1000); // 停止 1 秒后保存
+    }
+
+    // 核心保存逻辑：仅处理 localStorage 同步（高频）
+    saveState() {
+        if (!this.enableStateSave) return;
 
         const state = {
             x: this.x,
             y: this.y,
-            direction: this.currentDirection
+            direction: this.currentDirection,
+            timestamp: Date.now() // 增加时间戳用于 Start.js 辅助判断
         };
 
-        // 保存到 localStorage（高频率，200ms防抖）- 用于快速本地缓存
+        // 保存到 localStorage (200ms 防抖)
         if (!this.saveStateTimer) {
             this.saveStateTimer = setTimeout(() => {
                 localStorage.setItem('playerState', JSON.stringify(state));
                 this.saveStateTimer = null;
             }, 200);
         }
+    }
 
-        // 保存到数据库（低频率，5秒防抖）- 用于跨设备同步
-        if (this.dbSaveEnabled && !this.isOtherPlayer) {
-            const now = Date.now();
-            if (now - this.lastDbSave > this.dbSaveInterval) {
-                // 清除之前的定时器
-                if (this.dbSaveTimer) {
-                    clearTimeout(this.dbSaveTimer);
-                }
+    // 独立的数据库同步方法
+    async saveToDatabase() {
+        if (!this.dbSaveEnabled || this.isOtherPlayer) return;
 
-                // 设置新的定时器（移动结束后保存）
-                this.dbSaveTimer = setTimeout(async () => {
-                    try {
-                        const response = await fetch('/api/player', {
-                            method: 'PUT',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({
-                                currentX: Math.round(this.x),
-                                currentY: Math.round(this.y),
-                                playerState: {
-                                    direction: this.currentDirection,
-                                    lastSaved: new Date().toISOString()
-                                }
-                            }),
-                            credentials: 'include'
-                        });
-
-                        if (response.ok) {
-                            this.lastDbSave = Date.now();
-                            debugLog('✅ 玩家位置已保存到数据库:', Math.round(this.x), Math.round(this.y));
-                        } else if (response.status === 401) {
-                            debugLog('⚠️ 未登录，跳过数据库保存');
-                            this.dbSaveEnabled = false; // 未登录时禁用数据库保存
-                        } else {
-                            debugWarn('❌ 保存玩家位置失败:', response.status);
-                        }
-                    } catch (error) {
-                        debugWarn('❌ 保存玩家位置出错:', error);
-                    } finally {
-                        this.dbSaveTimer = null;
+        try {
+            const response = await fetch('/api/player', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    currentX: Math.round(this.x),
+                    currentY: Math.round(this.y),
+                    playerState: {
+                        direction: this.currentDirection,
+                        lastSaved: new Date().toISOString()
                     }
-                }, 5000); // 5秒后保存（移动结束后）
+                }),
+                credentials: 'include'
+            });
+
+            if (response.ok) {
+                this.lastDbSave = Date.now();
+                debugLog('✅ 玩家位置同步到数据库:', Math.round(this.x), Math.round(this.y));
+            } else if (response.status === 401) {
+                this.dbSaveEnabled = false;
             }
+        } catch (error) {
+            debugWarn('❌ 数据库保存出错:', error);
         }
     }
 

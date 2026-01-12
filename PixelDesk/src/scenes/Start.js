@@ -588,15 +588,13 @@ export class Start extends Phaser.Scene {
         this.initializeChunkSystem()
       }
 
-      // 从数据库加载玩家保存的位置和状态
+      // 🔧 混合加载逻辑：检查数据库和 localStorage
       let playerStartX = null
       let playerStartY = null
       let playerDirection = null
 
       try {
-        debugLog('🔍 Loading player position from database...')
-
-        // 直接使用 fetch 调用 API
+        debugLog('🔍 正在加载玩家位置 (数据库)...')
         const response = await fetch('/api/player', {
           method: 'GET',
           credentials: 'include'
@@ -609,25 +607,31 @@ export class Start extends Phaser.Scene {
             playerStartY = data.data.player.currentY
             playerDirection = data.data.player.playerState?.direction || null
 
-            // 🔧 关键修复：同步用户的当前状态
+            // 同步用户状态
             if (data.data.user && data.data.user.current_status) {
-              this.currentUser = {
-                ...this.currentUser,
-                currentStatus: data.data.user.current_status
-              }
-              debugLog('✅ 同步用户状态:', this.currentUser.currentStatus.type)
+              this.currentUser = { ...this.currentUser, currentStatus: data.data.user.current_status }
             }
-
-            debugLog('✅ Loaded player position from database:',
-              playerStartX, playerStartY, 'direction:', playerDirection)
-          } else {
-            debugLog('ℹ️ No saved position found, will use Tiled map default')
           }
-        } else {
-          debugLog('ℹ️ Failed to fetch player data, status:', response.status)
         }
       } catch (error) {
-        debugWarn('⚠️ Failed to load player position from database, using default:', error)
+        debugWarn('⚠️ 数据库加载失败:', error)
+      }
+
+      // 检查本地缓存是否更新
+      try {
+        const localStateStr = localStorage.getItem('playerState')
+        if (localStateStr) {
+          const localState = JSON.parse(localStateStr)
+          // 如果数据库没有数据，或者本地缓存是最新移动的（简单判断：有本地缓存就优先，因为本地同步是毫秒级的）
+          if (playerStartX === null || localState.x !== undefined) {
+            debugLog('📱 发现本地缓存位置，将优先使用本地数据以实现无缝恢复')
+            playerStartX = localState.x
+            playerStartY = localState.y
+            playerDirection = localState.direction || playerDirection
+          }
+        }
+      } catch (e) {
+        debugWarn('⚠️ 本地缓存解析失败:', e)
       }
 
       // 创建玩家 - 传入保存的位置和朝向（如果有）
@@ -2271,8 +2275,6 @@ export class Start extends Phaser.Scene {
   getAvailableWorkstations() {
     return this.workstationManager.getAvailableWorkstations()
   }
-
-  // setupTestBindings and placeCharactersAtOccupiedWorkstations functions removed for performance optimization
 
   // 根据工位方向计算角色位置和朝向
   calculateCharacterPosition(workstation) {
