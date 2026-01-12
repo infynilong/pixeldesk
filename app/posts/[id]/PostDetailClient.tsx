@@ -305,8 +305,8 @@ export default function PostDetailClient({ initialPost, billboardPromotionCost }
 
       {/* 主要内容 */}
       <main className="relative z-10 max-w-7xl mx-auto px-4 py-8">
-        <div className="flex gap-8 items-start">
-          <div className="flex-1 min-w-0 flex flex-col gap-1">
+        <div className="flex flex-col lg:flex-row gap-8 items-start">
+          <div className="flex-1 min-w-0 w-full flex flex-col gap-1">
             {/* 帖子主体 - 气泡首句 */}
             <article className={`backdrop-blur-xl border rounded-t-3xl overflow-hidden shadow-2xl transition-all duration-500 ${theme === 'dark' ? 'bg-[#1a1c1e]/80 border-white/5' : 'bg-white border-slate-200'
               }`}>
@@ -355,9 +355,9 @@ export default function PostDetailClient({ initialPost, billboardPromotionCost }
                   )}
                 </div>
 
-                <footer className={`flex items-center justify-between pt-6 border-t mt-8 mb-4 ${theme === 'dark' ? 'border-white/5' : 'border-slate-100'
+                <footer className={`flex flex-col sm:flex-row sm:items-center justify-between pt-6 border-t mt-8 mb-4 gap-4 ${theme === 'dark' ? 'border-white/5' : 'border-slate-100'
                   }`}>
-                  <div className="flex items-center gap-3">
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                     <div className={`flex items-center rounded-full px-4 py-1.5 gap-4 border text-xs font-mono ${theme === 'dark' ? 'bg-white/5 border-white/5 text-gray-400' : 'bg-slate-50 border-slate-200 text-slate-500'
                       }`}>
                       <div className="flex items-center gap-1.5"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0zM2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg><span>{post.viewCount}</span></div>
@@ -462,7 +462,7 @@ export default function PostDetailClient({ initialPost, billboardPromotionCost }
             </section>
           </div>
 
-          <aside className="hidden lg:block w-80 flex-shrink-0 sticky top-20">
+          <aside className="w-full lg:w-80 flex-shrink-0 lg:sticky lg:top-20 mt-4 lg:mt-0">
             <PostSidebar currentPostId={post.id} currentUserId={currentUserId || undefined} theme={theme} />
           </aside>
         </div>

@@ -141,8 +141,8 @@ export class Player extends Phaser.GameObjects.Container {
         }
     }
 
-    // 新增：处理玩家移动逻辑
-    handleMovement(cursors, wasdKeys) {
+    // 新增：处理玩家移动逻辑（兼容虚拟摇杆）
+    handleMovement(cursors, wasdKeys, joystickData = null) {
         // 如果移动功能被禁用，直接返回
         if (!this.enableMovement) {
             return;
@@ -152,22 +152,35 @@ export class Player extends Phaser.GameObjects.Container {
         let velocityY = 0;
         let direction = this.currentDirection; // 保持当前方向
 
-        // 检查水平移动
-        if (cursors.left.isDown || wasdKeys.A.isDown) {
-            velocityX = -this.speed;
-            direction = 'left';
-        } else if (cursors.right.isDown || wasdKeys.D.isDown) {
-            velocityX = this.speed;
-            direction = 'right';
-        }
+        // 优先使用虚拟摇杆数据
+        if (joystickData && (Math.abs(joystickData.x) > 0.1 || Math.abs(joystickData.y) > 0.1)) {
+            velocityX = joystickData.x * this.speed;
+            velocityY = joystickData.y * this.speed;
 
-        // 检查垂直移动
-        if (cursors.up.isDown || wasdKeys.W.isDown) {
-            velocityY = -this.speed;
-            direction = 'up';
-        } else if (cursors.down.isDown || wasdKeys.S.isDown) {
-            velocityY = this.speed;
-            direction = 'down';
+            // 根据向量计算朝向
+            const angle = Math.atan2(joystickData.y, joystickData.x) * (180 / Math.PI);
+            if (angle >= -45 && angle < 45) direction = 'right';
+            else if (angle >= 45 && angle < 135) direction = 'down';
+            else if (angle >= -135 && angle < -45) direction = 'up';
+            else direction = 'left';
+        } else {
+            // 检查键盘水平移动
+            if (cursors.left.isDown || wasdKeys.A.isDown) {
+                velocityX = -this.speed;
+                direction = 'left';
+            } else if (cursors.right.isDown || wasdKeys.D.isDown) {
+                velocityX = this.speed;
+                direction = 'right';
+            }
+
+            // 检查键盘垂直移动
+            if (cursors.up.isDown || wasdKeys.W.isDown) {
+                velocityY = -this.speed;
+                direction = 'up';
+            } else if (cursors.down.isDown || wasdKeys.S.isDown) {
+                velocityY = this.speed;
+                direction = 'down';
+            }
         }
 
         // 设置速度和方向

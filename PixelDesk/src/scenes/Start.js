@@ -9,6 +9,7 @@ import { FrontDeskManager } from "../logic/FrontDeskManager.js"
 import { DayNightManager } from "../logic/DayNightManager.js"
 import { IndoorAreasManager } from "../logic/IndoorAreasManager.js"
 import { BillboardManager } from "../logic/BillboardManager.js"
+import { MobileControlsManager } from "../logic/MobileControlsManager.js"
 
 // ===== 性能优化配置 =====
 const PERFORMANCE_CONFIG = {
@@ -41,6 +42,7 @@ export class Start extends Phaser.Scene {
     this.wasdKeys = null
     this.deskColliders = null
     this.billboardSensors = null // 📺 大屏近场感应区
+    this.mobileControls = null // 📱 移动端控制
     this.currentUser = null
     this.bindingUI = null
     this.otherPlayers = new Map() // 存储其他玩家
@@ -598,6 +600,15 @@ export class Start extends Phaser.Scene {
         this.aiNpcManager.init()
       }
 
+      // 📱 初始化移动端控制
+      this.mobileControls = new MobileControlsManager(this)
+      this.mobileControls.init()
+
+      // 监听移动端交互
+      this.events.on('mobile-action-press', () => {
+        this.handleInteraction()
+      })
+
       // 前台客服已在渲染前台对象之前初始化完成，这里不需要再次调用
       // 如果frontDeskManager未初始化，在这里也不应该再初始化（会导致重复加载）
 
@@ -956,9 +967,9 @@ export class Start extends Phaser.Scene {
       return;
     }
 
-    // 检查是否应该处理键盘输入（简化版本）
+    // 检查是否应该处理输入
     if (this.keyboardInputEnabled === false) {
-      // 当键盘输入被禁用时，停止角色移动
+      // 当输入被禁用时，停止角色移动
       if (this.player.body.setVelocity) {
         this.player.body.setVelocity(0, 0);
       }
@@ -977,11 +988,11 @@ export class Start extends Phaser.Scene {
       this.wasdKeys = this.input.keyboard.addKeys('W,S,A,D');
     }
 
-    const cursors = this.cursors;
-    const wasdKeys = this.wasdKeys;
+    // 获取摇杆数据
+    const joystickVector = this.mobileControls ? this.mobileControls.getVector() : null;
 
     // 将移动处理委托给Player类
-    this.player.handleMovement(cursors, wasdKeys)
+    this.player.handleMovement(this.cursors, this.wasdKeys, joystickVector)
   }
 
   // ===== 工位事件处理 =====
@@ -1930,40 +1941,48 @@ export class Start extends Phaser.Scene {
       Phaser.Input.Keyboard.KeyCodes.F
     )
 
-    // 监听 F 键按下，打开前台对话框
+    // 监听 F 键按下
     if (this.frontDeskKey) {
       this.frontDeskKey.on('down', () => {
-        // 检查前台管理器是否存在
-        if (!this.frontDeskManager) {
-          console.warn('🏢 [F键] FrontDeskManager 未初始化')
-          return
-        }
-
-        // 获取碰撞范围内的前台
-        const collidingDesks = this.frontDeskManager.getCollidingDesks(this.player, 150)
-
-        if (collidingDesks.length > 0) {
-          // 找到最近的前台
-          const nearestDesk = collidingDesks.reduce((nearest, current) =>
-            current.distance < nearest.distance ? current : nearest
-          )
-
-          const deskSprite = nearestDesk.sprite
-          console.log(`🏢 [F键] 打开前台对话框: ${deskSprite.deskName}`)
-
-          // 触发前台聊天弹窗
-          window.dispatchEvent(new CustomEvent('open-front-desk-chat', {
-            detail: {
-              id: deskSprite.deskId,
-              name: deskSprite.deskName,
-              serviceScope: deskSprite.serviceScope,
-              greeting: deskSprite.greeting,
-              workingHours: deskSprite.workingHours
-            }
-          }))
-        }
+        this.handleInteraction()
       })
     }
+  }
+
+  /**
+   * 统一处理玩家交互逻辑 (F键 或 移动端交互按钮)
+   */
+  handleInteraction() {
+    if (!this.player) return
+
+    // 1. 检查前台客服管理器交互
+    if (this.frontDeskManager) {
+      const collidingDesks = this.frontDeskManager.getCollidingDesks(this.player, 150)
+
+      if (collidingDesks.length > 0) {
+        // 找到最近的前台
+        const nearestDesk = collidingDesks.reduce((nearest, current) =>
+          current.distance < nearest.distance ? current : nearest
+        )
+
+        const deskSprite = nearestDesk.sprite
+        console.log(`🏢 [交互] 激活最近的前台: ${deskSprite.deskName}`)
+
+        // 触发前台聊天弹窗
+        window.dispatchEvent(new CustomEvent('open-front-desk-chat', {
+          detail: {
+            id: deskSprite.deskId,
+            name: deskSprite.deskName,
+            serviceScope: deskSprite.serviceScope,
+            greeting: deskSprite.greeting,
+            workingHours: deskSprite.workingHours
+          }
+        }))
+        return
+      }
+    }
+
+    // 2. 这里可以添加其他物体的交互逻辑...
   }
 
   // ===== 全局函数方法 =====
