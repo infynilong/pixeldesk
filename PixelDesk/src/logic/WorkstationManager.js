@@ -1335,10 +1335,10 @@ export class WorkstationManager {
                 break;
 
             case 'up':
-                // 桌子在后，椅子在前 -> 角色站在桌子下方，面向前方 (down)
+                // 桌子在后，椅子在前 -> 角色站在桌子下方，面向桌子 (up)
                 characterX = position.x + (size.width / 2);
-                characterY = position.y + size.height; // 站在桌子正下方
-                characterDirection = 'down';
+                characterY = position.y + size.height - 45; // 向上偏移，使其坐入椅子中
+                characterDirection = 'up';
                 break;
 
             case 'single':
