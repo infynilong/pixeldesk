@@ -113,6 +113,7 @@ export class WorkstationManager {
 
         if (lowerName.includes('_right')) return 'right';
         if (lowerName.includes('_left')) return 'left';
+        if (lowerName.includes('_up')) return 'up';
         if (lowerName.includes('center')) return 'center';
         if (lowerName.includes('single')) return 'single';
 
@@ -121,6 +122,7 @@ export class WorkstationManager {
             const textureKey = sprite.texture.key.toLowerCase();
             if (textureKey.includes('_right')) return 'right';
             if (textureKey.includes('_left')) return 'left';
+            if (textureKey.includes('_up')) return 'up';
         }
 
         // 3. 默认根据宽度推断：宽度大于高度通常是并排桌子
@@ -1330,6 +1332,13 @@ export class WorkstationManager {
                 characterX = position.x + size.width + offsetX;
                 characterY = position.y - offsetY;
                 characterDirection = 'left';
+                break;
+
+            case 'up':
+                // 桌子在后，椅子在前 -> 角色站在桌子下方，面向前方 (down)
+                characterX = position.x + (size.width / 2);
+                characterY = position.y + size.height; // 站在桌子正下方
+                characterDirection = 'down';
                 break;
 
             case 'single':

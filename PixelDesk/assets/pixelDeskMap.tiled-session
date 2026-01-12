@@ -47,6 +47,7 @@
             }
         },
         "/Users/jiangyilong/project/PixelDesk/public/assets/officemap.json#announcement_board_wire": {
+            "dynamicWrapping": false,
             "scaleInDock": 1,
             "scaleInEditor": 1
         },
@@ -190,7 +191,7 @@
             "scaleInDock": 0.33
         }
     },
-    "last.imagePath": "/Users/jiangyilong/project/PixelDesk/public/assets/building",
+    "last.imagePath": "/Users/jiangyilong/project/PixelDesk/public/assets/desk",
     "openFiles": [
         "/Users/jiangyilong/project/PixelDesk/public/assets/officemap.json"
     ],

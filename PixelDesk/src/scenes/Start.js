@@ -101,7 +101,9 @@ export class Start extends Phaser.Scene {
       "wall_decoration_2": "/assets/desk/Classroom_and_Library_Singles_48x48_32.png",
       "wall_decoration_3": "/assets/desk/Classroom_and_Library_Singles_48x48_33.png",
       "wall_decoration_4": "/assets/desk/Classroom_and_Library_Singles_48x48_39.png",
-      "wall_decoration_5": "/assets/desk/Classroom_and_Library_Singles_48x48_36.png"
+      "wall_decoration_5": "/assets/desk/Classroom_and_Library_Singles_48x48_36.png",
+      "pixel_cafe_building": "/assets/building/pixel_cafe_building_512.png",
+      "cofe_desk_up": "/assets/desk/cofe_desk_up.png"
     };
 
     // 正在进行的动态加载任务
@@ -557,6 +559,13 @@ export class Start extends Phaser.Scene {
         this.renderObjectLayer(map, "wall_obj")
       } catch (e) {
         console.warn("Wall decoration layer missing")
+      }
+
+      // 🏰 渲染建筑图层 (由用户新增)
+      try {
+        this.renderObjectLayer(map, "building")
+      } catch (e) {
+        console.warn("Building layer missing")
       }
 
       // 所有对象层加载完毕后，统一初始化区块系统
@@ -1348,7 +1357,7 @@ export class Start extends Phaser.Scene {
     }
 
     // 📺 如果是大屏推流对象 (Hot Billboard)
-    if (obj.gid === 5569 || obj.gid === 5570 || obj.type === "hot-billboard") {
+    if (obj.gid === 5569 || obj.gid === 5570 || obj.gid === 5576 || obj.gid === 5577 || obj.gid === 5580 || obj.gid === 5581 || obj.type === "hot-billboard") {
       console.log(`📺 [Start] 检测到大屏对象 at (${obj.x}, ${obj.y})`);
       if (sprite) {
         // 为大屏添加物理碰撞，使其不可穿透
@@ -1370,10 +1379,17 @@ export class Start extends Phaser.Scene {
           this.physics.add.existing(sensor, false);
           if (sensor.body) {
             sensor.body.setImmovable(true);
-            sensor.body.allowGravity = false;
           }
           this.billboardSensors.add(sensor);
         }
+      }
+    }
+
+    // 🏰 如果是建筑对象 (例如咖啡厅)
+    if (obj.gid === 5578 || obj.gid === 5582 || obj.name?.includes("building") || obj.type === "building") {
+      if (sprite) {
+        console.log(`🏰 [Start] 为建筑添加物理碰撞 at (${obj.x}, ${obj.y})`);
+        this.addDeskCollision(sprite, obj);
       }
     }
 
@@ -1412,10 +1428,6 @@ export class Start extends Phaser.Scene {
       // 🔧 移除setImmovable调用：StaticBody默认就是immovable，没有这个方法
       // sprite.body.setImmovable(true)  // ❌ StaticBody没有这个方法
     }
-
-    // 🔧 性能优化：不单独创建碰撞器
-    // group碰撞器在ensurePlayerDeskCollider()中创建
-    // this.physics.add.collider(this.player, this.deskColliders)  // ✅ 只有1个碰撞器
   }
 
   getCollisionSettings(obj) {
@@ -1438,6 +1450,9 @@ export class Start extends Phaser.Scene {
     } else if (objName.includes("display") || objType.includes("display") || objName.includes("board")) {
       // 电子告示牌/大屏 - 完全碰撞边界
       return { scaleX: 1.0, scaleY: 1.0, offsetX: 0, offsetY: 0 }
+    } else if (objName.includes("building") || obj.gid === 5578) {
+      // 建筑 - 完全碰撞边界 (按需调整)
+      return { scaleX: 1.0, scaleY: 0.8, offsetX: 0, offsetY: 0 }
     } else {
       // 默认设置
       return { scaleX: 0.5, scaleY: 0.5, offsetX: 0, offsetY: 0 }
@@ -1500,8 +1515,10 @@ export class Start extends Phaser.Scene {
     if (gid === 111) return "wall_decoration_5"
     if (gid === 112) return "wall_decoration_4"
     if (gid === 58) return "door_mat"
-    if (gid === 5569) return "announcement_board_wire"
-    if (gid === 5570) return "front_wide_display"
+    if (gid === 5569 || gid === 5576 || gid === 5580) return "announcement_board_wire"
+    if (gid === 5570 || gid === 5577 || gid === 5581) return "front_wide_display"
+    if (gid === 5578 || gid === 5582) return "pixel_cafe_building"
+    if (gid === 118) return "cofe_desk_up"
     return null
   }
 
@@ -1881,6 +1898,7 @@ export class Start extends Phaser.Scene {
       obj.name.includes("bookcase") ||
       obj.gid === 106 || // bookcase_tall
       obj.gid === 107 || // bookcase_middle
+      obj.gid === 118 || // cofe_desk_up
       obj.type === "sofa" ||
       obj.type === "flower"
     )
