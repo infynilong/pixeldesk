@@ -238,6 +238,8 @@ export default function Home() {
   // 工位状态更新弹窗状态
   const [showStatusPopup, setShowStatusPopup] = useState(false)
 
+  // 排行榜弹窗状态
+
   // 同步认证用户数据到currentUser状态，支持临时玩家
   const syncAuthenticatedUser = useCallback(async () => {
     if (user) {
@@ -1116,6 +1118,7 @@ export default function Home() {
           greeting: frontDeskModal.greeting
         }}
       />
+
 
       {/* 错误消息弹窗 */}
       {errorMessage && (

@@ -54,6 +54,8 @@ export class Start extends Phaser.Scene {
     this.wasdKeys = null
     this.deskColliders = null
     this.billboardSensors = null // 📺 大屏近场感应区
+    this.billboardManager = null // 📺 大屏管理器 (Hot Billboard)
+    this.bulletinBoardSensors = null // 📋 公告栏 (Leaderboard) 感应区
     this.mobileControls = null // 📱 移动端控制
     this.currentUser = null
     this.bindingUI = null
@@ -506,6 +508,7 @@ export class Start extends Phaser.Scene {
       // 📺 初始化大屏管理器
       this.billboardManager = new BillboardManager(this)
       this.billboardSensors = this.physics.add.group() // 动态组，作为触发器用
+      this.bulletinBoardSensors = this.physics.add.group() // 📋 公告栏感应器组
 
       // 为UI更新设置定时器而不是每帧更新
       // 暂时禁用UI更新定时器以排查CPU占用问题
@@ -759,10 +762,12 @@ export class Start extends Phaser.Scene {
     }
 
     // 📺 更新大屏管理器 (处理玩家靠近检测 - 使用碰撞组而非数学计算)
-    if (this.billboardManager && this.player && this.billboardSensors) {
+    if (this.billboardManager && this.player) {
       if (this.updateCounter % 5 === 0) { // 每5帧检查一次 overlap
-        const isNear = this.physics.overlap(this.player, this.billboardSensors);
-        this.billboardManager.setProximity(isNear);
+        const nearBillboard = this.billboardSensors ? this.physics.overlap(this.player, this.billboardSensors) : false;
+        const nearBulletin = this.bulletinBoardSensors ? this.physics.overlap(this.player, this.bulletinBoardSensors) : false;
+
+        this.billboardManager.setProximity(nearBillboard || nearBulletin);
       }
       this.billboardManager.update()
     }
@@ -798,8 +803,8 @@ export class Start extends Phaser.Scene {
       this.checkFrontDeskCollisionEnd()
     }
 
-    // 🤖 每 2 秒 (120 帧) 更新一次动态 NPC 遭遇
-    if (this.updateCounter % 120 === 0 && this.aiNpcManager && this.player) {
+    // 🤖 每 1 秒 (60 帧) 更新一次动态 NPC 遭遇
+    if (this.updateCounter % 60 === 0 && this.aiNpcManager && this.player) {
       this.aiNpcManager.updateDynamicNpcs(this.player.x, this.player.y)
     }
   }
@@ -1406,7 +1411,14 @@ export class Start extends Phaser.Scene {
           if (sensor.body) {
             sensor.body.setImmovable(true);
           }
-          this.billboardSensors.add(sensor);
+
+          // 区分：如果是公告栏 (GID 5580)，加入专门的公告栏感应组
+          if (obj.gid === 5580 || obj.type === "bulletin-board") {
+            sensor.isBulletinBoard = true;
+            this.bulletinBoardSensors.add(sensor);
+          } else {
+            this.billboardSensors.add(sensor);
+          }
         }
       }
     }
@@ -2167,7 +2179,20 @@ export class Start extends Phaser.Scene {
       }
     }
 
-    // 2. 这里可以添加其他物体的交互逻辑...
+    // 2. 检查公告栏/大屏 (Billboard & Bulletin) 交互
+    if (this.billboardManager) {
+      const nearBillboard = this.billboardSensors && this.physics.overlap(this.player, this.billboardSensors);
+      const nearBulletin = this.bulletinBoardSensors && this.physics.overlap(this.player, this.bulletinBoardSensors);
+
+      if (nearBillboard || nearBulletin) {
+        console.log('📋 [交互] 触发公告栏 UI');
+        // 如果是特殊感应器（公告栏感应器），可以在 detail 中带上 tab 提示
+        this.billboardManager.showBillboardUI();
+        return;
+      }
+    }
+
+    // 3. 这里可以添加其他物体的交互逻辑...
   }
 
   // ===== 全局函数方法 =====

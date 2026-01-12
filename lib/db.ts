@@ -12,6 +12,12 @@ const urlWithPool = dbUrl?.includes('connection_limit')
   ? dbUrl
   : `${dbUrl}${dbUrl?.includes('?') ? '&' : '?'}connection_limit=20&pool_timeout=20`
 
+// 强制刷新逻辑：如果当前实例缺少新定义的模型，则清理它
+if (globalForPrisma.prisma && !(globalForPrisma.prisma as any).player_steps) {
+  console.log('🔄 Prisma 实例过旧，正在重新启动客户端以加载新模型...')
+  globalForPrisma.prisma = undefined
+}
+
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({

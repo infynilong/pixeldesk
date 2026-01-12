@@ -17,7 +17,8 @@ export default function PlayerInteractionTab({
   isTablet = false
 }: PlayerInteractionTabProps) {
   // 检查是否为 AI NPC
-  const isNpc = collisionPlayer?.id?.toString().startsWith('npc_')
+  const isNpc = collisionPlayer?.id?.toString().startsWith('npc_') ||
+    collisionPlayer?.id?.toString().startsWith('dynamic_')
 
   console.log('🔄 [PlayerInteractionTab] Rendering:', {
     id: collisionPlayer?.id,

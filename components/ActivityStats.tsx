@@ -10,7 +10,7 @@ interface ActivityStatsProps {
 
 export default function ActivityStats({ userId, days = 90 }: ActivityStatsProps) {
   const { t } = useTranslation()
-  const { data: activityData, isLoading } = useUserActivity(userId, days)
+  const { data: activityData, isLoading, refresh } = useUserActivity(userId, days)
   const stats = activityData?.totalStats || null
 
   // 格式化时间
@@ -50,7 +50,7 @@ export default function ActivityStats({ userId, days = 90 }: ActivityStatsProps)
     return t.activity.status[s] || status
   }
 
-  if (isLoading) {
+  if (isLoading && !activityData) {
     return (
       <div className="flex items-center justify-center py-4">
         <div className="text-gray-400 text-xs">{t.activity.loading}</div>
@@ -94,6 +94,41 @@ export default function ActivityStats({ userId, days = 90 }: ActivityStatsProps)
           <div className="text-xs font-bold text-purple-400 font-mono">
             {formatTime(stats.averageMinutesPerDay)}
           </div>
+        </div>
+      </div>
+
+      {/* 步数统计 */}
+      <div className="bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/20 rounded-lg p-3 flex items-center justify-between group relative overflow-hidden">
+        <div className="flex items-center gap-2">
+          <span className="text-xl">👟</span>
+          <div>
+            <div className="text-[10px] text-amber-500/80 font-bold uppercase tracking-wider">{t.common.daily_steps || '每日步数'}</div>
+            <div className="text-sm font-black text-amber-500 font-mono flex items-center gap-2">
+              {((stats as any).totalSteps || 0).toLocaleString()}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  refresh();
+                }}
+                disabled={isLoading}
+                className={`p-1 rounded-md hover:bg-amber-500/20 transition-all ${isLoading ? 'opacity-50' : ''}`}
+                title={t.common.refresh}
+              >
+                <svg
+                  className={`w-3 h-3 text-amber-500 ${isLoading ? 'animate-spin' : ''}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div className="text-right">
+          <div className="text-[10px] text-gray-500 uppercase">{t.activity.total_active}</div>
+          <div className="text-xs font-bold text-gray-300">{stats.totalDays} {t.activity.days_unit}</div>
         </div>
       </div>
 

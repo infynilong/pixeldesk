@@ -56,12 +56,28 @@ export async function GET(
       }
     })
 
+    // 获取玩家步数历史
+    const stepsHistory = await (prisma as any).player_steps.findMany({
+      where: {
+        userId,
+        date: {
+          gte: startDate.toISOString().split('T')[0],
+          lte: endDate.toISOString().split('T')[0]
+        }
+      },
+      orderBy: {
+        date: 'asc'
+      }
+    })
+
     // 按日期分组统计
     const dailyStats = new Map<string, {
       date: string
       totalMinutes: number
-      statusCount: {[key: string]: number}
+      statusCount: { [key: string]: number }
       activities: number
+      steps: number
+      distance: number
     }>()
 
     // 初始化所有日期
@@ -71,9 +87,20 @@ export async function GET(
         date: dateStr,
         totalMinutes: 0,
         statusCount: {},
-        activities: 0
+        activities: 0,
+        steps: 0,
+        distance: 0
       })
     }
+
+    // 填充步数数据
+    stepsHistory.forEach((s: any) => {
+      const stats = dailyStats.get(s.date)
+      if (stats) {
+        stats.steps = s.steps
+        stats.distance = s.distance
+      }
+    })
 
     // 计算每个状态的持续时间
     for (let i = 0; i < statusHistory.length; i++) {
@@ -111,9 +138,10 @@ export async function GET(
 
     // 计算总体统计
     const totalStats = {
-      totalMinutes: dailyActivity.reduce((sum, day) => sum + day.totalMinutes, 0),
-      totalDays: dailyActivity.filter(day => day.activities > 0).length,
-      statusBreakdown: {} as {[key: string]: number},
+      totalMinutes: dailyActivity.reduce((sum, day) => sum + day.totalMinutes as number, 0),
+      totalDays: dailyActivity.filter(day => (day.activities > 0) || ((day as any).steps > 0)).length,
+      totalSteps: dailyActivity.reduce((sum, day) => sum + ((day as any).steps || 0), 0),
+      statusBreakdown: {} as { [key: string]: number },
       averageMinutesPerDay: 0
     }
 

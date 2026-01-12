@@ -1,5 +1,14 @@
 import { Player } from '../entities/Player.js';
 
+// ===== 性能优化配置 =====
+const PERFORMANCE_CONFIG = {
+    ENABLE_DEBUG_LOGGING: false, // 生产环境建议关闭
+    ENABLE_ERROR_LOGGING: true
+}
+
+const debugLog = PERFORMANCE_CONFIG.ENABLE_DEBUG_LOGGING ? console.log.bind(console) : () => { }
+const debugWarn = PERFORMANCE_CONFIG.ENABLE_ERROR_LOGGING ? console.warn.bind(console) : () => { }
+
 /**
  * AI NPC 管理器 - 进阶版
  * 增加本地随机 NPC 生成、多样化角色模板以及轻量级 AI 游荡逻辑
@@ -10,37 +19,12 @@ export class AiNpcManager {
         this.npcGroup = null;
         this.npcs = new Map(); // id -> npcCharacter (持久化 NPC)
         this.dynamicNpcs = new Map(); // id -> npcCharacter (临时生成的 NPC)
-        this.maxDynamicNpcs = 5; // 周边最大动态 NPC 数量
-        this.spawnDistance = 800; // 生成距离 (像素)
-        this.despawnDistance = 1500; // 回收距离 (像素)
+        this.maxDynamicNpcs = 8; // 周边最大动态 NPC 数量
+        this.spawnDistance = 400; // 生成距离 (像素)
+        this.despawnDistance = 1200; // 回收距离 (像素)
 
-        // NPC 角色模板库 - 使用项目中实际存在的资源
-        this.templates = [
-            {
-                role: '保洁员',
-                sprite: 'Female_Cleaner_girl_idle_48x48',
-                personality: '一个勤劳的保洁员，总是碎碎念哪里的地板不干净。',
-                greetings: ['嘿，走路小心点，这地板我刚拖过！', '要是看到垃圾记得捡起来哦。', '唉，这办公室的人怎么这么多...']
-            },
-            {
-                role: 'IT支援',
-                sprite: 'Male_Adam_idle_48x48',
-                personality: '冷静的技术宅，总是背着电脑。',
-                greetings: ['重启试过了吗？', '我在等编译，正好出来转转。', '网络没问题吧？如果有问题别找我，找路由器。']
-            },
-            {
-                role: '商务经理',
-                sprite: 'Male_Conference_man_idle_48x48',
-                personality: '总是很忙，在找人开会。',
-                greetings: ['下午的会议你参加吗？', '帮我看看这个 PPT 逻辑对不对。', '咖啡...我需要更多的咖啡。']
-            },
-            {
-                role: 'HR琳达',
-                sprite: 'Female_Conference_woman_idle_48x48',
-                personality: '优雅但充满威慑力，时刻观察着员工的状态。',
-                greetings: ['今天的工作进度怎么样？', '别忘了提交下周的周报。', '欢迎来到 PixelDesk，加油。']
-            }
-        ];
+        // 💡 动态偶遇模板池，将从 API 加载
+        this.encounterTemplates = [];
     }
 
     /**
@@ -80,14 +64,28 @@ export class AiNpcManager {
             const response = await fetch('/api/ai/npcs');
             const data = await response.json();
             const npcs = data.data || data.npcs;
+
             if (data.success && Array.isArray(npcs)) {
+                // 🛠️ 分类加载 NPC
+                this.encounterTemplates = [];
+
                 for (const npcData of npcs) {
-                    this.createAiNpc(npcData).then(npc => {
-                        // 🔧 关键修复：如果是固定位置 NPC，不启动游荡逻辑
-                        if (npc && !npcData.isFixed) {
-                            this.startWandering(npc);
-                        }
-                    });
+                    if (npcData.isFixed) {
+                        // 1. 固定位置 NPC (如 Sarah, Molly)，直接根据数据库坐标创建
+                        this.createAiNpc(npcData).then(npc => {
+                            if (npc && npcData.id) {
+                                this.npcs.set(npcData.id, npc);
+                            }
+                        });
+                        debugLog(`📌 [AiNpcManager] 加载固定 NPC: ${npcData.name} at (${npcData.x}, ${npcData.y})`);
+                    } else {
+                        // 2. 动态偶遇候选人，存入模板池，不立即创建
+                        this.encounterTemplates.push({
+                            ...npcData,
+                            greetings: npcData.greeting ? [npcData.greeting] : ['Hello!']
+                        });
+                        debugLog(`🎲 [AiNpcManager] 已将 ${npcData.name} 加入动态偶遇池`);
+                    }
                 }
             }
         } catch (error) {
@@ -201,13 +199,15 @@ export class AiNpcManager {
             true,  // isOtherPlayer
             {
                 id: id.startsWith('npc_') ? id : `npc_${id}`,
+                templateId: npcData.templateId || npcData.id, // 💡 存储原始模板 ID，供聊天 API 使用
                 name: name,
                 avatar: textureKey, // 添加头像字段，供 UI 显示
                 currentStatus: {
                     type: 'available',
-                    status: npcData.role || npcData.personality?.substring(0, 10) || 'AI助手',
-                    emoji: '🤖',
+                    status: npcData.role || 'AI助手',
+                    emoji: npcData.role === 'Financial Analyst' ? '🇬🇧' : '🤖',
                     message: greeting,
+                    personality: npcData.personality, // 🔧 传递性格设定到 AI 核心
                     timestamp: new Date().toISOString()
                 },
                 isOnline: true
@@ -282,42 +282,42 @@ export class AiNpcManager {
 
         // 2. 如果数量不足，尝试生成新 NPC
         if (this.dynamicNpcs.size < this.maxDynamicNpcs) {
-            // 20% 的触发概率，避免刷新太密集
-            if (Phaser.Math.Between(0, 100) < 20) {
+            // 50% 的触发概率，让生成更活跃
+            if (Phaser.Math.Between(0, 100) < 50) {
                 this.spawnRandomEncounter(playerX, playerY);
             }
         }
     }
 
     /**
-     * 在玩家周边随机位置生成一个 NPC
+     * 在玩家周边随机位置生成一个 NPC (从数据库模板中抽取)
      */
     async spawnRandomEncounter(playerX, playerY) {
-        const template = Phaser.Utils.Array.GetRandom(this.templates);
+        if (this.encounterTemplates.length === 0) return;
+
+        const template = Phaser.Utils.Array.GetRandom(this.encounterTemplates);
         const id = `dynamic_${Date.now()}_${Phaser.Math.Between(1000, 9999)}`;
 
-        // 随机在视野外的边缘生成 (800-1000像素距离)
+        // 随机在视野外的边缘生成 (400-600像素距离)
         const angle = Math.random() * Math.PI * 2;
         const dist = Phaser.Math.Between(this.spawnDistance, this.spawnDistance + 200);
         const x = playerX + Math.cos(angle) * dist;
         const y = playerY + Math.sin(angle) * dist;
 
         const npcData = {
+            ...template,
+            templateId: template.id, // 💡 显式记录模板 ID
             id,
-            name: `${template.role}`,
-            sprite: template.sprite,
             x,
             y,
-            greeting: Phaser.Utils.Array.GetRandom(template.greetings),
-            isFixed: false,
-            role: template.role
+            isFixed: false
         };
 
         const npc = await this.createAiNpc(npcData);
         if (npc) {
             this.dynamicNpcs.set(id, npc);
             this.startWandering(npc);
-            debugLog(`🤖 [AiNpcManager] 动态生成 NPC: ${id} (${template.role})`);
+            debugLog(`🤖 [AiNpcManager] 动态生成 NPC: ${id} (${template.name}/${template.role})`);
         }
     }
 

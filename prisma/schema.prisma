@@ -421,6 +421,20 @@ model time_tracking {
   @@index([userId, date])
 }
 
+model player_steps {
+  id        Int      @id @default(autoincrement())
+  userId    String
+  steps     Int      @default(0)
+  distance  Float    @default(0) // 移动距离（像素）
+  date      String   // 格式：YYYY-MM-DD
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  users     users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([date, steps(sort: Desc)])
+}
+
 model user_online_status {
   id        String   @id
   userId    String   @unique
@@ -498,6 +512,7 @@ model users {
   post_likes                                       post_likes[]
   post_replies                                     post_replies[]
   posts                                            posts[]
+  player_steps                                     player_steps[]
   status_history                                   status_history[]
   time_tracking                                    time_tracking[]
   user_online_status                               user_online_status?

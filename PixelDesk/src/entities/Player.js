@@ -44,6 +44,13 @@ export class Player extends Phaser.GameObjects.Container {
         this.lastDbSavedX = Math.round(x); // 记录上次保存到数据库的坐标，避免重复保存
         this.lastDbSavedY = Math.round(y);
 
+        // 👣 步数统计相关
+        this.totalStepsSession = 0; // 当前会话累计步数
+        this.totalDistanceSession = 0; // 当前会话累计距离（像素）
+        this.lastStepX = x; // 上一个位置点，用于计算距离增量
+        this.lastStepY = y;
+        this.pixelToStepRatio = 20; // 20像素 = 1步
+
         // 初始化碰撞检测状态
         this.isColliding = false;
         this.collisionStartTime = null;
@@ -140,6 +147,18 @@ export class Player extends Phaser.GameObjects.Container {
         // 更新玩家方向帧（仅在移动时更新）
         if (velocityX !== 0 || velocityY !== 0) {
             this.setDirectionFrame(direction);
+
+            // 👣 更新移动距离和步数
+            const dx = this.x - this.lastStepX;
+            const dy = this.y - this.lastStepY;
+            const distanceChange = Math.sqrt(dx * dx + dy * dy);
+
+            if (distanceChange > 1) { // 极微小的抖动不计入
+                this.totalDistanceSession += distanceChange;
+                this.totalStepsSession = Math.floor(this.totalDistanceSession / this.pixelToStepRatio);
+                this.lastStepX = this.x;
+                this.lastStepY = this.y;
+            }
         }
     }
 
@@ -283,6 +302,8 @@ export class Player extends Phaser.GameObjects.Container {
                 body: JSON.stringify({
                     currentX: currentX,
                     currentY: currentY,
+                    steps: this.totalStepsSession,
+                    distance: Math.round(this.totalDistanceSession),
                     playerState: {
                         direction: this.currentDirection,
                         lastSaved: new Date().toISOString()
@@ -294,7 +315,10 @@ export class Player extends Phaser.GameObjects.Container {
             if (response.ok) {
                 this.lastDbSavedX = currentX;
                 this.lastDbSavedY = currentY;
-                debugLog('✅ 玩家位置同步到数据库:', currentX, currentY);
+                // 👣 同步成功后重置增量计数器
+                this.totalStepsSession = 0;
+                this.totalDistanceSession = 0;
+                debugLog('✅ 玩家位置和步数同步到数据库:', currentX, currentY);
             } else if (response.status === 401) {
                 this.dbSaveEnabled = false;
             }

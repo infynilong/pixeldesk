@@ -134,7 +134,9 @@ export default function LeftPanel({
               </button>
 
               <a
-                href="/shop/characters"
+                href="/shop"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="p-1.5 text-gray-400 hover:text-purple-400 hover:bg-gray-800 rounded-lg transition-colors"
                 title={t.nav.shop}
               >

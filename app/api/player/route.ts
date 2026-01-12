@@ -36,7 +36,9 @@ const updatePlayerSchema = z.object({
   currentX: z.number().int().optional(),
   currentY: z.number().int().optional(),
   currentScene: z.string().optional(),
-  playerState: z.any().optional()
+  playerState: z.any().optional(),
+  steps: z.number().int().optional(),
+  distance: z.number().optional()
 })
 
 // GET - 获取当前用户的角色数据
@@ -261,21 +263,53 @@ export async function PUT(request: NextRequest) {
     if (validatedData.currentScene !== undefined) updateData.currentScene = validatedData.currentScene
     if (validatedData.playerState !== undefined) updateData.playerState = validatedData.playerState
 
-    console.log('🔴 [API /api/player PUT] 开始更新数据库...')
-    const updatedPlayer = await prisma.players.update({
-      where: { userId: user.id },
-      data: updateData,
-      include: {
-        users: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            avatar: true,
-            points: true  // 返回User.points用于前端显示
+    // 👣 步数与距离更新逻辑
+    const stepsToSync = validatedData.steps || 0
+    const distanceToSync = validatedData.distance || 0
+    const today = new Date().toISOString().split('T')[0] // YYYY-MM-DD
+
+    console.log('🔴 [API /api/player PUT] 开始更新数据库...', { steps: stepsToSync, distance: distanceToSync })
+    const updatedPlayer = await prisma.$transaction(async (tx: any) => {
+      // 1. 更新玩家位置和状态
+      const player = await tx.players.update({
+        where: { userId: user.id },
+        data: updateData,
+        include: {
+          users: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              avatar: true,
+              points: true
+            }
           }
         }
+      })
+
+      // 2. 更新每日步数 (Upsert)
+      if (stepsToSync > 0) {
+        await tx.player_steps.upsert({
+          where: {
+            userId_date: {
+              userId: user.id,
+              date: today
+            }
+          },
+          update: {
+            steps: { increment: stepsToSync },
+            distance: { increment: distanceToSync }
+          },
+          create: {
+            userId: user.id,
+            date: today,
+            steps: stepsToSync,
+            distance: distanceToSync
+          }
+        })
       }
+
+      return player
     })
 
     console.log('✅ [API /api/player PUT] 数据库更新成功！', {

@@ -28,6 +28,8 @@ export const translations = {
             online_just_now: '刚刚在线',
             online_ago: '{time}在线',
             hide: '隐藏',
+            leaderboard: '步数排行榜',
+            daily_steps: '每日步数',
         },
         auth: {
             login: '登录',
@@ -158,6 +160,7 @@ export const translations = {
             active_label: '金榜题名中',
             promoter_info: '由 {name} 等力荐',
             short_title: '金榜',
+            articles_tab: '金榜文章',
             campus_title: '工坊金榜',
             live_updates: '藏书阁 · 实时辑录',
             proximity_prompt: '点击阅览金榜详情',
@@ -447,6 +450,25 @@ export const translations = {
             hint: '按 Enter 发送，Shift + Enter 换行',
             send: '发送',
         },
+        shop: {
+            title: '元宇宙商店',
+            tabs: {
+                characters: '角色商店',
+                npcs: 'NPC 商店'
+            },
+            npc_shop_coming_soon: '🚧 NPC 商店功能开发中，敬请期待...',
+            currency: '象素币',
+            purchase: '购买',
+            owned: '已拥有',
+            free: '免费',
+            official: '官方',
+            user_created: '玩家创作',
+            upload: '上传角色',
+            no_characters: '暂无可用角色',
+            filter: '筛选',
+            all: '全部',
+            paid: '付费',
+        }
     },
     'en': {
         common: {
@@ -475,6 +497,8 @@ export const translations = {
             online_just_now: 'Online just now',
             online_ago: 'Online {time}',
             hide: 'Hide',
+            leaderboard: 'Leaderboard',
+            daily_steps: 'Daily Steps',
         },
         auth: {
             login: 'Login',
@@ -605,6 +629,7 @@ export const translations = {
             active_label: 'On Golden List',
             promoter_info: 'Recommended by {name} etc.',
             short_title: 'Golden List',
+            articles_tab: 'Articles',
             campus_title: 'Workshop Golden List',
             live_updates: 'Live Records from Library',
             proximity_prompt: 'Click to Read Golden List',
@@ -894,6 +919,25 @@ export const translations = {
             hint: 'Press Enter to send, Shift + Enter for new line',
             send: 'Send',
         },
+        shop: {
+            title: 'Metaverse Shop',
+            tabs: {
+                characters: 'Character Shop',
+                npcs: 'NPC Shop'
+            },
+            npc_shop_coming_soon: '🚧 NPC Shop is under development. Coming soon...',
+            currency: 'Pixels',
+            purchase: 'Purchase',
+            owned: 'Owned',
+            free: 'Free',
+            official: 'Official',
+            user_created: 'User Created',
+            upload: 'Upload Character',
+            no_characters: 'No characters available',
+            filter: 'Filter',
+            all: 'All',
+            paid: 'Paid',
+        }
     }
 }
 

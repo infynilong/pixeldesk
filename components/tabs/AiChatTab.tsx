@@ -42,8 +42,8 @@ export default function AiChatTab({
                 return
             }
 
-            // 去掉前面的 npc_ 前缀，只拿原始 ID
-            const cleanNpcId = npcId.replace('npc_', '')
+            // 💡 直接使用原始 ID (优先 templateId)，确保与数据库 findUnique 匹配
+            const cleanNpcId = npcData?.templateId || npcId
 
             console.log(`[${npcName}] 开始加载聊天历史, npcId=${cleanNpcId}`)
             setIsLoadingHistory(true)
@@ -122,8 +122,8 @@ export default function AiChatTab({
     const sendMessage = useCallback(async () => {
         if (!input.trim() || isLoading) return
 
-        // 去掉前面的 npc_ 前缀，只拿原始 ID
-        const cleanNpcId = npcId.replace('npc_', '')
+        // 💡 直接使用原始 ID (优先 templateId)，确保与数据库 findUnique 匹配
+        const cleanNpcId = npcData?.templateId || npcId
 
         const userMessage: Message = {
             role: 'user',
@@ -248,25 +248,25 @@ export default function AiChatTab({
                 ) : (
                     <>
                         {messages.map((msg, idx) => (
-                    <div
-                        key={idx}
-                        className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                    >
-                        <div
-                            className={`max-w-[90%] rounded-xl px-3 py-2 ${msg.role === 'user'
-                                ? 'bg-cyan-600/20 text-cyan-100 border border-cyan-500/30 rounded-br-none'
-                                : 'bg-gray-800/80 text-gray-200 border border-gray-700/50 rounded-bl-none'
-                                }`}
-                        >
-                            <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
-                            <div className="flex justify-end mt-1">
-                                <span className="text-[10px] text-gray-500 font-mono opacity-60">
-                                    {msg.timestamp.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
-                                </span>
+                            <div
+                                key={idx}
+                                className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                            >
+                                <div
+                                    className={`max-w-[90%] rounded-xl px-3 py-2 ${msg.role === 'user'
+                                        ? 'bg-cyan-600/20 text-cyan-100 border border-cyan-500/30 rounded-br-none'
+                                        : 'bg-gray-800/80 text-gray-200 border border-gray-700/50 rounded-bl-none'
+                                        }`}
+                                >
+                                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                                    <div className="flex justify-end mt-1">
+                                        <span className="text-[10px] text-gray-500 font-mono opacity-60">
+                                            {msg.timestamp.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                    </div>
-                ))}
+                        ))}
 
                         {isLoading && (
                             <div className="flex justify-start">
