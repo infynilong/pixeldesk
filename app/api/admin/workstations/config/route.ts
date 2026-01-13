@@ -13,6 +13,7 @@ const configSchema = z.object({
   defaultDuration: z.number().int().positive(),
   maxBindingsPerUser: z.number().int().positive(),
   billboardPromotionCost: z.number().int().min(0),
+  postcardTemplateReward: z.number().int().min(0),
 })
 
 export async function GET() {

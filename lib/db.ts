@@ -15,8 +15,8 @@ const urlWithPool = dbUrl?.includes('connection_limit')
 // 强制刷新逻辑：如果当前实例缺少新定义的模型，则清理它
 if (globalForPrisma.prisma) {
   const p = globalForPrisma.prisma as any
-  if (!p.player_steps || !p.post_nodes) {
-    console.log('🔄 Prisma 实例过旧 (缺少 player_steps 或 post_nodes)，正在重新启动客户端...')
+  if (!p.player_steps || !p.post_nodes || !p.user_postcards) {
+    console.log('🔄 Prisma 实例过旧 (缺少 player_steps, post_nodes 或 user_postcards)，正在重新启动客户端...')
     p.$disconnect().catch(() => { })
     globalForPrisma.prisma = undefined
   }

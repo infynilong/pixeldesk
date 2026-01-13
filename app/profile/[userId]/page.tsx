@@ -4,10 +4,12 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useCurrentUser } from '@/lib/hooks/useCurrentUser'
 import { useBrandConfig } from '@/lib/hooks/useBrandConfig'
+import { useTranslation } from '@/lib/hooks/useTranslation'
 import { tc } from '@/lib/i18n/currency'
 import UserAvatar from '@/components/UserAvatar'
 import PostListItem from '@/components/PostListItem'
 import LoadingSpinner from '@/components/LoadingSpinner'
+import BluebirdCollection from '@/components/BluebirdCollection'
 import Link from 'next/link'
 
 interface UserProfile {
@@ -58,6 +60,7 @@ export default function ProfilePage() {
   const params = useParams()
   const router = useRouter()
   const userId = params.userId as string
+  const { t } = useTranslation()
   const { currentUser, userId: currentUserId } = useCurrentUser()
   const { config: brandConfig, isLoading: isBrandLoading } = useBrandConfig('zh-CN')
 
@@ -67,7 +70,7 @@ export default function ProfilePage() {
   const [totalBlogs, setTotalBlogs] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<'posts' | 'blogs'>('posts')
+  const [activeTab, setActiveTab] = useState<'posts' | 'blogs' | 'postcards'>('posts')
   const [workstationAd, setWorkstationAd] = useState<WorkstationAd | null>(null)
   const [isLoadingAd, setIsLoadingAd] = useState(false)
 
@@ -508,6 +511,22 @@ export default function ProfilePage() {
                 <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-cyan-500 to-teal-500"></div>
               )}
             </button>
+
+            <button
+              onClick={() => setActiveTab('postcards')}
+              className={`flex-1 px-6 py-4 font-medium transition-all relative cursor-pointer ${activeTab === 'postcards'
+                ? 'text-cyan-400 bg-gray-800/50'
+                : 'text-gray-400 hover:text-white hover:bg-gray-800/30'
+                }`}
+            >
+              <span className="flex items-center justify-center gap-2">
+                <span className="text-xl leading-none">🕊️</span>
+                {t.postcard.title}
+              </span>
+              {activeTab === 'postcards' && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-cyan-500 to-teal-500"></div>
+              )}
+            </button>
           </div>
 
           {/* 内容区域 */}
@@ -581,6 +600,12 @@ export default function ProfilePage() {
                     )}
                   </>
                 )}
+              </div>
+            )}
+
+            {activeTab === 'postcards' && (
+              <div className="bg-gray-900/50 rounded-b-xl overflow-hidden">
+                <BluebirdCollection />
               </div>
             )}
           </div>

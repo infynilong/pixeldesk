@@ -13,7 +13,9 @@ import Link from 'next/link'
 import { useTranslation } from '@/lib/hooks/useTranslation'
 
 
+
 interface LeftPanelProps {
+  onOpenPostcardDesigner?: () => void
   currentUser?: any
   workstationStats?: any
   children?: ReactNode
@@ -30,13 +32,15 @@ export default function LeftPanel({
   isMobile = false,
   isTablet = false,
   isCollapsed: externalIsCollapsed,
-  onCollapsedChange
+  onCollapsedChange,
+  onOpenPostcardDesigner
 }: LeftPanelProps) {
   const [internalIsCollapsed, setInternalIsCollapsed] = useState(false)
   const isCollapsed = externalIsCollapsed !== undefined ? externalIsCollapsed : internalIsCollapsed
   const { theme, toggleTheme } = useTheme()
   const [showHistory, setShowHistory] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
+  // Removed local state for PostcardDesignerModal; will be controlled by parent
   const { config: brandConfig, isLoading: isBrandLoading } = useBrandConfig('zh-CN')
   const { t } = useTranslation()
 
@@ -193,13 +197,20 @@ export default function LeftPanel({
                 )}
                 <a
                   href="/settings/character"
-                  className="p-2 bg-cyan-600/20 hover:bg-cyan-600/30 border border-cyan-500/30 rounded transition-all text-cyan-400"
+                  className="p-2 bg-cyan-600/20 hover:bg-cyan-600/30 border border-cyan-500/30 rounded transition-all text-cyan-400 group"
                   title={t.leftPanel.switch_character}
                 >
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
                 </a>
+                <button
+                  onClick={() => onOpenPostcardDesigner?.()}
+                  className="p-2 bg-amber-600/20 hover:bg-amber-600/30 border border-amber-500/30 rounded transition-all text-amber-500 group"
+                  title={t.postcard.designer}
+                >
+                  <span className="w-3.5 h-3.5 flex items-center justify-center text-xs">🕊️</span>
+                </button>
               </div>
 
               {/* 工位信息 */}
@@ -312,6 +323,7 @@ export default function LeftPanel({
         isOpen={showSettings}
         onClose={() => setShowSettings(false)}
       />
+
     </div>
   )
 }

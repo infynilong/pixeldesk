@@ -67,6 +67,12 @@ export default function NotificationsTab({
         return '❤️'
       case NotificationType.SYSTEM:
         return '📢'
+      case NotificationType.POSTCARD_EXCHANGE_REQUEST:
+        return '🕊️'
+      case NotificationType.POSTCARD_EXCHANGE_ACCEPT:
+        return '✨'
+      case NotificationType.POSTCARD_EXCHANGE_REJECT:
+        return '💨'
       default:
         return '📮'
     }
@@ -81,6 +87,12 @@ export default function NotificationsTab({
         return 'text-red-400'
       case NotificationType.SYSTEM:
         return 'text-purple-400'
+      case NotificationType.POSTCARD_EXCHANGE_REQUEST:
+        return 'text-cyan-400'
+      case NotificationType.POSTCARD_EXCHANGE_ACCEPT:
+        return 'text-emerald-400'
+      case NotificationType.POSTCARD_EXCHANGE_REJECT:
+        return 'text-red-400'
       default:
         return 'text-gray-400'
     }
@@ -162,8 +174,8 @@ export default function NotificationsTab({
               <button
                 onClick={() => setFilter('all')}
                 className={`px-3 py-2 text-xs font-mono font-medium  ${filter === 'all'
-                    ? 'bg-gray-700 text-gray-100'
-                    : 'text-gray-400 hover:text-gray-200 hover:bg-gray-700/50'
+                  ? 'bg-gray-700 text-gray-100'
+                  : 'text-gray-400 hover:text-gray-200 hover:bg-gray-700/50'
                   }`}
               >
                 ALL
@@ -172,8 +184,8 @@ export default function NotificationsTab({
               <button
                 onClick={() => setFilter('unread')}
                 className={`px-3 py-2 text-xs font-mono font-medium  flex items-center gap-2 ${filter === 'unread'
-                    ? 'bg-gray-700 text-gray-100'
-                    : 'text-gray-400 hover:text-gray-200 hover:bg-gray-700/50'
+                  ? 'bg-gray-700 text-gray-100'
+                  : 'text-gray-400 hover:text-gray-200 hover:bg-gray-700/50'
                   }`}
               >
                 <span>UNREAD</span>
@@ -249,8 +261,8 @@ export default function NotificationsTab({
                   key={notification.id}
                   onClick={() => handleNotificationClick(notification)}
                   className={`group relative cursor-pointer bg-gray-900/90 border  rounded-lg overflow-hidden shadow-lg hover:shadow-xl ${notification.isRead
-                      ? 'border-gray-800 hover:border-gray-700'
-                      : 'border-blue-800/50 hover:border-blue-700/60 shadow-blue-900/20'
+                    ? 'border-gray-800 hover:border-gray-700'
+                    : 'border-blue-800/50 hover:border-blue-700/60 shadow-blue-900/20'
                     }`}
                 >
                   {/* 未读指示器 */}

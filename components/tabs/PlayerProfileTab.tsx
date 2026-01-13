@@ -6,6 +6,7 @@ import { useCurrentUserId } from '@/lib/hooks/useCurrentUser'
 import PostCard from '@/components/PostCard'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import UserAvatar from '@/components/UserAvatar'
+import { useTranslation } from '@/lib/hooks/useTranslation'
 
 interface PlayerProfileTabProps {
   collisionPlayer?: any
@@ -31,9 +32,12 @@ export default function PlayerProfileTab({
   const currentUserId = useCurrentUserId()
   const [workstationAd, setWorkstationAd] = useState<WorkstationAd | null>(null)
   const [isLoadingAd, setIsLoadingAd] = useState(false)
+
   const [isCardCompact, setIsCardCompact] = useState(false)
+  const [isSwapping, setIsSwapping] = useState(false)
+  const { t } = useTranslation()
   const scrollContainerRef = useRef<HTMLDivElement>(null)
-  
+
   // 调试信息：确认碰撞玩家信息
   useEffect(() => {
     if (collisionPlayer && isActive) {
@@ -155,11 +159,40 @@ export default function PlayerProfileTab({
     return () => scrollContainer.removeEventListener('scroll', handleScroll)
   }, [])
 
+  // 处理交换名信片
+  const handleSwapPostcard = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    if (!currentUserId || !collisionPlayer?.id) return
+
+    setIsSwapping(true)
+    try {
+      const res = await fetch('/api/postcards/exchange', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ receiverId: collisionPlayer.id })
+      })
+      const data = await res.json()
+
+      if (data.success) {
+        alert(t.postcard?.swap_request_sent || 'Exchanged request sent!')
+      } else {
+        alert(data.error || 'Failed to send request')
+      }
+    } catch (error) {
+      console.error('Swap postcard error:', error)
+      alert('Failed to send request')
+    } finally {
+      setIsSwapping(false)
+    }
+  }
+
   const handleLikePost = async (postId: string) => {
     if (!currentUserId) {
       return
     }
-    
+
     try {
       await likePost(postId)
     } catch (error) {
@@ -180,26 +213,26 @@ export default function PlayerProfileTab({
   }
 
   // 定义容器样式类
-  const containerClasses = isMobile 
+  const containerClasses = isMobile
     ? "h-full flex flex-col bg-gradient-to-br from-retro-bg-dark to-retro-bg-darker"
     : "h-full flex flex-col bg-gradient-to-br from-retro-bg-dark to-retro-bg-darker";
 
   // 如果没有碰撞玩家，显示等待状态
   if (!collisionPlayer) {
-    const emptyStateClasses = isMobile 
+    const emptyStateClasses = isMobile
       ? "h-full flex flex-col items-center justify-center p-4 text-center relative"
       : "h-full flex flex-col items-center justify-center p-6 text-center relative";
-    
+
     const iconSize = isMobile ? "w-12 h-12" : "w-16 h-16";
     const iconInnerSize = isMobile ? "w-6 h-6" : "w-8 h-8";
     const titleSize = isMobile ? "text-sm" : "text-base";
     const textSize = isMobile ? "text-xs" : "text-sm";
-    
+
     return (
       <div className={emptyStateClasses}>
         {/* 简化背景效果 - 移除CPU消耗高的动画 */}
         <div className="absolute inset-0 bg-gradient-to-br from-retro-purple/8 via-retro-blue/10 to-retro-pink/8"></div>
-        
+
         <div className="relative z-10 space-y-6">
           {/* 像素化等待图标 */}
           <div className="relative">
@@ -212,7 +245,7 @@ export default function PlayerProfileTab({
             {/* 静态装饰环 - 移除动画以节省CPU */}
             <div className="absolute inset-0 border-2 border-retro-purple/30 rounded-xl opacity-50"></div>
           </div>
-          
+
           {/* 标题文本 */}
           <div className="text-center space-y-3">
             <h3 className={`text-white font-bold mb-2 font-pixel tracking-wider drop-shadow-lg ${titleSize}`}>
@@ -222,14 +255,14 @@ export default function PlayerProfileTab({
               {isMobile ? "Get close to other players\nto view their posts" : "Move near other players to\nview their social posts"}
             </p>
           </div>
-          
+
           {/* 静态装饰点 - 移除bounce动画以节省CPU */}
           <div className="flex items-center justify-center space-x-3">
             <div className="w-3 h-3 bg-gradient-to-br from-retro-purple to-retro-pink rounded-sm shadow-lg"></div>
             <div className="w-3 h-3 bg-gradient-to-br from-retro-pink to-retro-blue rounded-sm shadow-lg"></div>
             <div className="w-3 h-3 bg-gradient-to-br from-retro-blue to-retro-cyan rounded-sm shadow-lg"></div>
           </div>
-          
+
           {/* 操作提示 */}
           <div className="text-center">
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-retro-bg-dark/50 rounded-lg border border-retro-border/30 backdrop-blur-sm">
@@ -259,11 +292,10 @@ export default function PlayerProfileTab({
         <div className="flex-shrink-0 px-4 py-1.5 transition-all duration-500 ease-out">
           <CardWrapper
             {...cardProps}
-            className={`flex items-center gap-2.5 h-[56px] rounded-lg overflow-hidden transition-all duration-500 ease-in-out ${
-              workstationAd?.adUrl
-                ? 'bg-gradient-to-r from-amber-500/90 to-pink-500/90 cursor-pointer hover:shadow-lg'
-                : 'bg-gradient-to-r from-retro-bg-dark/80 to-retro-bg-darker/80 border border-retro-border/50'
-            }`}
+            className={`flex items-center gap-2.5 h-[56px] rounded-lg overflow-hidden transition-all duration-500 ease-in-out ${workstationAd?.adUrl
+              ? 'bg-gradient-to-r from-amber-500/90 to-pink-500/90 cursor-pointer hover:shadow-lg'
+              : 'bg-gradient-to-r from-retro-bg-dark/80 to-retro-bg-darker/80 border border-retro-border/50'
+              }`}
           >
             {/* 左侧:用户头像+广告图片 */}
             <div className="flex-shrink-0 flex items-center gap-2 pl-2.5 transition-all duration-500 ease-in-out">
@@ -305,6 +337,16 @@ export default function PlayerProfileTab({
               </p>
             </div>
 
+            {/* 交换按钮 (Compact) */}
+            <button
+              onClick={handleSwapPostcard}
+              disabled={isSwapping}
+              className="flex-shrink-0 p-1.5 text-amber-400 hover:text-amber-300 hover:bg-amber-400/10 rounded-md mr-1 disabled:opacity-50 transition-all duration-300 ease-in-out"
+              title={t.postcard.swap || "Swap Postcard"}
+            >
+              <span className="text-xs">🕊️</span>
+            </button>
+
             {/* 刷新按钮 */}
             <button
               onClick={(e) => {
@@ -329,11 +371,10 @@ export default function PlayerProfileTab({
       <div className="flex-shrink-0 px-4 py-3 transition-all duration-500 ease-out">
         <CardWrapper
           {...cardProps}
-          className={`block relative overflow-hidden rounded-xl transition-all duration-500 ease-in-out ${
-            workstationAd?.adUrl
-              ? 'bg-gradient-to-br from-amber-500/95 via-orange-500/95 to-pink-500/95 shadow-2xl hover:shadow-[0_0_30px_rgba(251,146,60,0.5)] hover:scale-[1.01] cursor-pointer'
-              : 'bg-gradient-to-br from-retro-bg-dark/80 to-retro-bg-darker/80 border-2 border-retro-border/50'
-          }`}
+          className={`block relative overflow-hidden rounded-xl transition-all duration-500 ease-in-out ${workstationAd?.adUrl
+            ? 'bg-gradient-to-br from-amber-500/95 via-orange-500/95 to-pink-500/95 shadow-2xl hover:shadow-[0_0_30px_rgba(251,146,60,0.5)] hover:scale-[1.01] cursor-pointer'
+            : 'bg-gradient-to-br from-retro-bg-dark/80 to-retro-bg-darker/80 border-2 border-retro-border/50'
+            }`}
         >
           {workstationAd && (
             <>
@@ -392,6 +433,17 @@ export default function PlayerProfileTab({
                   <p className="text-sm text-white/70 font-retro">Online</p>
                 )}
               </div>
+              {/* 交换按钮 (Expanded) */}
+              <button
+                onClick={handleSwapPostcard}
+                disabled={isSwapping}
+                className={`p-2 rounded-lg disabled:opacity-50 mr-2 ${workstationAd ? 'text-white/80 hover:text-white hover:bg-white/10' : 'text-amber-400 hover:text-amber-300 hover:bg-amber-400/10'
+                  }`}
+                title={t.postcard?.swap || "Swap Postcard"}
+              >
+                <span className="text-lg">🕊️</span>
+              </button>
+
               {/* 刷新按钮 */}
               <button
                 onClick={(e) => {
@@ -400,9 +452,8 @@ export default function PlayerProfileTab({
                   refreshPosts()
                 }}
                 disabled={isRefreshing}
-                className={`p-2 rounded-lg disabled:opacity-50 ${
-                  workstationAd ? 'text-white/80 hover:text-white hover:bg-white/10' : 'text-retro-cyan hover:text-retro-blue hover:bg-retro-blue/10'
-                }`}
+                className={`p-2 rounded-lg disabled:opacity-50 ${workstationAd ? 'text-white/80 hover:text-white hover:bg-white/10' : 'text-retro-cyan hover:text-retro-blue hover:bg-retro-blue/10'
+                  }`}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -462,7 +513,7 @@ export default function PlayerProfileTab({
       <div ref={scrollContainerRef} className="flex-1 overflow-y-auto scrollbar-hide relative">
         {/* 内容区域背景装饰 */}
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-retro-purple/2 to-retro-blue/3 pointer-events-none"></div>
-        
+
         {/* 错误状态 - 像素化错误显示 */}
         {error && (
           <div className="p-4 m-4">
@@ -506,7 +557,7 @@ export default function PlayerProfileTab({
               {/* 装饰性边框 - 移除动画以节省CPU */}
               <div className="absolute inset-0 border-2 border-retro-purple/20 rounded-xl opacity-50"></div>
             </div>
-            
+
             {/* 空状态文本 */}
             <div className="space-y-3">
               <h3 className="text-lg font-bold text-white font-pixel tracking-wider drop-shadow-sm">
@@ -516,7 +567,7 @@ export default function PlayerProfileTab({
                 {collisionPlayer.name} hasn't shared any posts yet. Check back later!
               </p>
             </div>
-            
+
             {/* 装饰性元素 - 移除动画以节省CPU */}
             <div className="flex items-center gap-3">
               <div className="w-2 h-2 bg-retro-purple rounded-sm"></div>
@@ -538,30 +589,30 @@ export default function PlayerProfileTab({
                 />
               </div>
             ))}
-              
-              {/* 加载更多按钮 - 像素化设计 */}
-              {pagination.hasNextPage && (
-                <div className="flex justify-center py-6">
-                  <button
-                    onClick={handleLoadMore}
-                    disabled={isRefreshing}
-                    className="group relative overflow-hidden bg-gradient-to-r from-retro-blue/20 to-retro-cyan/20 hover:from-retro-blue/30 hover:to-retro-cyan/30 text-white font-bold py-3 px-8 rounded-xl border-2 border-retro-blue/30 hover:border-retro-cyan/50  disabled:opacity-50 shadow-lg hover:shadow-xl backdrop-blur-sm"
-                  >
-                    {/* 按钮装饰 */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-white/5 to-white/10 opacity-0 group-hover:opacity-100 "></div>
-                    
-                    {/* 按钮内容 */}
-                    <div className="relative flex items-center gap-3">
-                      <div className="w-5 h-5 bg-white/20 rounded flex items-center justify-center">
-                        <span className="text-xs">{isRefreshing ? '⏳' : '⬇️'}</span>
-                      </div>
-                      <span className="font-pixel text-sm tracking-wide">
-                        {isRefreshing ? 'LOADING...' : 'LOAD MORE'}
-                      </span>
+
+            {/* 加载更多按钮 - 像素化设计 */}
+            {pagination.hasNextPage && (
+              <div className="flex justify-center py-6">
+                <button
+                  onClick={handleLoadMore}
+                  disabled={isRefreshing}
+                  className="group relative overflow-hidden bg-gradient-to-r from-retro-blue/20 to-retro-cyan/20 hover:from-retro-blue/30 hover:to-retro-cyan/30 text-white font-bold py-3 px-8 rounded-xl border-2 border-retro-blue/30 hover:border-retro-cyan/50  disabled:opacity-50 shadow-lg hover:shadow-xl backdrop-blur-sm"
+                >
+                  {/* 按钮装饰 */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-white/5 to-white/10 opacity-0 group-hover:opacity-100 "></div>
+
+                  {/* 按钮内容 */}
+                  <div className="relative flex items-center gap-3">
+                    <div className="w-5 h-5 bg-white/20 rounded flex items-center justify-center">
+                      <span className="text-xs">{isRefreshing ? '⏳' : '⬇️'}</span>
                     </div>
-                  </button>
-                </div>
-              )}
+                    <span className="font-pixel text-sm tracking-wide">
+                      {isRefreshing ? 'LOADING...' : 'LOAD MORE'}
+                    </span>
+                  </div>
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

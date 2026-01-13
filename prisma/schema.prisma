@@ -242,6 +242,8 @@ model notifications {
   posts                                    posts?           @relation(fields: [relatedPostId], references: [id], onDelete: Cascade)
   users_notifications_relatedUserIdTousers users?           @relation("notifications_relatedUserIdTousers", fields: [relatedUserId], references: [id], onDelete: Cascade)
   users_notifications_userIdTousers        users            @relation("notifications_userIdTousers", fields: [userId], references: [id], onDelete: Cascade)
+  postcard_exchanges                       postcard_exchanges? @relation(fields: [relatedExchangeId], references: [id], onDelete: Cascade)
+  relatedExchangeId                        String?
 
   @@index([userId, createdAt])
   @@index([userId, isRead])
@@ -517,11 +519,17 @@ model users {
   posts                                            posts[]
   player_steps                                     player_steps[]
   status_history                                   status_history[]
-  time_tracking                                    time_tracking[]
+  time_tracking                                   time_tracking[]
   user_online_status                               user_online_status?
   user_sessions                                    user_sessions[]
   user_workstations                                user_workstations[]
   work_sessions                                    work_sessions[]
+  postcard_templates           postcard_templates[]
+  user_postcards               user_postcards?
+  sent_postcard_exchanges      postcard_exchanges[]        @relation("sent_exchanges")
+  received_postcard_exchanges  postcard_exchanges[]        @relation("received_exchanges")
+  user_postcard_collection     user_postcard_collection[]
+  user_postcard_owned_items    user_postcard_collection[] @relation("collection_owner")
 
   @@index([email])
   @@index([isActive])
@@ -553,6 +561,7 @@ model workstation_config {
   updatedAt              DateTime
   updatedBy              String?
   billboardPromotionCost Int      @default(50)
+  postcardTemplateReward Int      @default(50)
 }
 
 model workstations {
@@ -643,6 +652,9 @@ enum NotificationType {
   POST_REPLY
   POST_LIKE
   SYSTEM
+  POSTCARD_EXCHANGE_REQUEST
+  POSTCARD_EXCHANGE_ACCEPT
+  POSTCARD_EXCHANGE_REJECT
 }
 
 enum PointsCategory {
@@ -669,4 +681,75 @@ enum ChapterType {
   TEXT
   LINK
   POST
+}
+
+model postcard_templates {
+  id              String   @id @default(cuid())
+  creatorId       String?
+  name            String?
+  description     String?
+  price           Int      @default(0)
+  salesCount      Int      @default(0)
+  config          Json?    // Stores layout config, default fonts, colors, etc.
+  bgUrl           String?  // official template background if any
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  creator         users?   @relation(fields: [creatorId], references: [id])
+  
+  user_postcards           user_postcards[]
+  user_postcard_collection user_postcard_collection[]
+
+  @@index([creatorId])
+  @@index([price])
+  @@index([isActive])
+}
+
+model user_postcards {
+  id         String   @id @default(cuid())
+  userId     String   @unique
+  name       String?  // The name written on the card
+  content    String?  // The message on the back
+  logoUrl    String?
+  bgUrl      String?
+  templateId String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  user       users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  template   postcard_templates? @relation(fields: [templateId], references: [id])
+
+  @@index([userId])
+}
+
+model postcard_exchanges {
+  id         String   @id @default(cuid())
+  senderId   String
+  receiverId String
+  status     String   @default("PENDING") // PENDING, ACCEPTED, REJECTED
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  sender     users    @relation("sent_exchanges", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver   users    @relation("received_exchanges", fields: [receiverId], references: [id], onDelete: Cascade)
+  notifications notifications[]
+
+  @@index([senderId, receiverId])
+  @@index([status])
+}
+
+model user_postcard_collection {
+  id              String   @id @default(cuid())
+  userId          String
+  postcardOwnerId String
+  name            String?  // Snapshot of card name
+  content         String?  // Snapshot of card message
+  logoUrl         String?
+  bgUrl           String?
+  templateId      String?
+  receivedAt      DateTime @default(now())
+  user            users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  owner           users    @relation("collection_owner", fields: [postcardOwnerId], references: [id], onDelete: Cascade)
+  template        postcard_templates? @relation(fields: [templateId], references: [id])
+
+  @@index([userId])
+  @@index([postcardOwnerId])
 }

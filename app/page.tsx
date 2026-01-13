@@ -99,6 +99,10 @@ const PostDetailModal = dynamic(() => import('@/components/PostDetailModal'), {
   ssr: false
 })
 
+const PostcardDesignerModal = dynamic(() => import('@/components/PostcardDesignerModal'), {
+  ssr: false
+})
+
 // AI 聊天弹窗
 const AiChatModal = dynamic(() => import('@/components/AiChatModal'), {
   ssr: false
@@ -128,6 +132,7 @@ export default function Home() {
   // 认证相关状态
   const { user, isLoading, playerExists, setPlayerExists } = useUser()
   const [showCharacterCreation, setShowCharacterCreation] = useState(false)
+  const [showPostcardDesigner, setShowPostcardDesigner] = useState(false)
 
   // 临时玩家状态
   const [isTemporaryPlayer, setIsTemporaryPlayer] = useState(false)
@@ -963,6 +968,7 @@ export default function Home() {
       isTablet={isTablet}
       isCollapsed={leftPanelCollapsed}
       onCollapsedChange={setLeftPanelCollapsed}
+      onOpenPostcardDesigner={() => setShowPostcardDesigner(true)}
     >
       {/* 状态更新组件 */}
       {memoizedPostStatus}
@@ -1276,6 +1282,10 @@ export default function Home() {
         userId={currentUser?.id}
         workstationId={currentUser?.workstationId ? parseInt(currentUser.workstationId) : undefined}
         language={(typeof window !== 'undefined' ? (localStorage.getItem('pixeldesk-language') || 'zh-CN') : 'zh-CN') as any}
+      />
+      <PostcardDesignerModal
+        isOpen={showPostcardDesigner}
+        onClose={() => setShowPostcardDesigner(false)}
       />
     </div>
   )

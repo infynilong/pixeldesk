@@ -460,7 +460,8 @@ export const translations = {
             title: '元宇宙商店',
             tabs: {
                 characters: '角色商店',
-                npcs: 'NPC 商店'
+                npcs: 'NPC 商店',
+                postcards: '名信片商店'
             },
             npc_shop_coming_soon: '🚧 NPC 商店功能开发中，敬请期待...',
             currency: '象素币',
@@ -474,6 +475,35 @@ export const translations = {
             filter: '筛选',
             all: '全部',
             paid: '付费',
+        },
+        postcard: {
+            title: '青鸟集',
+            english_title: 'Azure Bluebird Collection',
+            collection_title: '青鸟集收藏舱',
+            designer: '名信片设计师',
+            my_card: '我的名信片',
+            collection: '集邮册',
+            edit_my_design: '编辑我的设计',
+            edit_name: '编辑名称',
+            edit_content: '编辑寄语',
+            upload_logo: '上传 Logo',
+            upload_bg: '上传背景',
+            save_design: '保存并应用',
+            upload_to_shop: '发布至商店',
+            upload_reward_tip: '上传模板可获得 {points} 积分奖励',
+            swap: '交换名信片',
+            swap_request_sent: '已发起交换',
+            swap_confirm: '确认交换',
+            swap_confirm_desc: '要向 {name} 发起名信片交换请求吗？双方同意后将互换名信片副本。',
+            received_cards: '收到 {count} 张名信片',
+            empty_collection: '集邮册空空的，去和其他玩家交换吧！',
+            upload_limit_tip: '尺寸限制：Logo < 200KB，背景 < 800KB',
+            flip: '翻转卡片',
+            back: '邮票与寄语',
+            purchase_template: '购买并应用模板',
+            template_shop: '名信片模板商店',
+            price: '售价：{price}',
+            sales: '已售：{count}'
         }
     },
     'en': {
@@ -935,7 +965,8 @@ export const translations = {
             title: 'Metaverse Shop',
             tabs: {
                 characters: 'Character Shop',
-                npcs: 'NPC Shop'
+                npcs: 'NPC Shop',
+                postcards: 'Postcard Shop'
             },
             npc_shop_coming_soon: '🚧 NPC Shop is under development. Coming soon...',
             currency: 'Pixels',
@@ -949,6 +980,35 @@ export const translations = {
             filter: 'Filter',
             all: 'All',
             paid: 'Paid',
+        },
+        postcard: {
+            title: 'Azure Bluebird Collection',
+            english_title: 'Azure Bluebird Collection',
+            collection_title: 'Bluebird Archive',
+            designer: 'Postcard Designer',
+            my_card: 'My Postcard',
+            collection: 'Collection',
+            edit_my_design: 'Edit My Design',
+            edit_name: 'Edit Name',
+            edit_content: 'Edit Message',
+            upload_logo: 'Upload Logo',
+            upload_bg: 'Upload Background',
+            save_design: 'Save & Apply',
+            upload_to_shop: 'Publish to Shop',
+            upload_reward_tip: 'Upload to get {points} points reward',
+            swap: 'Swap Postcard',
+            swap_request_sent: 'Request Sent',
+            swap_confirm: 'Confirm Swap',
+            swap_confirm_desc: 'Send a swap request to {name}? Postcards will be swapped once both agree.',
+            received_cards: 'Received {count} postcards',
+            empty_collection: 'Your collection is empty, go swap with others!',
+            upload_limit_tip: 'Limits: Logo < 200KB, Background < 800KB',
+            flip: 'Flip Card',
+            back: 'Stamp & Message',
+            purchase_template: 'Purchase & Use Template',
+            template_shop: 'Postcard Shop',
+            price: 'Price: {price}',
+            sales: 'Sales: {count}'
         }
     }
 }

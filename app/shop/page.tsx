@@ -31,7 +31,26 @@ interface ShopCharacter {
     canPurchase: boolean
 }
 
-type TabType = 'characters' | 'npcs'
+type TabType = 'characters' | 'npcs' | 'postcards'
+
+interface PostcardTemplate {
+    id: string
+    creatorId: string
+    price: number
+    salesCount: number
+    config: {
+        name: string
+        logoUrl: string | null
+        backgroundUrl: string | null
+        bgColor: string
+        textColor: string
+    }
+    creator: {
+        id: string
+        name: string
+        avatar: string | null
+    }
+}
 
 export default function ShopPage() {
     const router = useRouter()
@@ -49,6 +68,11 @@ export default function ShopPage() {
     const [isPurchasing, setIsPurchasing] = useState<string | null>(null)
     const [error, setError] = useState<string | null>(null)
     const [success, setSuccess] = useState<string | null>(null)
+
+    // Postcard Template States
+    const [templates, setTemplates] = useState<PostcardTemplate[]>([])
+    const [selectedTemplate, setSelectedTemplate] = useState<PostcardTemplate | null>(null)
+    const [showTemplateConfirm, setShowTemplateConfirm] = useState(false)
 
     // 筛选和上传相关状态
     const [priceFilter, setPriceFilter] = useState<'all' | 'free' | 'paid'>('all')
@@ -70,8 +94,36 @@ export default function ShopPage() {
     useEffect(() => {
         if (activeTab === 'characters') {
             fetchShopCharacters()
+        } else if (activeTab === 'postcards') {
+            fetchShopTemplates()
         }
     }, [priceFilter, sourceFilter, activeTab])
+
+    const fetchShopTemplates = async () => {
+        try {
+            setIsLoading(true)
+            const response = await fetch('/api/postcards/templates')
+            const data = await response.json()
+            if (data.success) {
+                setTemplates(data.data)
+                // 同时获取用户积分等状态（共用接口逻辑）
+                const authRes = await fetch('/api/characters/shop?limit=1')
+                const authData = await authRes.json()
+                if (authData.success) {
+                    setUserPoints(authData.userPoints || 0)
+                    setIsAuthenticated(authData.isAuthenticated || false)
+                    setUserId(authData.userId || null)
+                }
+            } else {
+                setError(data.error || '获取模板失败')
+            }
+        } catch (err) {
+            console.error('加载模板失败:', err)
+            setError('加载模板失败')
+        } finally {
+            setIsLoading(false)
+        }
+    }
 
     const fetchShopCharacters = async () => {
         try {
@@ -209,6 +261,45 @@ export default function ShopPage() {
         setSelectedCharacter(null)
     }
 
+    const handleTemplatePurchaseClick = (template: PostcardTemplate) => {
+        if (!isAuthenticated) {
+            setError('请先登录后再购买')
+            return
+        }
+        setSelectedTemplate(template)
+        setShowTemplateConfirm(true)
+    }
+
+    const handleConfirmTemplatePurchase = async () => {
+        if (!selectedTemplate) return
+        const templateId = selectedTemplate.id
+        try {
+            setIsPurchasing(templateId)
+            setShowTemplateConfirm(false)
+            setError(null)
+            const response = await fetch('/api/postcards/templates/purchase', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ templateId })
+            })
+            const data = await response.json()
+            if (data.success) {
+                setSuccess('购买成功，已应用模板到您的设计')
+                setUserPoints(prev => prev - selectedTemplate.price)
+                setTemplates(prev => prev.map(t => t.id === templateId ? { ...t, salesCount: t.salesCount + 1 } : t))
+                setTimeout(() => setSuccess(null), 3000)
+            } else {
+                setError(data.error || '购买失败')
+            }
+        } catch (err) {
+            console.error('购买失败:', err)
+            setError('购买失败，请重试')
+        } finally {
+            setIsPurchasing(null)
+            setSelectedTemplate(null)
+        }
+    }
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950">
             {/* 头部导航 */}
@@ -272,6 +363,16 @@ export default function ShopPage() {
                         >
                             {t.shop.tabs.npcs}
                             {activeTab === 'npcs' && (
+                                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.5)]" />
+                            )}
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('postcards')}
+                            className={`py-4 px-2 text-sm font-medium transition-all relative ${activeTab === 'postcards' ? 'text-purple-400' : 'text-gray-400 hover:text-gray-200'
+                                }`}
+                        >
+                            {t.shop.tabs.postcards}
+                            {activeTab === 'postcards' && (
                                 <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.5)]" />
                             )}
                         </button>
@@ -435,8 +536,8 @@ export default function ShopPage() {
                                                 onClick={() => handlePurchaseClick(character)}
                                                 disabled={character.isOwned || isPurchasing === character.id || !character.canPurchase}
                                                 className={`w-full py-2.5 rounded-xl text-sm font-bold transition-all ${character.isOwned
-                                                        ? 'bg-gray-800/50 text-gray-600 cursor-not-allowed'
-                                                        : 'bg-white text-gray-950 hover:bg-purple-100 shadow-lg shadow-white/5 active:scale-95'
+                                                    ? 'bg-gray-800/50 text-gray-600 cursor-not-allowed'
+                                                    : 'bg-white text-gray-950 hover:bg-purple-100 shadow-lg shadow-white/5 active:scale-95'
                                                     }`}
                                             >
                                                 {isPurchasing === character.id ? '...' : character.isOwned ? t.shop.owned : t.shop.purchase}
@@ -456,6 +557,76 @@ export default function ShopPage() {
                             </div>
                         )}
                     </>
+                ) : activeTab === 'postcards' ? (
+                    <div className="space-y-8">
+                        {isLoading ? (
+                            <div className="flex flex-col items-center justify-center py-20 gap-4">
+                                <LoadingSpinner />
+                                <p className="text-gray-500 font-mono text-sm animate-pulse">LOADING TEMPLATES...</p>
+                            </div>
+                        ) : templates.length > 0 ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                                {templates.map((template) => (
+                                    <div key={template.id} className="group bg-gray-900/40 border border-gray-800 rounded-2xl overflow-hidden hover:border-cyan-500/50 transition-all hover:bg-gray-900/60 shadow-lg">
+                                        <div className="relative aspect-[3/2] bg-gray-950/80 p-4 flex items-center justify-center overflow-hidden">
+                                            {/* Preview Card */}
+                                            <div
+                                                className="w-full h-full rounded shadow-md flex flex-col items-center justify-center p-2 relative"
+                                                style={{ backgroundColor: template.config.bgColor || '#ffffff' }}
+                                            >
+                                                {template.config.logoUrl && (
+                                                    <img src={template.config.logoUrl} alt="logo" className="w-8 h-8 object-contain mb-1" />
+                                                )}
+                                                <span className="text-[10px] font-bold" style={{ color: template.config.textColor || '#000000' }}>
+                                                    {template.config.name}
+                                                </span>
+                                                <div className="absolute bottom-1 right-2 text-[8px] opacity-30" style={{ color: template.config.textColor }}>
+                                                    POSTCARD
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="p-5">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <h3 className="text-white font-bold group-hover:text-cyan-400 transition-colors">{template.config.name}</h3>
+                                                <div className="flex items-center gap-1 text-yellow-400 font-bold">
+                                                    <span className="text-xs">✦</span>
+                                                    <span>{template.price}</span>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-center gap-2 mb-4 text-[10px] text-gray-600 font-mono">
+                                                <div className="w-4 h-4 rounded-full bg-gray-800 flex items-center justify-center overflow-hidden">
+                                                    {template.creator.avatar ? (
+                                                        <img src={template.creator.avatar} alt="avatar" className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 20 20"><path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" /></svg>
+                                                    )}
+                                                </div>
+                                                <span>BY {template.creator.name.toUpperCase()}</span>
+                                                <span className="ml-auto opacity-50">{t.postcard.sales.replace('{count}', template.salesCount.toString())}</span>
+                                            </div>
+
+                                            <button
+                                                onClick={() => handleTemplatePurchaseClick(template)}
+                                                disabled={isPurchasing === template.id}
+                                                className="w-full py-2.5 bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-cyan-500/10 active:scale-95 disabled:opacity-50"
+                                            >
+                                                {isPurchasing === template.id ? '...' : t.shop.purchase}
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-center py-20">
+                                <div className="w-16 h-16 bg-gray-900 border border-gray-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                                    <span className="text-2xl opacity-50">🕊️</span>
+                                </div>
+                                <p className="text-gray-500 text-sm font-mono tracking-widest uppercase">No Templates Found</p>
+                            </div>
+                        )}
+                    </div>
                 ) : (
                     <div className="flex flex-col items-center justify-center py-40 gap-6">
                         <div className="relative">
@@ -559,6 +730,38 @@ export default function ShopPage() {
                 onConfirm={handleConfirmPurchase}
                 onCancel={handleCancelPurchase}
             />
+
+            {/* Template Purchase Confirmation */}
+            {showTemplateConfirm && selectedTemplate && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[110] p-4">
+                    <div className="bg-gray-900 border border-gray-800 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+                        <div className="p-8 text-center">
+                            <div className="w-16 h-16 bg-cyan-500/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                                <span className="text-3xl">🕊️</span>
+                            </div>
+                            <h2 className="text-xl font-bold text-white mb-2">{t.postcard.purchase_template}</h2>
+                            <p className="text-gray-400 text-sm mb-8">
+                                是否花费 <span className="text-yellow-400 font-bold">{selectedTemplate.price} {tc('currencyName')}</span> 购买并应用此模板？
+                            </p>
+
+                            <div className="flex gap-4">
+                                <button
+                                    onClick={() => setShowTemplateConfirm(false)}
+                                    className="flex-1 py-3 text-gray-400 font-bold hover:text-white transition-colors"
+                                >
+                                    取消
+                                </button>
+                                <button
+                                    onClick={handleConfirmTemplatePurchase}
+                                    className="flex-1 py-3 bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-white rounded-xl font-bold active:scale-95 transition-all shadow-lg shadow-cyan-500/20"
+                                >
+                                    确认购买
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }
