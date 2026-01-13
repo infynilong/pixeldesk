@@ -62,6 +62,7 @@
             "scaleInEditor": 1
         },
         "/Users/jiangyilong/project/PixelDesk/public/assets/officemap.json#front_wide_display": {
+            "dynamicWrapping": false,
             "scaleInDock": 1
         },
         "/Users/jiangyilong/project/PixelDesk/public/assets/officemap.json#grassgrand": {
