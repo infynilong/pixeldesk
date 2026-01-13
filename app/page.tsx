@@ -103,6 +103,10 @@ const PostcardDesignerModal = dynamic(() => import('@/components/PostcardDesigne
   ssr: false
 })
 
+const PostcardRequestModal = dynamic(() => import('@/components/PostcardRequestModal'), {
+  ssr: false
+})
+
 // AI 聊天弹窗
 const AiChatModal = dynamic(() => import('@/components/AiChatModal'), {
   ssr: false
@@ -133,6 +137,13 @@ export default function Home() {
   const { user, isLoading, playerExists, setPlayerExists } = useUser()
   const [showCharacterCreation, setShowCharacterCreation] = useState(false)
   const [showPostcardDesigner, setShowPostcardDesigner] = useState(false)
+  const [postcardRequest, setPostcardRequest] = useState<{
+    exchangeId: string
+    senderId: string
+    senderName: string
+    senderAvatar?: string
+  } | null>(null)
+  const [showPostcardRequestModal, setShowPostcardRequestModal] = useState(false)
 
   // 临时玩家状态
   const [isTemporaryPlayer, setIsTemporaryPlayer] = useState(false)
@@ -892,6 +903,53 @@ export default function Home() {
     window.open(`/posts/${postId}`, '_blank')
   }, [handlePostDetailModalClose])
 
+  const handleOpenPostcardRequest = useCallback((request: any) => {
+    setPostcardRequest(request)
+    setShowPostcardRequestModal(true)
+  }, [])
+
+  const handleAcceptExchange = async (exchangeId: string) => {
+    try {
+      const res = await fetch('/api/postcards/exchange', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ exchangeId, action: 'ACCEPT' })
+      })
+      const data = await res.json()
+      if (data.success) {
+        console.log(t.postcard?.swap_confirm_success || 'Exchange accepted!')
+        alert('Exchange successful! Card added to collection.')
+        setShowPostcardRequestModal(false)
+        setPostcardRequest(null)
+      } else {
+        console.error(data.error || 'Failed to accept')
+        alert(data.error || 'Failed to accept exchange. Make sure you have created your own postcard first!')
+      }
+    } catch (error) {
+      console.error('Accept exchange failed', error)
+    }
+  }
+
+  const handleRejectExchange = async (exchangeId: string) => {
+    try {
+      const res = await fetch('/api/postcards/exchange', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ exchangeId, action: 'REJECT' })
+      })
+      const data = await res.json()
+      if (data.success) {
+        console.log(t.postcard?.swap_reject_success || 'Exchange rejected')
+        setShowPostcardRequestModal(false)
+        setPostcardRequest(null)
+      } else {
+        console.error(data.error || 'Failed to reject')
+      }
+    } catch (error) {
+      console.error('Reject exchange failed', error)
+    }
+  }
+
   useEffect(() => {
     // 只有在非登录状态下，才考虑临时玩家逻辑
     if (user) {
@@ -981,6 +1039,7 @@ export default function Home() {
       currentUser={currentUser}
       selectedPlayer={selectedPlayer}
       onPostClick={handlePostClick}
+      onOpenPostcardRequest={handleOpenPostcardRequest}
       isMobile={isMobile}
       isTablet={isTablet}
       isCollapsed={rightPanelCollapsed}
@@ -1286,6 +1345,14 @@ export default function Home() {
       <PostcardDesignerModal
         isOpen={showPostcardDesigner}
         onClose={() => setShowPostcardDesigner(false)}
+      />
+
+      <PostcardRequestModal
+        isOpen={showPostcardRequestModal}
+        onClose={() => setShowPostcardRequestModal(false)}
+        request={postcardRequest}
+        onAccept={handleAcceptExchange}
+        onReject={handleRejectExchange}
       />
     </div>
   )

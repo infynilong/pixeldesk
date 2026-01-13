@@ -51,47 +51,48 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: false, error: '无效的接收者' }, { status: 400 })
         }
 
-        // 检查是否已有待处理的设计
-        const myDesign = await prisma.user_postcards.findUnique({ where: { userId: payload.userId } })
-        if (!myDesign) {
-            return NextResponse.json({ success: false, error: '请先设置你自己的名信片设计' }, { status: 400 })
-        }
 
-        // 检查是否已经存在待处理的请求
-        const existing = await prisma.postcard_exchanges.findFirst({
-            where: {
-                OR: [
-                    { senderId: payload.userId, receiverId, status: 'PENDING' },
-                    { senderId: receiverId, receiverId: payload.userId, status: 'PENDING' }
-                ]
+
+        // 使用事务确保原子性
+        const { exchange } = await prisma.$transaction(async (tx) => {
+            // Check for existing within the transaction to avoid race conditions
+            const existing = await tx.postcard_exchanges.findFirst({
+                where: {
+                    OR: [
+                        { senderId: payload.userId, receiverId, status: 'PENDING' },
+                        { senderId: receiverId, receiverId: payload.userId, status: 'PENDING' }
+                    ]
+                }
+            })
+
+            if (existing) {
+                throw new Error('已有待处理的交换请求')
             }
-        })
 
-        if (existing) {
-            return NextResponse.json({ success: false, error: '已有待处理的交换请求' }, { status: 400 })
-        }
+            // 创建交换请求
+            const newExchange = await tx.postcard_exchanges.create({
+                data: {
+                    senderId: payload.userId,
+                    receiverId,
+                    status: 'PENDING'
+                }
+            })
 
-        // 创建交换请求
-        const exchange = await prisma.postcard_exchanges.create({
-            data: {
-                senderId: payload.userId,
-                receiverId,
-                status: 'PENDING'
-            }
-        })
+            // 发送系统通知
+            await tx.notifications.create({
+                data: {
+                    id: crypto.randomUUID(),
+                    userId: receiverId,
+                    type: NotificationType.POSTCARD_EXCHANGE_REQUEST,
+                    title: '收到名信片交换请求',
+                    message: `${payload.name || '有玩家'} 想和你交换名信片，去“青鸟集”看看吧！`,
+                    relatedUserId: payload.userId,
+                    relatedExchangeId: newExchange.id,
+                    updatedAt: new Date()
+                }
+            })
 
-        // 发送系统通知
-        await prisma.notifications.create({
-            data: {
-                id: crypto.randomUUID(),
-                userId: receiverId,
-                type: NotificationType.POSTCARD_EXCHANGE_REQUEST,
-                title: '收到名信片交换请求',
-                message: `${payload.name || '有玩家'} 想和你交换名信片，去“青鸟集”看看吧！`,
-                relatedUserId: payload.userId,
-                relatedExchangeId: exchange.id,
-                updatedAt: new Date()
-            }
+            return { exchange: newExchange }
         })
 
         return NextResponse.json({ success: true, data: exchange, message: '请求已发送' })
@@ -132,40 +133,83 @@ export async function PUT(request: NextRequest) {
         if (action === 'ACCEPT') {
             // 执行交换事务
             await prisma.$transaction(async (tx) => {
-                // 1. 获取双方设计
-                const senderDesign = await tx.user_postcards.findUnique({ where: { userId: exchange.senderId } })
-                const receiverDesign = await tx.user_postcards.findUnique({ where: { userId: exchange.receiverId } })
+                // 1. 获取双方信息和设计 (Fetch users with designs)
+                const sender = await tx.users.findUnique({
+                    where: { id: exchange.senderId },
+                    include: { user_postcards: true }
+                })
+                const receiver = await tx.users.findUnique({
+                    where: { id: exchange.receiverId },
+                    include: { user_postcards: true }
+                })
 
-                if (!senderDesign || !receiverDesign) {
-                    throw new Error('双方必须都有名信片设计才能开始交换')
+                if (!sender || !receiver) {
+                    throw new Error('用户不存在')
                 }
 
-                // 2. 互相存入集邮册 (Snapshot)
-                // 存入接收者集邮册 (Sender's card -> Receiver's collection)
-                await tx.user_postcard_collection.create({
-                    data: {
-                        userId: exchange.receiverId,
-                        postcardOwnerId: exchange.senderId,
-                        name: senderDesign.name,
-                        content: senderDesign.content,
-                        logoUrl: senderDesign.logoUrl,
-                        bgUrl: senderDesign.bgUrl,
-                        templateId: senderDesign.templateId
+                // Helper to get design or default
+                const getDesignOrDefault = (user: typeof sender) => {
+                    const design = user!.user_postcards
+                    if (design) return design
+
+                    return {
+                        name: user!.name,
+                        content: 'Nice to meet you! 像素世界，幸会！',
+                        logoUrl: user!.avatar,
+                        bgUrl: null,
+                        templateId: null
                     }
-                })
+                }
+
+                const senderDesign = getDesignOrDefault(sender)
+                const receiverDesign = getDesignOrDefault(receiver)
+
+                // 2. 互相存入集邮册 (Snapshot)
+                // 2. 互相存入集邮册 (Snapshot) - Ensure uniqueness per owner
+
+                // Helper to upsert collection item
+                const upsertCollectionItem = async (targetUserId: string, ownerId: string, design: any) => {
+                    const existing = await (tx as any).user_postcard_collection.findFirst({
+                        where: {
+                            userId: targetUserId,
+                            postcardOwnerId: ownerId
+                        }
+                    });
+
+                    if (existing) {
+                        // Update existing snapshot
+                        await (tx as any).user_postcard_collection.update({
+                            where: { id: existing.id },
+                            data: {
+                                name: design.name,
+                                content: design.content,
+                                logoUrl: design.logoUrl,
+                                bgUrl: design.bgUrl,
+                                templateId: design.templateId,
+                                receivedAt: new Date() // Update received time
+                            }
+                        });
+                    } else {
+                        // Create new
+                        await (tx as any).user_postcard_collection.create({
+                            data: {
+                                userId: targetUserId,
+                                postcardOwnerId: ownerId,
+                                name: design.name,
+                                content: design.content,
+                                logoUrl: design.logoUrl,
+                                bgUrl: design.bgUrl,
+                                templateId: design.templateId
+                            }
+                        });
+                    }
+                };
+
+                // 存入接收者集邮册 (Sender's card -> Receiver's collection)
+                await upsertCollectionItem(exchange.receiverId, exchange.senderId, senderDesign);
 
                 // 存入发送者集邮册 (Receiver's card -> Sender's collection)
-                await tx.user_postcard_collection.create({
-                    data: {
-                        userId: exchange.senderId,
-                        postcardOwnerId: exchange.receiverId,
-                        name: receiverDesign.name,
-                        content: receiverDesign.content,
-                        logoUrl: receiverDesign.logoUrl,
-                        bgUrl: receiverDesign.bgUrl,
-                        templateId: receiverDesign.templateId
-                    }
-                })
+                await upsertCollectionItem(exchange.senderId, exchange.receiverId, receiverDesign);
 
                 // 3. 更新状态
                 await tx.postcard_exchanges.update({

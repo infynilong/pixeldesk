@@ -204,13 +204,13 @@ export default function LeftPanel({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
                 </a>
-                <button
-                  onClick={() => onOpenPostcardDesigner?.()}
+                <a
+                  href="/collection"
                   className="p-2 bg-amber-600/20 hover:bg-amber-600/30 border border-amber-500/30 rounded transition-all text-amber-500 group"
-                  title={t.postcard.designer}
+                  title={t.postcard.collection}
                 >
                   <span className="w-3.5 h-3.5 flex items-center justify-center text-xs">🕊️</span>
-                </button>
+                </a>
               </div>
 
               {/* 工位信息 */}

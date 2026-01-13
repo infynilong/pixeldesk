@@ -8,6 +8,7 @@ export interface Notification {
   relatedPostId?: string
   relatedReplyId?: string
   relatedUserId?: string
+  relatedExchangeId?: string
   createdAt: string
   updatedAt: string
 

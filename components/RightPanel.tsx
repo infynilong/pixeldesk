@@ -2,6 +2,7 @@
 
 import { useState, useEffect, ReactNode } from 'react'
 import { useTranslation } from '@/lib/hooks/useTranslation'
+import { useSocialNotifications } from '@/lib/hooks/useSocialNotifications'
 import { EventBus, CollisionEvent } from '@/lib/eventBus'
 import SocialFeedTab from './tabs/SocialFeedTab'
 import MyPostsTab from './tabs/MyPostsTab'
@@ -16,6 +17,8 @@ interface RightPanelProps {
   isTablet?: boolean
   isCollapsed?: boolean
   onCollapsedChange?: (collapsed: boolean) => void
+
+  onOpenPostcardRequest?: (request: any) => void
 }
 
 interface Tab {
@@ -33,13 +36,28 @@ export default function RightPanel({
   isMobile = false,
   isTablet = false,
   isCollapsed: externalIsCollapsed,
-  onCollapsedChange
+  onCollapsedChange,
+  onOpenPostcardRequest
 }: RightPanelProps) {
   const [activeTab, setActiveTab] = useState('social')
   const [currentInteractionPlayer, setCurrentInteractionPlayer] = useState<any>(null)
   const [internalIsCollapsed, setInternalIsCollapsed] = useState(false)
   const isCollapsed = externalIsCollapsed !== undefined ? externalIsCollapsed : internalIsCollapsed
   const { t } = useTranslation()
+
+  // Notification State hoisted for badge and global polling
+  const [notificationFilter, setNotificationFilter] = useState<'all' | 'unread'>('all')
+  const notificationState = useSocialNotifications({
+    userId: currentUser?.id,
+    autoFetch: !!currentUser?.id,
+    refreshInterval: 30000, // Poll every 30s as requested
+    unreadOnly: notificationFilter === 'unread'
+  })
+
+  // Function to switch tabs programmatically
+  const handleSwitchTab = (tabId: string) => {
+    setActiveTab(tabId)
+  }
 
   const handleToggle = (collapsed: boolean) => {
     if (onCollapsedChange) {
@@ -138,10 +156,16 @@ export default function RightPanel({
           isMobile={isMobile}
           isTablet={isTablet}
           onPostClick={onPostClick}
+          onOpenPostcardRequest={onOpenPostcardRequest}
+          onSwitchTab={handleSwitchTab}
+          notificationState={notificationState}
+          filter={notificationFilter}
+          onFilterChange={setNotificationFilter}
         />
       ),
-      badge: 0 // 可以后续添加未读消息数量
+      badge: notificationState.unreadCount
     },
+
     {
       id: 'interaction',
       label: t.nav.interaction,

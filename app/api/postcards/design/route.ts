@@ -18,8 +18,11 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ success: false, error: '无效令牌' }, { status: 401 })
         }
 
+        // 如果提供了 userId 参数，则查询该用户的 design（例如用于预览交换）
+        const targetUserId = request.nextUrl.searchParams.get('userId') || payload.userId
+
         const design = await prisma.user_postcards.findUnique({
-            where: { userId: payload.userId },
+            where: { userId: targetUserId },
             include: { template: true }
         })
 

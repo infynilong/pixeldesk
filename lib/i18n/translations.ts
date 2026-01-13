@@ -30,6 +30,9 @@ export const translations = {
             hide: '隐藏',
             leaderboard: '步数排行榜',
             daily_steps: '每日步数',
+            accept: '接受',
+            reject: '拒绝',
+            exchange: '交换',
         },
         auth: {
             login: '登录',
@@ -503,7 +506,29 @@ export const translations = {
             purchase_template: '购买并应用模板',
             template_shop: '名信片模板商店',
             price: '售价：{price}',
-            sales: '已售：{count}'
+            sales: '已售：{count}',
+            exchange_request: '名信片交换请求',
+            swap_confirm_success: '已同意交换！',
+            swap_reject_success: '已拒绝交换',
+            current_design: '当前设计',
+            collected_cards_title: '名信片收藏 ({count})',
+            about_intro_title: '关于我的名信片',
+            about_intro_desc: '这是你在像素世界中的专属名片。当你与其他玩家交换名信片时，他们将收到你当前设计的精美快照。你还可以通过工位获取或在商店购买独特的模板来丰富你的设计。',
+            empty_collection_title: '还未收到名信片',
+            empty_collection_desc: '去和其他玩家交换名信片吧！',
+            no_design_found: '暂无设计',
+            click_to_create: '点击设计',
+            confirm_delete: '确定要从您的集邮册中移除这张名信片吗？这不会影响对方。'
+        },
+        notifications: {
+            title: '消息中心',
+            inbox: '收件箱',
+            all: '全部',
+            unread: '未读',
+            mark_read: '已读',
+            empty: '暂无通知',
+            loading: '加载中...',
+            new_message: '条新消息'
         }
     },
     'en': {
@@ -535,6 +560,9 @@ export const translations = {
             hide: 'Hide',
             leaderboard: 'Leaderboard',
             daily_steps: 'Daily Steps',
+            accept: 'Accept',
+            reject: 'Reject',
+            exchange: 'Exchange',
         },
         auth: {
             login: 'Login',
@@ -1008,7 +1036,29 @@ export const translations = {
             purchase_template: 'Purchase & Use Template',
             template_shop: 'Postcard Shop',
             price: 'Price: {price}',
-            sales: 'Sales: {count}'
+            sales: 'Sales: {count}',
+            exchange_request: 'Postcard Exchange Request',
+            swap_confirm_success: 'Exchange accepted!',
+            swap_reject_success: 'Exchange rejected',
+            current_design: 'My Current Design',
+            collected_cards_title: 'Collected Cards ({count})',
+            about_intro_title: 'About My Postcard',
+            about_intro_desc: 'This is your exclusive business card in the pixel world. When you exchange postcards with other players, they will receive a beautiful snapshot of your current design. You can also enrich your design by acquiring templates from workstations or purchasing them in the shop.',
+            empty_collection_title: 'Collection Empty',
+            empty_collection_desc: 'Try swapping with other players!',
+            no_design_found: 'No Design Found',
+            click_to_create: 'Click to Design',
+            confirm_delete: 'Are you sure you want to remove this postcard from your collection? This will not affect the sender.'
+        },
+        notifications: {
+            title: 'Notifications',
+            inbox: 'Inbox',
+            all: 'All',
+            unread: 'Unread',
+            mark_read: 'Read',
+            empty: 'No notifications',
+            loading: 'Loading...',
+            new_message: 'new messages'
         }
     }
 }

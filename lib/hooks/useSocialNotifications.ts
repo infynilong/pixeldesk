@@ -8,7 +8,7 @@ interface UseSocialNotificationsOptions {
   unreadOnly?: boolean
 }
 
-interface UseSocialNotificationsReturn {
+export interface UseSocialNotificationsReturn {
   notifications: Notification[]
   isLoading: boolean
   isRefreshing: boolean
@@ -20,7 +20,7 @@ interface UseSocialNotificationsReturn {
     hasNextPage: boolean
     total: number
   }
-  
+
   // 操作函数
   fetchNotifications: (page?: number) => Promise<void>
   markAsRead: (notificationId: string) => Promise<boolean>
@@ -32,7 +32,7 @@ interface UseSocialNotificationsReturn {
 
 export function useSocialNotifications(options: UseSocialNotificationsOptions): UseSocialNotificationsReturn {
   const { userId, autoFetch = true, refreshInterval = 0, unreadOnly = false } = options // 保持refreshInterval=0默认禁用轮询
-  
+
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -48,7 +48,7 @@ export function useSocialNotifications(options: UseSocialNotificationsOptions): 
   // 获取通知列表
   const fetchNotifications = useCallback(async (page = 1) => {
     if (!userId) return
-    
+
     try {
       if (page === 1) {
         setIsLoading(true)
@@ -63,7 +63,7 @@ export function useSocialNotifications(options: UseSocialNotificationsOptions): 
         limit: '10',
         ...(unreadOnly && { unreadOnly: 'true' })
       })
-      
+
       const response = await fetch(`/api/notifications?${queryParams.toString()}`)
       const data: NotificationsResponse = await response.json()
 
@@ -73,7 +73,7 @@ export function useSocialNotifications(options: UseSocialNotificationsOptions): 
 
       if (data.success && data.data) {
         const { notifications: newNotifications, pagination: newPagination } = data.data
-        
+
         if (page === 1) {
           setNotifications(newNotifications)
         } else {
@@ -118,14 +118,14 @@ export function useSocialNotifications(options: UseSocialNotificationsOptions): 
 
       if (data.success && data.data) {
         // 更新本地状态
-        setNotifications(prev => 
-          prev.map(notification => 
-            notification.id === notificationId 
+        setNotifications(prev =>
+          prev.map(notification =>
+            notification.id === notificationId
               ? { ...notification, isRead: true }
               : notification
           )
         )
-        
+
         // 减少未读计数
         setUnreadCount(prev => Math.max(0, prev - 1))
         return true
@@ -143,7 +143,7 @@ export function useSocialNotifications(options: UseSocialNotificationsOptions): 
   // 标记所有通知为已读
   const markAllAsRead = useCallback(async (): Promise<boolean> => {
     if (!userId) return false
-    
+
     try {
       const response = await fetch(`/api/notifications/mark-all-read?userId=${userId}`, {
         method: 'PATCH',
@@ -157,10 +157,10 @@ export function useSocialNotifications(options: UseSocialNotificationsOptions): 
 
       if (data.success) {
         // 更新本地状态 - 标记所有通知为已读
-        setNotifications(prev => 
+        setNotifications(prev =>
           prev.map(notification => ({ ...notification, isRead: true }))
         )
-        
+
         // 重置未读计数
         setUnreadCount(0)
         return true
@@ -192,12 +192,12 @@ export function useSocialNotifications(options: UseSocialNotificationsOptions): 
         // 从本地状态中移除通知
         const deletedNotification = notifications.find(n => n.id === notificationId)
         setNotifications(prev => prev.filter(notification => notification.id !== notificationId))
-        
+
         // 如果删除的是未读通知，更新未读计数
         if (deletedNotification && !deletedNotification.isRead) {
           setUnreadCount(prev => Math.max(0, prev - 1))
         }
-        
+
         return true
       }
 
@@ -235,7 +235,7 @@ export function useSocialNotifications(options: UseSocialNotificationsOptions): 
       const interval = setInterval(() => {
         refreshNotifications()
       }, refreshInterval)
-      
+
       return () => clearInterval(interval)
     }
   }, [refreshInterval, userId, refreshNotifications])
