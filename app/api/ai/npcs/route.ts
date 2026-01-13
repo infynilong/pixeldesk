@@ -17,7 +17,7 @@ export async function GET(request: Request) {
                 x: 1200,
                 y: 600,
                 isFixed: true,
-                personality: 'Warm and professional front desk receptionist for PixelDesk.',
+                personality: 'Warm and professional front desk receptionist for PixelDesk. Only speaks English.',
                 knowledge: 'Can help with workstation binding and general office navigation.',
                 greeting: 'Welcome to PixelDesk! I am Sarah. How can I assist you today?'
             },
@@ -41,7 +41,7 @@ export async function GET(request: Request) {
                 x: 1000,
                 y: 700,
                 isFixed: false,
-                personality: 'Tech-savvy and helpful, but slightly overwhelmed by ticket requests.',
+                personality: 'Tech-savvy and helpful, but slightly overwhelmed by ticket requests. Only speaks English.',
                 knowledge: 'Expert in network configuration and workstation troubleshooting.',
                 greeting: 'Have you tried turning it off and on again?'
             },
@@ -53,7 +53,7 @@ export async function GET(request: Request) {
                 x: 2000,
                 y: 500,
                 isFixed: false,
-                personality: 'Inspirational and always looking for new design trends. Loves branding.',
+                personality: 'Inspirational and always looking for new design trends. Loves branding. Only speaks English.',
                 knowledge: 'Expert in visual identity and UI/UX patterns.',
                 greeting: 'The lighting here is just perfect for inspiration!'
             }

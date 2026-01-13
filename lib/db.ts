@@ -10,12 +10,16 @@ const globalForPrisma = globalThis as unknown as {
 const dbUrl = process.env.DATABASE_URL
 const urlWithPool = dbUrl?.includes('connection_limit')
   ? dbUrl
-  : `${dbUrl}${dbUrl?.includes('?') ? '&' : '?'}connection_limit=20&pool_timeout=20`
+  : `${dbUrl}${dbUrl?.includes('?') ? '&' : '?'}connection_limit=10&pool_timeout=30`
 
 // 强制刷新逻辑：如果当前实例缺少新定义的模型，则清理它
-if (globalForPrisma.prisma && !(globalForPrisma.prisma as any).player_steps) {
-  console.log('🔄 Prisma 实例过旧，正在重新启动客户端以加载新模型...')
-  globalForPrisma.prisma = undefined
+if (globalForPrisma.prisma) {
+  const p = globalForPrisma.prisma as any
+  if (!p.player_steps || !p.post_nodes) {
+    console.log('🔄 Prisma 实例过旧 (缺少 player_steps 或 post_nodes)，正在重新启动客户端...')
+    p.$disconnect().catch(() => { })
+    globalForPrisma.prisma = undefined
+  }
 }
 
 export const prisma =

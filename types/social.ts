@@ -23,6 +23,7 @@ export interface Post {
   promotionCount: number
   createdAt: string
   updatedAt: string
+  nodeId?: string | null
   author: SocialUser
   isLiked?: boolean
   replies?: PostReply[]
@@ -62,6 +63,7 @@ export interface CreatePostData {
   type?: 'TEXT' | 'IMAGE' | 'MIXED' | 'MARKDOWN'
   imageUrl?: string
   imageUrls?: string[]
+  nodeId?: string
   // 博客相关字段
   summary?: string
   wordCount?: number

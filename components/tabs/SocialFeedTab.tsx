@@ -7,6 +7,7 @@ import { useUser } from '@/contexts/UserContext'
 import { Post, CreatePostData } from '@/types/social'
 import PostListItem from '@/components/PostListItem'
 import CreatePostForm from '@/components/CreatePostForm'
+import PostSearchBar from '@/components/PostSearchBar'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import Link from 'next/link'
 import { useTranslation } from '@/lib/hooks/useTranslation'
@@ -27,6 +28,8 @@ export default function SocialFeedTab({
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [showLoginPrompt, setShowLoginPrompt] = useState(false)
   const [promotionCost, setPromotionCost] = useState(50)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedNodeId, setSelectedNodeId] = useState('all')
 
   useEffect(() => {
     const loadCost = async () => {
@@ -66,7 +69,9 @@ export default function SocialFeedTab({
   } = useSocialPosts({
     userId: currentUserId || '',
     autoFetch: isActive && !!currentUserId,
-    refreshInterval: isActive ? 30000 : 0 // 30秒刷新一次，仅在激活时
+    refreshInterval: isActive ? 30000 : 0, // 30秒刷新一次，仅在激活时
+    search: searchQuery,
+    nodeId: selectedNodeId
   })
 
   // 处理点击发帖按钮
@@ -225,6 +230,15 @@ export default function SocialFeedTab({
           </div>
         </div>
       )}
+
+      {/* 搜索和节点过滤 */}
+      <div className="flex-shrink-0 border-b border-gray-800 bg-gray-900/40">
+        <PostSearchBar
+          onSearch={setSearchQuery}
+          onNodeChange={setSelectedNodeId}
+          isMobile={isMobile}
+        />
+      </div>
 
       {/* 创建帖子表单 */}
       {showCreateForm && (

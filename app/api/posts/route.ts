@@ -12,6 +12,8 @@ export async function GET(request: NextRequest) {
     const sortBy = searchParams.get('sortBy') || 'latest' // latest, popular, trending
     const authorId = searchParams.get('authorId')
     const postType = searchParams.get('type') // 可选：TEXT, IMAGE, MARKDOWN
+    const nodeId = searchParams.get('nodeId')
+    const search = searchParams.get('search')
 
     const skip = (page - 1) * limit
 
@@ -30,6 +32,19 @@ export async function GET(request: NextRequest) {
     // 根据类型筛选
     if (postType) {
       where.type = postType
+    }
+
+    // 根据节点筛选
+    if (nodeId && nodeId !== 'all') {
+      where.nodeId = nodeId
+    }
+
+    // 搜索功能
+    if (search) {
+      where.OR = [
+        { title: { contains: search, mode: 'insensitive' } },
+        { content: { contains: search, mode: 'insensitive' } }
+      ]
     }
 
     // 构建排序条件
@@ -144,6 +159,7 @@ export async function POST(request: NextRequest) {
       content,
       type = 'TEXT',
       imageUrl,
+      nodeId,
       imageUrls = [],
       summary,
       wordCount = 0,
@@ -203,6 +219,7 @@ export async function POST(request: NextRequest) {
         imageUrl: imageUrl || null,
         imageUrls: imageUrls || [],
         authorId: userId,
+        nodeId: nodeId || null,
         // 博客相关字段
         summary: summary || null,
         wordCount,

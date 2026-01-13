@@ -41,25 +41,35 @@ export async function getPointsConfig(key: string, useCache = true): Promise<num
   }
 }
 
+let refreshPromise: Promise<void> | null = null
+
 /**
  * 刷新积分配置缓存
  */
 export async function refreshPointsConfigCache(): Promise<void> {
-  try {
-    const configs = await prisma.points_config.findMany({
-      where: { isActive: true }
-    })
+  if (refreshPromise) return refreshPromise
 
-    configCache = configs.reduce((acc, config) => {
-      acc[config.key] = config.value
-      return acc
-    }, {} as Record<string, number>)
+  refreshPromise = (async () => {
+    try {
+      const configs = await prisma.points_config.findMany({
+        where: { isActive: true }
+      })
 
-    cacheTimestamp = Date.now()
-    console.log('✅ 积分配置缓存已刷新')
-  } catch (error) {
-    console.error('刷新积分配置缓存失败:', error)
-  }
+      configCache = configs.reduce((acc, config) => {
+        acc[config.key] = config.value
+        return acc
+      }, {} as Record<string, number>)
+
+      cacheTimestamp = Date.now()
+      console.log('✅ 积分配置缓存已刷新')
+    } catch (error) {
+      console.error('刷新积分配置缓存失败:', error)
+    } finally {
+      refreshPromise = null
+    }
+  })()
+
+  return refreshPromise
 }
 
 /**
@@ -245,5 +255,5 @@ export async function hasEnoughPoints(userId: string, configKey: string): Promis
   }
 }
 
-// 初始化时刷新缓存
-refreshPointsConfigCache().catch(console.error)
+// 初始化时不直接刷新，由首次请求触发以便错开冷启动高峰
+// refreshPointsConfigCache().catch(console.error)

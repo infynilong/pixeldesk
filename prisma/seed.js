@@ -8,6 +8,7 @@ async function main() {
   // 清理现有数据（可选）
   await prisma.userWorkstation.deleteMany()
   await prisma.workstation.deleteMany()
+  await prisma.post_nodes.deleteMany()
   await prisma.user.deleteMany()
 
   // 创建示例工位数据 - 使用与 Tiled 地图匹配的 ID
@@ -36,6 +37,20 @@ async function main() {
   }
 
   console.log('已创建', workstations.length, '个工位')
+
+  // === 初始节点数据 ===
+  console.log('正在初始化分类节点...')
+  await prisma.post_nodes.upsert({
+    where: { slug: 'default' },
+    update: {},
+    create: {
+      name: '默认',
+      slug: 'default',
+      description: '全站通用公开动态',
+      icon: '🌐',
+      color: '#6366f1'
+    }
+  })
 
   // === AI NPC 数据 ===
   console.log('正在初始化 AI NPCs...')

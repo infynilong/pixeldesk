@@ -326,6 +326,8 @@ model post_replies {
 model posts {
   id                   String                 @id
   authorId             String
+  nodeId               String?
+  node                 post_nodes?            @relation(fields: [nodeId], references: [id])
   title                String?
   content              String
   type                 PostType               @default(TEXT)
@@ -359,6 +361,7 @@ model posts {
   users                users                  @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   @@index([authorId])
+  @@index([nodeId])
   @@index([createdAt])
   @@index([isDraft])
   @@index([likeCount])
@@ -599,6 +602,18 @@ model books {
   @@index([status])
   @@index([publishedAt])
   @@index([viewCount])
+}
+
+model post_nodes {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  icon        String?
+  color       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  posts       posts[]
 }
 
 model book_chapters {
