@@ -3561,7 +3561,7 @@ export class Start extends Phaser.Scene {
 
     // 创建昼夜管理器（只对 background 图块层应用夜晚效果）
     this.dayNightManager = new DayNightManager(this, this.mapLayers, {
-      nightStart: 20,  // 晚上8点开始
+      nightStart: 18,  // 晚上8点开始
       nightEnd: 6,     // 早上6点结束
       transitionDuration: 2000, // 2秒过渡时间
       checkInterval: 60000, // 每分钟检查一次
