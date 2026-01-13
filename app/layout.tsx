@@ -36,7 +36,7 @@ export async function generateMetadata(): Promise<Metadata> {
       return items[0]?.value || ''
     }
 
-    const appName = getValue('app_name') || '象素工坊'
+    const appName = getValue('app_name') || 'Tembo PX Workshop'
     const appSlogan = getValue('app_slogan') || '社交办公游戏'
     const appDescription = getValue('app_description') || '一个有趣的社交办公游戏平台'
 
@@ -52,7 +52,7 @@ export async function generateMetadata(): Promise<Metadata> {
   } catch (error) {
     console.error('Error generating metadata:', error)
     return {
-      title: '象素工坊 - 社交办公游戏',
+      title: 'Tembo PX Workshop - 社交办公游戏',
       description: '一个有趣的社交办公游戏平台',
       icons: {
         icon: '/assets/icon.png',

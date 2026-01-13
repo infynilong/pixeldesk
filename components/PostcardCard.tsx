@@ -89,7 +89,7 @@ const PostcardCard: React.FC<PostcardCardProps> = ({
                         </div>
                     ) : (
                         <div className="absolute top-2 left-2 w-8 h-8 bg-white/80 p-1 rounded-md shadow-sm backdrop-blur-sm border border-black/5">
-                            <img src="/assets/icon.png" className="w-full h-full object-contain" alt="PixelDesk" />
+                            <img src="/assets/icon.png" className="w-full h-full object-contain" alt="Tembo PX" />
                         </div>
                     )}
 
@@ -101,7 +101,7 @@ const PostcardCard: React.FC<PostcardCardProps> = ({
 
                     <div className="w-full border-t border-amber-900/10 pt-2 flex justify-between items-center px-2 relative z-10">
                         <div className="text-[10px] font-bold text-cyan-900/30 uppercase tracking-[0.2em] scale-75 origin-left">
-                            PixelDesk
+                            TEMBO PX
                         </div>
                         <div className="text-[8px] font-mono text-amber-900/30">
                             NO. {card.id?.slice(-4).toUpperCase() || '0000'}
