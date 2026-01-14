@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 获取已存在的角色名称
-    const existingCharacters = await prisma.character.findMany({
+    const existingCharacters = await prisma.characters.findMany({
       select: { name: true }
     })
     const existingNames = new Set(existingCharacters.map(c => c.name))
@@ -78,8 +78,9 @@ export async function POST(request: NextRequest) {
         const price = isFree ? 0 : 100 // 默认100积分
 
         // 创建角色记录
-        await prisma.character.create({
+        await prisma.characters.create({
           data: {
+            id: `char_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             name,
             displayName,
             description: `自动导入的角色形象 - ${displayName}`,
@@ -91,7 +92,8 @@ export async function POST(request: NextRequest) {
             frameWidth: 48,
             frameHeight: 48,
             totalFrames: isCompactFormat ? 8 : 64,
-            sortOrder: 0
+            sortOrder: 0,
+            updatedAt: new Date()
           }
         })
 

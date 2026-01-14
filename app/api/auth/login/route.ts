@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { generateToken, verifyPassword, isValidEmail } from '@/lib/auth'
-import prisma from '@/lib/prisma'
+import prisma from '@/lib/db'
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,8 +23,8 @@ export async function POST(request: NextRequest) {
     }
 
     // 查找用户（包含密码字段用于验证）
-    const user = await prisma.user.findUnique({
-      where: { 
+    const user = await prisma.users.findUnique({
+      where: {
         email: email.toLowerCase().trim(),
         isActive: true
       }
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
     })
 
     // 清理过期会话
-    await prisma.userSession.updateMany({
+    await prisma.user_sessions.updateMany({
       where: {
         userId: user.id,
         expiresAt: { lt: new Date() }
@@ -75,25 +75,28 @@ export async function POST(request: NextRequest) {
     expiresAt.setDate(expiresAt.getDate() + 7)
 
     const userAgent = request.headers.get('user-agent') || 'Unknown'
-    const ipAddress = request.headers.get('x-forwarded-for') || 
-                     request.headers.get('x-real-ip') || 
-                     'Unknown'
+    const ipAddress = request.headers.get('x-forwarded-for') ||
+      request.headers.get('x-real-ip') ||
+      'Unknown'
 
-    await prisma.userSession.create({
+    const cuid = (await import('cuid')).default
+    await prisma.user_sessions.create({
       data: {
+        id: cuid(),
         userId: user.id,
         token,
         userAgent,
         ipAddress,
         expiresAt,
-        isActive: true
+        isActive: true,
+        updatedAt: new Date()
       }
     })
 
     // 更新最后登录时间
-    await prisma.user.update({
+    await prisma.users.update({
       where: { id: user.id },
-      data: { 
+      data: {
         lastLogin: new Date(),
         updatedAt: new Date()
       }
@@ -107,7 +110,8 @@ export async function POST(request: NextRequest) {
       avatar: user.avatar,
       points: user.points,
       emailVerified: user.emailVerified,
-      lastLogin: new Date()
+      lastLogin: new Date(),
+      inviteCode: user.inviteCode
     }
 
     // 设置安全cookie
@@ -121,7 +125,8 @@ export async function POST(request: NextRequest) {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60
+      maxAge: 7 * 24 * 60 * 60,
+      path: '/'
     })
 
     return response

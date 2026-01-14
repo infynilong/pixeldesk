@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
     }
 
     const [posts, totalCount] = await Promise.all([
-      prisma.post.findMany({
+      prisma.posts.findMany({
         where,
         orderBy: [
           { isDraft: 'desc' }, // 草稿优先
@@ -69,17 +69,17 @@ export async function GET(request: NextRequest) {
           readTime: true,
           _count: {
             select: {
-              replies: true,
-              likes: true
+              post_replies: true,
+              post_likes: true
             }
           }
         }
       }),
-      prisma.post.count({ where })
+      prisma.posts.count({ where })
     ])
 
     // 获取统计信息
-    const stats = await prisma.post.groupBy({
+    const stats = await prisma.posts.groupBy({
       by: ['isDraft'],
       where: {
         authorId: userId,

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requirePermission } from '@/lib/admin/permissions'
-import prisma from '@/lib/prisma'
+import prisma from '@/lib/db'
 import { writeFile, mkdir } from 'fs/promises'
 import { join } from 'path'
 import { existsSync } from 'fs'
@@ -49,33 +49,26 @@ export async function GET(request: NextRequest) {
 
     // 查询数据
     const [characters, total] = await Promise.all([
-      prisma.character.findMany({
+      prisma.characters.findMany({
         where,
         orderBy: { [sortBy]: sortOrder },
         skip: (page - 1) * pageSize,
-        take: pageSize,
-        include: {
-          _count: {
-            select: {
-              purchases: true,
-            },
-          },
-        },
+        take: pageSize
       }),
-      prisma.character.count({ where }),
+      prisma.characters.count({ where }),
     ])
 
     // 计算每个角色的使用人数（从Player表中统计）
     const charactersWithUsage = await Promise.all(
       characters.map(async (char) => {
-        const userCount = await prisma.player.count({
+        const userCount = await prisma.players.count({
           where: { characterSprite: char.name },
         })
 
         return {
           ...char,
           userCount,
-          purchaseCount: char._count.purchases,
+          purchaseCount: char.salesCount,
         }
       })
     )
@@ -144,7 +137,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 检查角色名称是否已存在
-    const existing = await prisma.character.findFirst({
+    const existing = await prisma.characters.findFirst({
       where: { name }
     })
 
@@ -174,8 +167,9 @@ export async function POST(request: NextRequest) {
     await writeFile(filepath, buffer)
 
     // 创建数据库记录
-    const character = await prisma.character.create({
+    const character = await prisma.characters.create({
       data: {
+        id: crypto.randomUUID(),
         name,
         displayName,
         description: description || null,
@@ -188,6 +182,7 @@ export async function POST(request: NextRequest) {
         isDefault,
         isActive,
         sortOrder,
+        updatedAt: new Date(),
       },
     })
 

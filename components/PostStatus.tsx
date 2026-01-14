@@ -1,18 +1,9 @@
 'use client'
 
 import { useState, memo, useCallback, ChangeEvent, useEffect } from 'react'
+import { useTranslation } from '../lib/hooks/useTranslation'
 import { statusHistoryManager, formatTimestamp, getStatusBadge } from '../lib/statusHistory'
 import { usePointsConfig } from '../lib/hooks/usePointsConfig'
-
-const statusOptions = [
-  { id: 'working', label: '工作中', emoji: '💼', color: 'from-retro-blue to-retro-cyan' },
-  { id: 'break', label: '休息中', emoji: '☕', color: 'from-retro-green to-retro-blue' },
-  { id: 'reading', label: '阅读中', emoji: '📚', color: 'from-retro-purple to-retro-pink' },
-  { id: 'restroom', label: '洗手间', emoji: '🚻', color: 'from-retro-yellow to-retro-orange' },
-  { id: 'meeting', label: '会议中', emoji: '👥', color: 'from-retro-red to-retro-pink' },
-  { id: 'lunch', label: '午餐时间', emoji: '🍽️', color: 'from-retro-orange to-retro-yellow' },
-  { id: 'off_work', label: '下班了', emoji: '🏠', color: 'from-retro-textMuted to-retro-border' }
-]
 
 interface PostStatusProps {
   onStatusUpdate: (status: any) => void
@@ -26,7 +17,15 @@ interface PostStatusProps {
 }
 
 const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: PostStatusProps) => {
+  const { t, locale } = useTranslation()
   const [selectedStatus, setSelectedStatus] = useState('working')
+
+  const statusOptions = [
+    { id: 'working', label: t.status.mode.working, emoji: '💼', color: 'from-cyan-500 to-teal-500' },
+    { id: 'break', label: t.status.mode.break, emoji: '☕', color: 'from-emerald-500 to-teal-500' },
+    { id: 'meeting', label: t.status.mode.meeting, emoji: '👥', color: 'from-blue-500 to-cyan-500' },
+    { id: 'off_work', label: t.status.mode.off_work, emoji: '🏠', color: 'from-gray-500 to-gray-600' }
+  ]
   const [customMessage, setCustomMessage] = useState('')
   const [isExpanded, setIsExpanded] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
@@ -66,7 +65,7 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
       type: selectedStatus,
       status: status.label,
       emoji: status.emoji,
-      message: customMessage || `正在${status.label}`,
+      message: customMessage || (locale === 'zh-CN' ? `正在${status.label}` : `is ${status.label.toLowerCase()}`),
       timestamp: new Date().toISOString()
     }
 
@@ -119,48 +118,6 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
     // 更新 React 组件状态（直接同步调用，避免requestAnimationFrame开销）
     onStatusUpdate(fullStatus)
 
-    // 同步生成社交帖子
-    try {
-      const statusEmoji = statusOptions.find(s => s.id === selectedStatus)?.emoji || '📝'
-      const postContent = customMessage || `${statusEmoji} ${statusOptions.find(s => s.id === selectedStatus)?.label || selectedStatus}`
-
-      // console.log('🎯 [PostStatus] 同步生成社交帖子:', { postContent, userId })
-
-      const postResponse = await fetch(`/api/posts?userId=${userId}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          title: null,
-          content: postContent,
-          type: 'TEXT'
-        })
-      })
-
-      if (!postResponse.ok) {
-        console.error('❌ [PostStatus] 状态同步帖子创建失败:', postResponse.status)
-      } else {
-        // 尝试获取积分更新信息
-        try {
-          const postData = await postResponse.json()
-          if (postData.success && postData.currentPoints !== undefined) {
-            console.log('💰 [PostStatus] 收到积分更新:', postData.currentPoints)
-            if (typeof window !== 'undefined') {
-              const event = new CustomEvent('user-points-updated', {
-                detail: { userId, points: postData.currentPoints }
-              })
-              window.dispatchEvent(event)
-            }
-          }
-        } catch (e) {
-          console.warn('Error parsing post response:', e)
-        }
-      }
-    } catch (error) {
-      console.error('Error creating status sync post:', error)
-    }
-
     // 平滑收起面板
     setIsExpanded(false)
     setCustomMessage('')
@@ -191,6 +148,23 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
     setShowHistory(!showHistory)
   }, [showHistory])
 
+  // 本地化的时间格式化
+  const localFormatTimestamp = useCallback((timestamp: string) => {
+    const date = new Date(timestamp)
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffMinutes = Math.floor(diffMs / (1000 * 60))
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+
+    if (diffMinutes < 1) return t.time.just_now
+    if (diffMinutes < 60) return `${diffMinutes}${t.time.minutes_ago}`
+    if (diffHours < 24) return `${diffHours}${t.time.hours_ago}`
+    if (diffDays < 7) return `${diffDays}${t.time.days_ago}`
+
+    return date.toLocaleDateString(locale)
+  }, [t, locale])
+
   return (
     <div className="space-y-3 font-pixel">
       {/* 当前状态显示 - 紧凑版 */}
@@ -201,12 +175,12 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
             <div className="flex items-center gap-3">
               {/* 紧凑状态图标 */}
               <div className="relative">
-                <div className="w-10 h-10 bg-gradient-to-br from-retro-purple via-retro-pink to-retro-blue rounded-lg flex items-center justify-center shadow-lg border border-white/20">
+                <div className="w-10 h-10 bg-gradient-to-br from-cyan-600 via-teal-600 to-emerald-600 rounded-lg flex items-center justify-center shadow-lg border border-white/20">
                   <span className="text-lg">{currentStatus.emoji}</span>
                 </div>
                 {/* 小型活跃指示器 */}
-                <div className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-retro-green rounded-full border border-retro-bg-darker">
-                  <div className="w-full h-full bg-retro-green rounded-full "></div>
+                <div className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-gray-900">
+                  <div className="w-full h-full bg-emerald-400 rounded-full animate-pulse"></div>
                 </div>
               </div>
 
@@ -229,16 +203,16 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
 
       {/* 紧凑操作按钮区域 - 并排布局 */}
       <div className="flex gap-2">
-        {/* 更新状态按钮 - 紧凑版 */}
+        {/* 更新状态按钮 */}
         <button
           onClick={memoizedHandleToggle}
-          className="flex-1 group relative overflow-hidden bg-gradient-to-r from-retro-purple via-retro-pink to-retro-blue hover:from-retro-blue hover:via-retro-cyan hover:to-retro-green text-white font-bold py-2.5 px-3 rounded-lg   shadow-lg hover:shadow-xl border border-white/20 hover:border-white/40"
+          className="flex-1 group relative overflow-hidden bg-gradient-to-r from-cyan-600 via-teal-600 to-emerald-600 hover:from-cyan-500 hover:via-teal-500 hover:to-emerald-500 text-white font-bold py-2.5 px-3 rounded-lg shadow-lg hover:shadow-cyan-500/20 border border-white/20 transition-all active:scale-[0.98]"
         >
-          {/* 按钮内容 - 紧凑版 */}
+          {/* 按钮内容 */}
           <div className="relative flex items-center justify-center gap-2">
             <span className="text-sm">{isExpanded ? "✕" : "📝"}</span>
             <span className="font-pixel text-xs tracking-wide">
-              {isExpanded ? "CANCEL" : "UPDATE"}
+              {isExpanded ? t.common.cancel.toUpperCase() : t.leftPanel.update_status.toUpperCase()}
             </span>
           </div>
         </button>
@@ -253,10 +227,10 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
             <div className="relative flex items-center justify-center gap-2">
               <span className="text-sm">📊</span>
               <span className="font-retro text-xs tracking-wide">
-                {showHistory ? "HIDE" : "HISTORY"}
+                {showHistory ? t.status.hide.toUpperCase() : t.leftPanel.history.toUpperCase()}
               </span>
               {/* 小型计数器 */}
-              <span className="text-xs bg-retro-purple/50 text-white px-1.5 py-0.5 rounded-full font-pixel">
+              <span className="text-xs bg-cyan-500/50 text-white px-1.5 py-0.5 rounded-full font-pixel">
                 {statusHistory.length}
               </span>
             </div>
@@ -277,29 +251,29 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
             e.stopPropagation()
           }}
         >
-          {/* 超紧凑面板标题 */}
+          {/* 面板标题 */}
           <div className="flex items-center gap-2 pb-1 border-b border-gray-800/50">
-            <div className="w-4 h-4 bg-gradient-to-br from-retro-purple to-retro-pink rounded flex items-center justify-center">
-              <span className="text-xs">⚙️</span>
+            <div className="w-4 h-4 bg-gradient-to-br from-cyan-500 to-teal-500 rounded flex items-center justify-center shadow-lg shadow-cyan-500/20">
+              <span className="text-[10px]">⚙️</span>
             </div>
             <h3 className="text-white font-bold text-xs font-pixel tracking-wide">
-              STATUS CONFIG
+              {t.status.config}
             </h3>
           </div>
 
           {/* 状态类型选择 - 超紧凑网格 */}
           <div className="space-y-2">
             <label className="block text-xs font-bold text-white font-pixel tracking-wide">
-              SELECT MODE
+              {t.status.select_mode}
             </label>
             <div className="grid grid-cols-3 gap-1.5">
               {statusOptions.map((status) => (
                 <button
                   key={status.id}
                   onClick={() => memoizedHandleStatusSelect(status.id)}
-                  className={`group relative overflow-hidden p-2 rounded-lg border   ${selectedStatus === status.id
-                      ? `border-white/40 bg-gradient-to-br ${status.color} text-white shadow-lg`
-                      : "border-gray-700/50 bg-gradient-to-br from-retro-bg-dark/50 to-retro-bg-darker/50 hover:border-retro-purple/50 shadow-md"
+                  className={`group relative overflow-hidden p-2 rounded-lg border transition-all ${selectedStatus === status.id
+                    ? `border-white/40 bg-gradient-to-br ${status.color} text-white shadow-lg shadow-cyan-500/10`
+                    : "border-gray-700/50 bg-gray-800/40 hover:border-cyan-500/50 hover:bg-gray-800/60 shadow-md"
                     }`}
                 >
                   {/* 选择状态的光效 */}
@@ -318,7 +292,7 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
                   {/* 选中指示器 */}
                   {selectedStatus === status.id && (
                     <div className="absolute top-1 right-1 w-2 h-2 bg-white rounded-full shadow-lg">
-                      <div className="w-full h-full bg-retro-green rounded-full  opacity-75"></div>
+                      <div className="w-full h-full bg-emerald-400 rounded-full animate-pulse"></div>
                     </div>
                   )}
                 </button>
@@ -329,7 +303,7 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
           {/* 自定义消息输入 - 紧凑文本框 */}
           <div className="space-y-2">
             <label className="block text-xs font-bold text-white font-pixel tracking-wide">
-              CUSTOM MESSAGE
+              {t.status.custom_message}
             </label>
             <div className="relative">
               <textarea
@@ -347,8 +321,8 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
                   // 阻止点击事件冒泡
                   e.stopPropagation()
                 }}
-                placeholder="Share what you're doing..."
-                className="relative w-full p-2 bg-gradient-to-br from-retro-bg-dark/80 to-retro-bg-darker/80 border border-gray-700 rounded-lg resize-none focus:outline-none focus:border-retro-purple focus:shadow-lg focus:shadow-retro-purple/25 text-white placeholder-retro-textMuted backdrop-blur-md  font-retro text-sm leading-relaxed"
+                placeholder={t.status.placeholder}
+                className="relative w-full p-2 bg-gray-800/50 border border-gray-700 rounded-lg resize-none focus:outline-none focus:border-cyan-500/50 focus:bg-gray-800/80 focus:shadow-lg focus:shadow-cyan-500/10 text-white placeholder-gray-500 backdrop-blur-md font-retro text-sm leading-relaxed transition-all"
                 rows={3}
               />
               {/* 字符计数器 */}
@@ -363,7 +337,7 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
             {/* 发布按钮 */}
             <button
               onClick={memoizedHandleSubmit}
-              className="flex-1 group relative overflow-hidden bg-gradient-to-r from-retro-green via-retro-blue to-retro-cyan hover:from-retro-blue hover:via-retro-cyan hover:to-retro-green text-white font-bold py-2 px-3 rounded-lg   shadow-lg hover:shadow-xl border border-white/20 hover:border-white/40"
+              className="flex-1 group relative overflow-hidden bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold py-2 px-3 rounded-lg shadow-lg hover:shadow-emerald-500/20 border border-white/20 transition-all active:scale-[0.98]"
             >
               {/* 发布按钮内容 */}
               <div className="relative flex items-center justify-center gap-2">
@@ -371,7 +345,7 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
                   <span className="text-xs">🚀</span>
                 </div>
                 <span className="font-pixel text-xs tracking-wider">
-                  PUBLISH
+                  {t.status.publish}
                 </span>
               </div>
             </button>
@@ -379,14 +353,14 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
             {/* 取消按钮 */}
             <button
               onClick={memoizedHandleCancel}
-              className="flex-1 group relative overflow-hidden bg-gradient-to-r from-retro-bg-dark/80 to-retro-bg-darker/80 hover:from-retro-border/60 hover:to-retro-border/80 text-white font-medium py-2 px-3 rounded-lg  border border-gray-700 hover:border-retro-red/60 shadow-lg hover:shadow-xl backdrop-blur-sm"
+              className="flex-1 group relative overflow-hidden bg-gray-800/80 hover:bg-gray-700/80 text-white font-medium py-2 px-3 rounded-lg border border-gray-700 hover:border-gray-600 shadow-lg transition-all active:scale-[0.98]"
             >
               {/* 取消按钮内容 */}
-              <div className="relative flex items-center justify-center gap-2">
-                <div className="w-4 h-4 bg-retro-red/20 rounded flex items-center justify-center group-hover:bg-retro-red/30 ">
+              <div className="relative flex items-center justify-center gap-2 text-gray-400 group-hover:text-gray-200">
+                <div className="w-4 h-4 bg-gray-700 rounded flex items-center justify-center group-hover:bg-gray-600">
                   <span className="text-xs">✕</span>
                 </div>
-                <span className="font-pixel text-xs tracking-wide">CANCEL</span>
+                <span className="font-pixel text-xs tracking-wide">{t.common.cancel.toUpperCase()}</span>
               </div>
             </button>
           </div>
@@ -403,7 +377,7 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
                 <span className="text-sm">📊</span>
               </div>
               <h3 className="text-white font-bold text-sm font-pixel tracking-wider">
-                STATUS HISTORY
+                {t.status.history_title}
               </h3>
             </div>
             <div className="flex items-center gap-1">
@@ -423,10 +397,10 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
                 </div>
                 <div className="space-y-1">
                   <div className="text-white font-bold font-pixel text-sm">
-                    NO RECORDS
+                    {t.status.no_records}
                   </div>
                   <div className="text-retro-textMuted text-xs font-retro">
-                    Start sharing your status!
+                    {t.status.start_sharing}
                   </div>
                 </div>
               </div>
@@ -451,7 +425,7 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
                         </span>
                       </div>
                       <span className="text-retro-textMuted text-xs font-retro">
-                        {formatTimestamp(history.timestamp)}
+                        {localFormatTimestamp(history.timestamp)}
                       </span>
                     </div>
 
@@ -480,8 +454,8 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
                         .todayCount
                     }
                   </div>
-                  <div className="text-xs text-retro-textMuted font-retro tracking-wide">
-                    TODAY
+                  <div className="text-xs text-retro-textMuted font-retro tracking-wide uppercase">
+                    {t.status.today}
                   </div>
                 </div>
 
@@ -493,8 +467,8 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
                   <div className="text-lg font-bold text-white font-pixel">
                     {statusHistory.length}
                   </div>
-                  <div className="text-xs text-retro-textMuted font-retro tracking-wide">
-                    TOTAL
+                  <div className="text-xs text-retro-textMuted font-retro tracking-wide uppercase">
+                    {t.leftPanel.total}
                   </div>
                 </div>
 
@@ -521,8 +495,8 @@ const PostStatus = memo(({ onStatusUpdate, currentStatus, userId, userData }: Po
                               ? "🍽️"
                               : "🚻"}
                   </div>
-                  <div className="text-xs text-retro-textMuted font-retro tracking-wide">
-                    POPULAR
+                  <div className="text-xs text-retro-textMuted font-retro tracking-wide uppercase">
+                    {t.status.popular}
                   </div>
                 </div>
               </div>

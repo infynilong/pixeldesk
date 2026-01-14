@@ -48,7 +48,7 @@ async function migrateAvatars() {
 
   try {
     // 1. 获取所有有avatar的用户
-    const usersWithAvatar = await prisma.user.findMany({
+    const usersWithAvatar = await prisma.users.findMany({
       where: {
         avatar: {
           not: null
@@ -78,7 +78,7 @@ async function migrateAvatars() {
 
       if (newKey) {
         // 验证这个key在Character表中是否存在
-        const characterExists = await prisma.character.findFirst({
+        const characterExists = await prisma.characters.findFirst({
           where: { name: newKey }
         })
 
@@ -141,9 +141,12 @@ async function migrateAvatars() {
 
       for (const migration of migrations) {
         try {
-          await prisma.user.update({
+          await prisma.users.update({
             where: { id: migration.userId },
-            data: { avatar: migration.newValue }
+            data: {
+              avatar: migration.newValue,
+              updatedAt: new Date()
+            }
           })
           successCount++
         } catch (error) {

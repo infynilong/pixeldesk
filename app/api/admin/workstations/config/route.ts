@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requirePermission } from '@/lib/admin/permissions'
 import { logAdminAction } from '@/lib/admin/logger'
-import prisma from '@/lib/prisma'
+import prisma from '@/lib/db'
 import { z } from 'zod'
 
 const configSchema = z.object({
@@ -12,13 +12,15 @@ const configSchema = z.object({
   teleportCost: z.number().int().min(0),
   defaultDuration: z.number().int().positive(),
   maxBindingsPerUser: z.number().int().positive(),
+  billboardPromotionCost: z.number().int().min(0),
+  postcardTemplateReward: z.number().int().min(0),
 })
 
 export async function GET() {
   try {
     await requirePermission('workstations.view')
 
-    const config = await prisma.workstationConfig.findFirst()
+    const config = await prisma.workstation_config.findFirst()
 
     if (!config) {
       return NextResponse.json(
@@ -58,7 +60,7 @@ export async function PUT(request: NextRequest) {
     const data = validation.data
 
     // 更新配置
-    const config = await prisma.workstationConfig.findFirst()
+    const config = await prisma.workstation_config.findFirst()
 
     if (!config) {
       return NextResponse.json(
@@ -67,7 +69,7 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    const updated = await prisma.workstationConfig.update({
+    const updated = await prisma.workstation_config.update({
       where: { id: config.id },
       data: {
         ...data,

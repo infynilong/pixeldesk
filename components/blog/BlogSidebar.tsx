@@ -138,11 +138,10 @@ export default function BlogSidebar({
             <button
               key={blog.id}
               onClick={() => onSelectBlog(blog)}
-              className={`w-full h-10 rounded-lg transition-colors ${
-                selectedBlogId === blog.id
+              className={`w-full h-10 rounded-lg transition-colors ${selectedBlogId === blog.id
                   ? 'bg-gradient-to-r from-cyan-600 to-teal-600'
                   : 'bg-gray-800 hover:bg-gray-700'
-              }`}
+                }`}
               title={blog.title}
             >
               <div className="w-full h-full flex items-center justify-center">
@@ -210,31 +209,28 @@ export default function BlogSidebar({
         <div className="flex gap-2">
           <button
             onClick={() => setStatusFilter('all')}
-            className={`flex-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-              statusFilter === 'all'
+            className={`flex-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${statusFilter === 'all'
                 ? 'bg-gray-700 text-white'
                 : 'bg-gray-800 text-gray-400 hover:text-white'
-            }`}
+              }`}
           >
             全部 ({stats.total})
           </button>
           <button
             onClick={() => setStatusFilter('published')}
-            className={`flex-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-              statusFilter === 'published'
+            className={`flex-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${statusFilter === 'published'
                 ? 'bg-emerald-600 text-white'
                 : 'bg-gray-800 text-gray-400 hover:text-white'
-            }`}
+              }`}
           >
             已发布 ({stats.published})
           </button>
           <button
             onClick={() => setStatusFilter('draft')}
-            className={`flex-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-              statusFilter === 'draft'
+            className={`flex-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${statusFilter === 'draft'
                 ? 'bg-amber-600 text-white'
                 : 'bg-gray-800 text-gray-400 hover:text-white'
-            }`}
+              }`}
           >
             草稿 ({stats.draft})
           </button>
@@ -277,11 +273,10 @@ export default function BlogSidebar({
               <button
                 key={blog.id}
                 onClick={() => onSelectBlog(blog)}
-                className={`w-full text-left p-4 transition-all ${
-                  selectedBlogId === blog.id
+                className={`w-full text-left p-4 transition-all cursor-pointer ${selectedBlogId === blog.id
                     ? 'bg-gradient-to-r from-cyan-600/20 to-teal-600/20 border-l-4 border-cyan-500'
                     : 'hover:bg-gray-800/50'
-                }`}
+                  }`}
               >
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <h3 className="font-medium text-white text-sm line-clamp-1 flex-1">

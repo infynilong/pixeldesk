@@ -2,6 +2,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useTranslation } from '@/lib/hooks/useTranslation'
 
 interface PointsHistoryItem {
     id: string
@@ -19,6 +20,7 @@ interface PointsHistoryProps {
 }
 
 export default function PointsHistory({ userId, isOpen, onClose }: PointsHistoryProps) {
+    const { t, locale } = useTranslation()
     const [history, setHistory] = useState<PointsHistoryItem[]>([])
     const [isLoading, setIsLoading] = useState(false)
     const [page, setPage] = useState(1)
@@ -89,8 +91,8 @@ export default function PointsHistory({ userId, isOpen, onClose }: PointsHistory
                             <span className="text-yellow-500 text-lg">💰</span>
                         </div>
                         <div>
-                            <h3 className="text-gray-100 font-medium font-mono">Points History</h3>
-                            <p className="text-xs text-gray-500 font-mono">Total Transactions: {total}</p>
+                            <h3 className="text-gray-100 font-medium font-mono">{t.points_history.title}</h3>
+                            <p className="text-xs text-gray-500 font-mono">{t.points_history.total_transactions.replace('{total}', total.toString())}</p>
                         </div>
                     </div>
                     <button
@@ -107,7 +109,7 @@ export default function PointsHistory({ userId, isOpen, onClose }: PointsHistory
                 <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
                     {history.length === 0 && !isLoading ? (
                         <div className="text-center py-8 text-gray-500 font-mono text-sm">
-                            No transactions found.
+                            {t.points_history.no_transactions}
                         </div>
                     ) : (
                         history.map((item) => (
@@ -118,7 +120,7 @@ export default function PointsHistory({ userId, isOpen, onClose }: PointsHistory
                                 <div>
                                     <p className="text-gray-200 text-sm font-medium mb-0.5">{item.reason}</p>
                                     <p className="text-gray-500 text-xs font-mono">
-                                        {new Date(item.createdAt).toLocaleString()}
+                                        {new Date(item.createdAt).toLocaleString(locale)}
                                     </p>
                                 </div>
                                 <div className="text-right">
@@ -126,7 +128,7 @@ export default function PointsHistory({ userId, isOpen, onClose }: PointsHistory
                                         {item.amount > 0 ? '+' : ''}{item.amount}
                                     </p>
                                     <p className="text-gray-600 text-[10px] font-mono">
-                                        Bal: {item.balance}
+                                        {t.points_history.balance.replace('{balance}', item.balance.toString())}
                                     </p>
                                 </div>
                             </div>
@@ -144,7 +146,7 @@ export default function PointsHistory({ userId, isOpen, onClose }: PointsHistory
                             onClick={loadMore}
                             className="w-full py-2 text-xs text-gray-400 hover:text-white bg-gray-800/50 hover:bg-gray-800 rounded border border-gray-700/50 transition-colors font-mono"
                         >
-                            Load More
+                            {t.points_history.load_more}
                         </button>
                     )}
                 </div>

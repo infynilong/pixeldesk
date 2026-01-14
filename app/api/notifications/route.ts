@@ -28,15 +28,15 @@ export async function GET(request: NextRequest) {
 
     // 获取通知列表
     const [notifications, total, unreadCount] = await Promise.all([
-      prisma.notification.findMany({
+      prisma.notifications.findMany({
         where,
         include: {
-          relatedPost: {
+          posts: {
             select: {
               id: true,
               title: true,
               content: true,
-              author: {
+              users: {
                 select: {
                   id: true,
                   name: true,
@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
               }
             }
           },
-          relatedUser: {
+          users_notifications_relatedUserIdTousers: {
             select: {
               id: true,
               name: true,
@@ -57,17 +57,31 @@ export async function GET(request: NextRequest) {
         skip,
         take: limit
       }),
-      prisma.notification.count({ where: { userId } }),
-      prisma.notification.count({ where: { userId, isRead: false } })
+      prisma.notifications.count({ where: { userId } }),
+      prisma.notifications.count({ where: { userId, isRead: false } })
     ])
 
     const totalPages = Math.ceil(total / limit)
     const hasNextPage = page < totalPages
 
+    // 将 posts 映射为 relatedPost, users_notifications_relatedUserIdTousers 映射为 relatedUser 以保持 API 兼容性
+    const notificationsWithAuthor = notifications.map(notification => {
+      const n = notification as any
+      return {
+        ...notification,
+        relatedPost: n.posts ? {
+          ...n.posts,
+          author: n.posts.users,
+          users: undefined
+        } : null,
+        relatedUser: n.users_notifications_relatedUserIdTousers
+      }
+    })
+
     return NextResponse.json({
       success: true,
       data: {
-        notifications,
+        notifications: notificationsWithAuthor,
         pagination: {
           page,
           totalPages,
@@ -108,23 +122,25 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    const notification = await prisma.notification.create({
+    const notification = await prisma.notifications.create({
       data: {
+        id: crypto.randomUUID(),
         userId,
         type,
         title,
         message,
         relatedPostId,
         relatedReplyId,
-        relatedUserId
+        relatedUserId,
+        updatedAt: new Date()
       },
       include: {
-        relatedPost: {
+        posts: {
           select: {
             id: true,
             title: true,
             content: true,
-            author: {
+            users: {
               select: {
                 id: true,
                 name: true,
@@ -133,7 +149,7 @@ export async function POST(request: NextRequest) {
             }
           }
         },
-        relatedUser: {
+        users_notifications_relatedUserIdTousers: {
           select: {
             id: true,
             name: true,
@@ -143,9 +159,21 @@ export async function POST(request: NextRequest) {
       }
     })
 
+    // 将 posts 映射为 relatedPost, users_notifications_relatedUserIdTousers 映射为 relatedUser 以保持 API 兼容性
+    const notificationAny = notification as any
+    const notificationWithAuthor = {
+      ...notification,
+      relatedPost: notificationAny.posts ? {
+        ...notificationAny.posts,
+        author: notificationAny.posts.users,
+        users: undefined
+      } : null,
+      relatedUser: notificationAny.users_notifications_relatedUserIdTousers
+    }
+
     return NextResponse.json({
       success: true,
-      data: notification
+      data: notificationWithAuthor
     })
 
   } catch (error) {

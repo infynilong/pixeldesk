@@ -66,7 +66,7 @@ export default function TeleportConfirmModal({
           </p>
         </div>
 
-        {/* 积分消费信息 - 像素化信息面板 */}
+        {/* 象素币消费信息 - 像素化信息面板 */}
         <div className="relative group mb-8">
           <div className="absolute inset-0 bg-gradient-to-r from-retro-yellow/5 to-retro-orange/5 rounded-xl opacity-0 group-hover:opacity-100 "></div>
           <div className="relative bg-gradient-to-br from-retro-bg-dark/50 to-retro-bg-darker/50 backdrop-blur-sm border-2 border-retro-border/50 rounded-xl p-5 shadow-lg hover:border-retro-yellow/40 ">
@@ -161,7 +161,7 @@ export default function TeleportConfirmModal({
           </button>
         </div>
 
-        {/* 积分不足警告 - 像素化警告面板 */}
+        {/* 象素币不足警告 - 像素化警告面板 */}
         {currentPoints < 1 && (
           <div className="relative mt-6 ">
             <div className="absolute inset-0 bg-gradient-to-r from-retro-red/10 to-retro-orange/10 rounded-xl opacity-60 pointer-events-none"></div>

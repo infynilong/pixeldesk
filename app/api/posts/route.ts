@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { rewardPoints } from '@/lib/pointsManager'
+import { randomUUID } from 'crypto'
 
 // 获取帖子列表
 export async function GET(request: NextRequest) {
@@ -11,13 +12,17 @@ export async function GET(request: NextRequest) {
     const sortBy = searchParams.get('sortBy') || 'latest' // latest, popular, trending
     const authorId = searchParams.get('authorId')
     const postType = searchParams.get('type') // 可选：TEXT, IMAGE, MARKDOWN
+    const nodeId = searchParams.get('nodeId')
+    const search = searchParams.get('search')
 
     const skip = (page - 1) * limit
 
     // 构建查询条件
     const where: any = {
       isPublic: true,
-      isDraft: false // 只显示已发布的帖子，不显示草稿
+      isDraft: false, // 只显示已发布的帖子，不显示草稿
+      isActive: true, // 只显示启用的内容
+      moderationStatus: 'approved' // 只显示已审核通过的内容
     }
 
     if (authorId) {
@@ -27,6 +32,19 @@ export async function GET(request: NextRequest) {
     // 根据类型筛选
     if (postType) {
       where.type = postType
+    }
+
+    // 根据节点筛选
+    if (nodeId && nodeId !== 'all') {
+      where.nodeId = nodeId
+    }
+
+    // 搜索功能
+    if (search) {
+      where.OR = [
+        { title: { contains: search, mode: 'insensitive' } },
+        { content: { contains: search, mode: 'insensitive' } }
+      ]
     }
 
     // 构建排序条件
@@ -49,37 +67,54 @@ export async function GET(request: NextRequest) {
     }
 
     const [posts, totalCount] = await Promise.all([
-      prisma.post.findMany({
+      prisma.posts.findMany({
         where,
         orderBy,
         skip,
         take: limit,
         include: {
-          author: {
+          users: {
             select: {
               id: true,
               name: true,
               avatar: true,
-              customAvatar: true
+              customAvatar: true,
+              user_workstations: {
+                select: {
+                  workstationId: true
+                },
+                take: 1
+              }
             }
           },
           _count: {
             select: {
-              replies: true,
-              likes: true
+              post_replies: true,
+              post_likes: true
             }
           }
         }
       }),
-      prisma.post.count({ where })
+      prisma.posts.count({ where })
     ])
 
     const totalPages = Math.ceil(totalCount / limit)
 
+    // 转换数据结构：将 users 映射为 author
+    const formattedPosts = posts.map((post: any) => ({
+      ...post,
+      author: {
+        ...post.users,
+        workstationId: post.users?.user_workstations?.[0]?.workstationId || null,
+        user_workstations: undefined
+      },
+      users: undefined // 移除 users 字段
+    }))
+
     return NextResponse.json({
       success: true,
       data: {
-        posts,
+        posts: formattedPosts,
         pagination: {
           page,
           limit,
@@ -124,6 +159,8 @@ export async function POST(request: NextRequest) {
       content,
       type = 'TEXT',
       imageUrl,
+      nodeId,
+      imageUrls = [],
       summary,
       wordCount = 0,
       readTime = 1,
@@ -157,7 +194,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 验证用户存在且账户有效
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: userId },
       select: { id: true, name: true }
     })
@@ -173,13 +210,16 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const post = await prisma.post.create({
+    const post = await prisma.posts.create({
       data: {
+        id: randomUUID(),
         title: title?.trim() || null,
         content: content.trim(),
         type,
         imageUrl: imageUrl || null,
+        imageUrls: imageUrls || [],
         authorId: userId,
+        nodeId: nodeId || null,
         // 博客相关字段
         summary: summary || null,
         wordCount,
@@ -187,14 +227,25 @@ export async function POST(request: NextRequest) {
         tags,
         coverImage: coverImage || null,
         isDraft,
-        publishedAt: publishedAt ? new Date(publishedAt) : null
+        publishedAt: publishedAt ? new Date(publishedAt) : null,
+        // 审核相关字段 - 默认自动通过
+        moderationStatus: 'approved',
+        isActive: true,
+        updatedAt: new Date()
       },
       include: {
-        author: {
+        users: {
           select: {
             id: true,
             name: true,
-            avatar: true
+            avatar: true,
+            customAvatar: true,
+            user_workstations: {
+              select: {
+                workstationId: true
+              },
+              take: 1
+            }
           }
         }
       }
@@ -219,9 +270,20 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // 转换数据结构：将 users 映射为 author(与 GET 方法保持一致)
+    const formattedPost = {
+      ...post,
+      author: {
+        ...post.users,
+        workstationId: post.users?.user_workstations?.[0]?.workstationId || null,
+        user_workstations: undefined
+      },
+      users: undefined // 移除 users 字段
+    }
+
     return NextResponse.json({
       success: true,
-      data: post,
+      data: formattedPost,
       currentPoints
     })
 

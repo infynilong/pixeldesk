@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: payload.userId },
       select: { id: true }
     })
@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 查询角色信息
-    const character = await prisma.character.findUnique({
+    const character = await prisma.characters.findUnique({
       where: { id: characterId, isActive: true }
     })
 
@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
 
     // 检查用户是否拥有此角色（默认角色或已购买）
     const isDefault = character.isDefault
-    const hasPurchased = await prisma.characterPurchase.findUnique({
+    const hasPurchased = await prisma.character_purchases.findUnique({
       where: {
         userId_characterId: {
           userId: user.id,
@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
     // 使用事务更新用户和玩家的角色
     await prisma.$transaction(async (tx) => {
       // 更新 User 表的 avatar 字段
-      await tx.user.update({
+      await tx.users.update({
         where: { id: user.id },
         data: {
           avatar: character.name // 存储角色 key
@@ -100,12 +100,12 @@ export async function POST(request: NextRequest) {
       })
 
       // 更新 Player 表的 characterSprite 字段（如果存在）
-      const player = await tx.player.findUnique({
+      const player = await tx.players.findUnique({
         where: { userId: user.id }
       })
 
       if (player) {
-        await tx.player.update({
+        await tx.players.update({
           where: { userId: user.id },
           data: {
             characterSprite: character.name

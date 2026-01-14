@@ -4,18 +4,20 @@ import { useState } from 'react'
 import { useUser } from '../contexts/UserContext'
 import AuthModal from './AuthModal'
 import UserSettingsModal from './UserSettingsModal'
+import { useTranslation } from '../lib/hooks/useTranslation'
 
 export default function AuthenticationHeader() {
   const { user, isLoading } = useUser()
   const [authModalOpen, setAuthModalOpen] = useState(false)
   const [authModalMode, setAuthModalMode] = useState<'login' | 'register'>('login')
   const [settingsModalOpen, setSettingsModalOpen] = useState(false)
+  const { t } = useTranslation()
 
   if (isLoading) {
     return (
       <div className="flex items-center space-x-2">
-        <div className="w-4 h-4 bg-gray-500 rounded "></div>
-        <span className="text-gray-400 text-sm font-mono">Loading...</span>
+        <div className="w-4 h-4 bg-gray-500 rounded animate-pulse"></div>
+        <span className="text-gray-400 text-sm font-mono">{t.common.loading}</span>
       </div>
     )
   }
@@ -32,8 +34,8 @@ export default function AuthenticationHeader() {
               </svg>
             </div>
             <div>
-              <h3 className="text-gray-200 text-sm font-medium">账户认证</h3>
-              <p className="text-gray-500 text-xs font-mono">Account Access</p>
+              <h3 className="text-gray-200 text-sm font-medium">{t.auth_header.account_auth}</h3>
+              <p className="text-gray-500 text-xs font-mono">{t.auth_header.account_access}</p>
             </div>
           </div>
 
@@ -45,7 +47,7 @@ export default function AuthenticationHeader() {
               }}
               className="w-full px-3 py-2 text-sm bg-gray-700/50 hover:bg-gray-700 text-gray-200 rounded-lg border border-gray-600/50  font-mono"
             >
-              LOGIN 登录
+              {t.auth.login.toUpperCase()}
             </button>
             <button
               onClick={() => {
@@ -54,10 +56,10 @@ export default function AuthenticationHeader() {
               }}
               className="w-full px-3 py-2 text-sm bg-gradient-to-r from-blue-600/80 to-purple-600/80 hover:from-blue-600 hover:to-purple-600 text-white rounded-lg  font-mono"
             >
-              REGISTER 注册
+              {t.auth.register.toUpperCase()}
             </button>
           </div>
-        </div>
+        </div >
 
         <AuthModal
           isOpen={authModalOpen}
@@ -79,13 +81,13 @@ export default function AuthenticationHeader() {
             </svg>
           </div>
           <div className="flex-1">
-            <h3 className="text-gray-200 text-sm font-medium">已登录</h3>
-            <p className="text-gray-500 text-xs font-mono">Authenticated</p>
+            <h3 className="text-gray-200 text-sm font-medium">{t.auth_header.authenticated}</h3>
+            <p className="text-gray-500 text-xs font-mono">{t.auth_header.authenticated_sub}</p>
           </div>
           <button
             onClick={() => setSettingsModalOpen(true)}
             className="p-1.5 hover:bg-gray-700/50 rounded-lg "
-            title="用户设置"
+            title={t.auth_header.user_settings}
           >
             <svg
               className="w-4 h-4 text-gray-400 hover:text-gray-200"

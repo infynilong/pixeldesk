@@ -3,6 +3,7 @@
  * 运行方法: npx ts-node scripts/init-points-config.ts
  */
 import { PrismaClient } from '@prisma/client'
+import { randomUUID } from 'crypto'
 
 const prisma = new PrismaClient()
 
@@ -48,26 +49,31 @@ async function main() {
 
   for (const config of configs) {
     try {
-      const existing = await prisma.pointsConfig.findUnique({
+      const existing = await prisma.points_config.findUnique({
         where: { key: config.key }
       })
 
       if (existing) {
         // 如果已存在，更新配置
-        await prisma.pointsConfig.update({
+        await prisma.points_config.update({
           where: { key: config.key },
           data: {
             value: config.value,
             description: config.description,
-            category: config.category
+            category: config.category,
+            updatedAt: new Date()
           }
         })
         console.log(`✅ 更新配置: ${config.key} = ${config.value}`)
         updatedCount++
       } else {
         // 如果不存在，创建新配置
-        await prisma.pointsConfig.create({
-          data: config
+        await prisma.points_config.create({
+          data: {
+            ...config,
+            id: randomUUID(),
+            updatedAt: new Date()
+          }
         })
         console.log(`✨ 创建配置: ${config.key} = ${config.value}`)
         createdCount++

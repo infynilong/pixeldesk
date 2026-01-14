@@ -4,7 +4,20 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useState } from 'react'
 
-const menuItems = [
+interface SubMenuItem {
+  title: string
+  icon: string
+  href: string
+}
+
+interface MenuItem {
+  title: string
+  icon: string
+  href: string
+  subItems?: SubMenuItem[]
+}
+
+const menuItems: MenuItem[] = [
   {
     title: '概览',
     icon: '📊',
@@ -14,6 +27,16 @@ const menuItems = [
     title: '玩家管理',
     icon: '👥',
     href: '/admin/players',
+  },
+  {
+    title: '用户管理',
+    icon: '👤',
+    href: '/admin/users',
+  },
+  {
+    title: '内容管理',
+    icon: '📝',
+    href: '/admin/posts',
   },
   {
     title: '角色形象',
@@ -29,6 +52,28 @@ const menuItems = [
     title: '系统设置',
     icon: '⚙️',
     href: '/admin/settings',
+    subItems: [
+      {
+        title: '品牌配置',
+        icon: '🎨',
+        href: '/admin/settings/brand',
+      },
+      {
+        title: '关于页面',
+        icon: 'ℹ️',
+        href: '/admin/settings/about',
+      },
+    ],
+  },
+  {
+    title: 'AI NPC',
+    icon: '🤖',
+    href: '/admin/ai',
+  },
+  {
+    title: '图书馆管理',
+    icon: '📚',
+    href: '/admin/library',
   },
 ]
 
@@ -36,6 +81,7 @@ export function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const [isLoggingOut, setIsLoggingOut] = useState(false)
+  const [expandedItems, setExpandedItems] = useState<string[]>(['/admin/settings'])
 
   const handleLogout = async () => {
     if (isLoggingOut) return
@@ -65,20 +111,60 @@ export function Sidebar() {
       <nav className="flex-1 p-4 space-y-2">
         {menuItems.map((item) => {
           const isActive = pathname === item.href || pathname?.startsWith(item.href + '/')
+          const isExpanded = expandedItems.includes(item.href)
+          const hasSubItems = item.subItems && item.subItems.length > 0
 
           return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
-                isActive
+            <div key={item.href}>
+              <div
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all cursor-pointer ${isActive
                   ? 'bg-purple-600 text-white'
                   : 'text-gray-300 hover:bg-gray-800 hover:text-white'
-              }`}
-            >
-              <span className="text-xl">{item.icon}</span>
-              <span className="font-medium">{item.title}</span>
-            </Link>
+                  }`}
+                onClick={() => {
+                  if (hasSubItems) {
+                    setExpandedItems(prev =>
+                      prev.includes(item.href)
+                        ? prev.filter(i => i !== item.href)
+                        : [...prev, item.href]
+                    )
+                  } else {
+                    router.push(item.href)
+                  }
+                }}
+              >
+                <span className="text-xl">{item.icon}</span>
+                <span className="font-medium flex-1">{item.title}</span>
+                {hasSubItems && (
+                  <span className="text-sm">
+                    {isExpanded ? '▼' : '▶'}
+                  </span>
+                )}
+              </div>
+
+              {/* Sub Items */}
+              {hasSubItems && isExpanded && (
+                <div className="ml-6 mt-1 space-y-1">
+                  {item.subItems?.map((subItem) => {
+                    const isSubActive = pathname === subItem.href
+
+                    return (
+                      <Link
+                        key={subItem.href}
+                        href={subItem.href}
+                        className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-all text-sm ${isSubActive
+                          ? 'bg-purple-500 text-white'
+                          : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                          }`}
+                      >
+                        <span>{subItem.icon}</span>
+                        <span>{subItem.title}</span>
+                      </Link>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
           )
         })}
       </nav>

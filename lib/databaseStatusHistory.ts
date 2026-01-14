@@ -30,7 +30,7 @@ export class DatabaseStatusHistoryManager {
 
       // 从数据库获取
       const whereClause = userId ? { userId } : {}
-      const history = await prisma.statusHistory.findMany({
+      const history = await prisma.status_history.findMany({
         where: whereClause,
         orderBy: { timestamp: 'desc' },
         take: this.MAX_HISTORY_ITEMS
@@ -54,7 +54,7 @@ export class DatabaseStatusHistoryManager {
   async addStatusHistory(status: any, userId?: string): Promise<StatusHistory | null> {
     try {
       console.log('Database manager: Adding status history for user:', userId, 'status:', status)
-      const historyItem = await prisma.statusHistory.create({
+      const historyItem = await prisma.status_history.create({
         data: {
           userId: userId || '',
           type: status.type,
@@ -82,13 +82,13 @@ export class DatabaseStatusHistoryManager {
     try {
       if (userId) {
         // 清理特定用户的历史
-        await prisma.statusHistory.deleteMany({
+        await prisma.status_history.deleteMany({
           where: { userId }
         })
         await redis.del(`status_history:${userId}`)
       } else {
         // 清理所有历史
-        await prisma.statusHistory.deleteMany({})
+        await prisma.status_history.deleteMany({})
         // 清除所有相关缓存
         const keys = await redis.keys('status_history:*')
         if (keys.length > 0) {
@@ -144,7 +144,7 @@ export class DatabaseStatusHistoryManager {
    */
   async getRecentStatus(userId: string, limit: number = 5): Promise<StatusHistory[]> {
     try {
-      const recent = await prisma.statusHistory.findMany({
+      const recent = await prisma.status_history.findMany({
         where: { userId },
         orderBy: { timestamp: 'desc' },
         take: limit
@@ -162,7 +162,7 @@ export class DatabaseStatusHistoryManager {
   async getStatusDistribution(userId?: string) {
     try {
       const whereClause = userId ? { userId } : {}
-      const distribution = await prisma.statusHistory.groupBy({
+      const distribution = await prisma.status_history.groupBy({
         by: ['type'],
         where: whereClause,
         _count: {

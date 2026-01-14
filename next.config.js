@@ -112,7 +112,17 @@ const nextConfig = {
   },
   // 支持静态资源
   images: {
-    domains: ['localhost']
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**',
+      },
+      {
+        protocol: 'http',
+        hostname: '**',
+      },
+    ],
+    unoptimized: false,
   }
 }
 

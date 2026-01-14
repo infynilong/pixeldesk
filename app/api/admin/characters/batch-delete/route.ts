@@ -26,16 +26,9 @@ export async function POST(request: NextRequest) {
     }
 
     // 查询所有要删除的角色
-    const characters = await prisma.character.findMany({
+    const characters = await prisma.characters.findMany({
       where: {
         id: { in: ids }
-      },
-      include: {
-        _count: {
-          select: {
-            purchases: true
-          }
-        }
       }
     })
 
@@ -47,7 +40,7 @@ export async function POST(request: NextRequest) {
     for (const character of characters) {
       try {
         // 检查是否有用户正在使用
-        const usersUsingCharacter = await prisma.player.count({
+        const usersUsingCharacter = await prisma.players.count({
           where: { characterSprite: character.name }
         })
 
@@ -61,17 +54,17 @@ export async function POST(request: NextRequest) {
         }
 
         // 检查是否有购买记录
-        if (character._count.purchases > 0) {
+        if (character.salesCount > 0) {
           skipped.push({
             id: character.id,
             name: character.displayName,
-            reason: `已被购买 ${character._count.purchases} 次`
+            reason: `已被购买 ${character.salesCount} 次`
           })
           continue
         }
 
         // 删除数据库记录
-        await prisma.character.delete({
+        await prisma.characters.delete({
           where: { id: character.id }
         })
 

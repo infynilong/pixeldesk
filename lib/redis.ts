@@ -3,14 +3,42 @@ console.log('Redis功能已禁用，使用内存缓存');
 
 let redisConnected = false;
 
+// Memory cache fallback when Redis is disabled
+const memoryCache = new Map<string, { value: any, expiresAt: number | null }>();
+
 // 模拟Redis客户端
 const redisClient = {
   connect: async () => { throw new Error('Redis已禁用'); },
-  set: async (key: string, value: string) => { return null; },
-  get: async (key: string) => { return null; },
-  del: async (key: string) => { return null; },
-  exists: async (key: string) => { return false; },
-  setEx: async (key: string, seconds: number, value: string) => { return null; },
+  set: async (key: string, value: string) => {
+    memoryCache.set(key, { value, expiresAt: null });
+    return 'OK';
+  },
+  get: async (key: string) => {
+    const item = memoryCache.get(key);
+    if (!item) return null;
+    if (item.expiresAt && item.expiresAt < Date.now()) {
+      memoryCache.delete(key);
+      return null;
+    }
+    return item.value;
+  },
+  del: async (key: string) => {
+    memoryCache.delete(key);
+    return 1;
+  },
+  exists: async (key: string) => {
+    const item = memoryCache.get(key);
+    if (!item) return false;
+    if (item.expiresAt && item.expiresAt < Date.now()) {
+      memoryCache.delete(key);
+      return false;
+    }
+    return true;
+  },
+  setEx: async (key: string, seconds: number, value: string) => {
+    memoryCache.set(key, { value, expiresAt: Date.now() + seconds * 1000 });
+    return 'OK';
+  },
   quit: async () => { return null; }
 };
 
@@ -20,7 +48,6 @@ export default redisClient
 export const redis = {
   // Set a key with expiration
   async set(key: string, value: string, expirationInSeconds?: number) {
-    if (!redisConnected) return null;
     try {
       if (expirationInSeconds) {
         return await redisClient.setEx(key, expirationInSeconds, value)
@@ -34,7 +61,6 @@ export const redis = {
 
   // Get a key
   async get(key: string) {
-    if (!redisConnected) return null;
     try {
       return await redisClient.get(key)
     } catch (error) {
@@ -45,7 +71,6 @@ export const redis = {
 
   // Delete a key
   async del(key: string | string[]) {
-    if (!redisConnected) return null;
     try {
       if (Array.isArray(key)) {
         return await Promise.all(key.map(k => redisClient.del(k)))
@@ -59,7 +84,6 @@ export const redis = {
 
   // Check if key exists
   async exists(key: string) {
-    if (!redisConnected) return false;
     try {
       return await redisClient.exists(key)
     } catch (error) {
@@ -70,9 +94,8 @@ export const redis = {
 
   // Get keys by pattern
   async keys(pattern: string) {
-    if (!redisConnected) return [];
     try {
-      // Mock implementation - return empty array since Redis is disabled
+      // Mock implementation - return empty array for simplicity or implement pattern matching
       return []
     } catch (error) {
       console.warn('Redis keys操作失败:', error);
@@ -82,7 +105,6 @@ export const redis = {
 
   // Set JSON value
   async setJSON(key: string, value: any, expirationInSeconds?: number) {
-    if (!redisConnected) return null;
     try {
       const jsonValue = JSON.stringify(value)
       if (expirationInSeconds) {
@@ -97,7 +119,6 @@ export const redis = {
 
   // Get JSON value
   async getJSON(key: string) {
-    if (!redisConnected) return null;
     try {
       const value = await redisClient.get(key)
       if (value) {
@@ -112,7 +133,6 @@ export const redis = {
 
   // Close connection
   async quit() {
-    if (!redisConnected) return null;
     try {
       return await redisClient.quit()
     } catch (error) {

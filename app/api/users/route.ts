@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { verifyAuthFromRequest } from '@/lib/serverAuth'
 import { getCharacterImageUrl } from '@/lib/characterUtils'
 
 export async function GET(request: NextRequest) {
@@ -12,10 +13,10 @@ export async function GET(request: NextRequest) {
     }
 
     // 获取用户信息
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: userId },
       include: {
-        workstations: true
+        user_workstations: true
       }
     })
 
@@ -39,7 +40,18 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    // 强制进行身份验证，防止匿名创建/覆盖用户
+    const authResult = await verifyAuthFromRequest(request)
+    if (!authResult.success || !authResult.user) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+    }
+
     const { id, name, email, avatar, points } = await request.json()
+
+    // 只能管理自己的账户信息
+    if (id !== authResult.user.id) {
+      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 })
+    }
 
     if (!id || !name) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -63,7 +75,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 创建或更新用户
-    const user = await prisma.user.upsert({
+    const user = await prisma.users.upsert({
       where: { id },
       update: updateData,
       create: {
@@ -71,7 +83,8 @@ export async function POST(request: NextRequest) {
         name,
         email,
         avatar: avatar || null, // 存储角色key
-        points: points || 0
+        points: points || 0,
+        updatedAt: new Date()
       }
     })
 
@@ -91,7 +104,17 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
+    const authResult = await verifyAuthFromRequest(request)
+    if (!authResult.success || !authResult.user) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+    }
+
     const { userId, points } = await request.json()
+
+    // 只能管理自己的积分
+    if (userId !== authResult.user.id) {
+      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 })
+    }
 
     console.log('🔴 [API /api/users PUT] 收到请求:', { userId, points })
 
@@ -101,7 +124,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // 先查询当前积分
-    const currentUser = await prisma.user.findUnique({
+    const currentUser = await prisma.users.findUnique({
       where: { id: userId },
       select: { points: true }
     })
@@ -110,7 +133,7 @@ export async function PUT(request: NextRequest) {
 
     // 更新用户积分
     console.log('🔴 [API /api/users PUT] 开始更新数据库...')
-    const user = await prisma.user.update({
+    const user = await prisma.users.update({
       where: { id: userId },
       data: {
         points: { increment: points || 0 },

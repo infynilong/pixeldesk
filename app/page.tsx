@@ -6,6 +6,7 @@ import { EventBus, CollisionEvent } from '@/lib/eventBus'
 import { useUser } from '@/contexts/UserContext'
 import CharacterCreationModal from '@/components/CharacterCreationModal'
 import { statusHistoryManager } from '@/lib/statusHistory'
+import { useTranslation } from '@/lib/hooks/useTranslation'
 import {
   isFirstTimeVisitor,
   createTempPlayer,
@@ -20,6 +21,7 @@ declare global {
   interface Window {
     isUserAuthenticated: boolean // 用户是否已真正登录（非临时用户）
     setWorkstationBindingModal: (modalState: any) => void
+    showUnbindingDialog: (workstationId: number) => void
     showWorkstationInfo: (workstationId: number, userId: string) => void
     showPlayerInfo: (userId: string, userInfo: any) => void
     showCharacterInfo: (userId: string, userInfo: any, position: { x: number; y: number }) => void
@@ -40,6 +42,8 @@ declare global {
       pointsDeducted?: number
       remainingPoints?: number
     }>
+    disableGameInput: () => void
+    enableGameInput: () => void
   }
 }
 
@@ -49,7 +53,7 @@ import '@/lib/workstationBindingManager'
 // 动态导入PhaserGame组件以避免SSR问题
 const PhaserGame = dynamic(() => import('@/components/PhaserGame'), {
   ssr: false,
-  loading: () => <div className="flex items-center justify-center h-full bg-gray-900">加载游戏中...</div>
+  loading: () => <div className="flex items-center justify-center h-full bg-gray-900 font-pixel text-white">Loading Game...</div>
 })
 
 // 静态导入信息组件
@@ -95,16 +99,64 @@ const PostDetailModal = dynamic(() => import('@/components/PostDetailModal'), {
   ssr: false
 })
 
+const PostcardDesignerModal = dynamic(() => import('@/components/PostcardDesignerModal'), {
+  ssr: false
+})
+
+const PostcardRequestModal = dynamic(() => import('@/components/PostcardRequestModal'), {
+  ssr: false
+})
+
+// AI 聊天弹窗
+const AiChatModal = dynamic(() => import('@/components/AiChatModal'), {
+  ssr: false
+})
+
+// 前台客服聊天弹窗
+const FrontDeskChatModal = dynamic(() => import('@/components/FrontDeskChatModal'), {
+  ssr: false
+})
+
+// 图书馆弹窗
+const LibraryModal = dynamic(() => import('@/components/LibraryModal'), {
+  ssr: false
+})
+
+// 工位状态更新弹窗 (碰到自己工位时弹出)
+const WorkstationStatusPopup = dynamic(() => import('@/components/WorkstationStatusPopup'), {
+  ssr: false
+})
+
+// 大屏推流 UI
+const BillboardUI = dynamic(() => import('@/components/billboard/BillboardUI'), {
+  ssr: false
+})
+
+const WelcomeModal = dynamic(() => import('@/components/WelcomeModal'), {
+  ssr: false
+})
+
 export default function Home() {
   // 认证相关状态
   const { user, isLoading, playerExists, setPlayerExists } = useUser()
   const [showCharacterCreation, setShowCharacterCreation] = useState(false)
+  const [showPostcardDesigner, setShowPostcardDesigner] = useState(false)
+  const [postcardRequest, setPostcardRequest] = useState<{
+    exchangeId: string
+    senderId: string
+    senderName: string
+    senderAvatar?: string
+  } | null>(null)
+  const [showPostcardRequestModal, setShowPostcardRequestModal] = useState(false)
 
   // 临时玩家状态
   const [isTemporaryPlayer, setIsTemporaryPlayer] = useState(false)
   const [showAuthPrompt, setShowAuthPrompt] = useState(false)
   const [authPromptMessage, setAuthPromptMessage] = useState('')
   const [showAuthModal, setShowAuthModal] = useState(false)
+  const [authModalMode, setAuthModalMode] = useState<'login' | 'register'>('login')
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false)
+  const { t, locale } = useTranslation()
 
   // 设置全局登录状态标志
   useEffect(() => {
@@ -114,20 +166,16 @@ export default function Home() {
     }
   }, [user])
 
-  // 预加载积分配置（在应用启动时）
+  // 预加载积分配置（使用 ConfigStore，避免重复调用）
   useEffect(() => {
     const loadPointsConfig = async () => {
       try {
-        const response = await fetch('/api/points-config')
-        if (response.ok) {
-          const data = await response.json()
-          if (data.success) {
-            console.log('✅ 积分配置已预加载:', data.data)
-            // 可以将配置存储到全局状态或localStorage中
-            if (typeof window !== 'undefined') {
-              (window as any).pointsConfig = data.data
-            }
-          }
+        const { configStore } = await import('@/lib/stores/ConfigStore')
+        const config = await configStore.getPointsConfig()
+        // console.log('✅ 积分配置已预加载:', config)
+        // 将配置暴露到全局（用于 Phaser 游戏访问）
+        if (typeof window !== 'undefined') {
+          (window as any).pointsConfig = config
         }
       } catch (error) {
         console.error('⚠️ 预加载积分配置失败:', error)
@@ -150,10 +198,14 @@ export default function Home() {
   const [workstationStats, setWorkstationStats] = useState<any>(null)
 
   // 工位绑定弹窗状态
-  const [bindingModal, setBindingModal] = useState({
+  const [workstationModal, setWorkstationModal] = useState<{
+    isVisible: boolean,
+    workstation: any,
+    mode: 'bind' | 'unbind'
+  }>({
     isVisible: false,
     workstation: null,
-    user: null
+    mode: 'bind'
   })
 
   // 工位信息弹窗状态
@@ -175,6 +227,10 @@ export default function Home() {
   // 错误消息状态
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
+  // 记录上次成功加载工位绑定的用户ID，防止重复请求
+  const lastLoadedBindingUserId = useRef<string | null>(null)
+  const isBindingLoading = useRef(false)
+
   // Enhanced device detection
   const [deviceType, setDeviceType] = useState<'mobile' | 'tablet' | 'desktop'>('desktop')
   const [isTablet, setIsTablet] = useState(false)
@@ -183,33 +239,50 @@ export default function Home() {
   const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false)
   const [rightPanelCollapsed, setRightPanelCollapsed] = useState(false)
 
+  // AI 聊天弹窗状态
+  const [aiChatModal, setAiChatModal] = useState({
+    isOpen: false,
+    npcId: '',
+    npcName: '',
+    greeting: ''
+  })
+
+  // 前台客服聊天弹窗状态
+  const [frontDeskModal, setFrontDeskModal] = useState({
+    isOpen: false,
+    id: '',
+    name: '',
+    serviceScope: '',
+    greeting: ''
+  })
+
+  // 工位状态更新弹窗状态
+  const [showStatusPopup, setShowStatusPopup] = useState(false)
+
+  // 排行榜弹窗状态
+
   // 同步认证用户数据到currentUser状态，支持临时玩家
   const syncAuthenticatedUser = useCallback(async () => {
     if (user) {
       // 用户已登录 - 确保设置为非临时用户状态
-      // (临时玩家数据迁移已在UserContext中处理)
       setIsTemporaryPlayer(false)
 
-      // 从localStorage获取游戏相关数据（如角色、积分等）
       try {
         const gameUserData = localStorage.getItem('pixelDeskUser')
         if (gameUserData) {
           const gameUser = JSON.parse(gameUserData)
-          // 合并认证用户数据和游戏数据
           setCurrentUser({
             id: user.id,
             name: user.name,
             email: user.email,
             avatar: user.avatar,
             points: user.points || gameUser.points || 50,
-            // 保留游戏相关数据
             username: gameUser.username || user.name,
             character: gameUser.character,
             workstationId: gameUser.workstationId,
             workstations: gameUser.workstations || []
           })
         } else {
-          // 如果没有游戏数据，使用认证数据
           setCurrentUser((prev: any) => ({
             id: user.id,
             name: user.name,
@@ -217,60 +290,64 @@ export default function Home() {
             avatar: user.avatar,
             points: user.points || 50,
             username: user.name,
-            workstationId: prev?.workstationId, // 保留现有的工位绑定
+            workstationId: prev?.workstationId,
             workstations: []
           }))
         }
       } catch (error) {
-        // 加载游戏用户数据失败
-        // 出错时使用认证数据作为后备
+        console.error('Failed to parse game user data:', error)
         setCurrentUser((prev: any) => ({
           id: user.id,
           name: user.name,
           email: user.email,
           avatar: user.avatar,
-          points: user.points || 50,
-          username: user.name,
-          workstationId: prev?.workstationId, // 保留现有的工位绑定
-          workstations: []
+          workstationId: prev?.workstationId
         }))
       }
     } else {
       // 用户未登录 - 检查临时玩家或创建新的临时玩家
-      const tempPlayerData = getTempPlayerGameData()
+      let tempPlayerData = getTempPlayerGameData()
+
+      if (!tempPlayerData) {
+        // 如果没有临时玩家数据，则创建一个（无论是首次访问还是旧数据过期的访问）
+        await createTempPlayer()
+        tempPlayerData = getTempPlayerGameData()
+      }
 
       if (tempPlayerData) {
-        // 使用现有临时玩家
-        // 使用现有临时玩家
         setCurrentUser(tempPlayerData)
         setIsTemporaryPlayer(true)
-      } else if (isFirstTimeVisitor()) {
-        // 首次访问，创建临时玩家
-        // 首次访问用户，创建临时玩家
-        await createTempPlayer()
-        const tempGameData = getTempPlayerGameData()
-
-        if (tempGameData) {
-          setCurrentUser(tempGameData)
-          setIsTemporaryPlayer(true)
-        }
       } else {
-        // 既不是首次访问，也没有临时玩家数据 - 创建新的临时玩家（比如用户退出登录后）
-        // 用户退出登录，创建新临时玩家
-        await createTempPlayer()
-        const tempGameData = getTempPlayerGameData()
-
-        if (tempGameData) {
-          setCurrentUser(tempGameData)
-          setIsTemporaryPlayer(true)
-        } else {
-          // 如果临时玩家创建失败，设置为 null
-          setCurrentUser(null)
-          setIsTemporaryPlayer(false)
-        }
+        setCurrentUser(null)
+        setIsTemporaryPlayer(false)
       }
     }
   }, [user])
+
+  // 将 myStatus 同步到 Phaser 游戏实例
+  useEffect(() => {
+    if (typeof window !== 'undefined' && (window as any).updateMyStatus && myStatus) {
+      console.log('📤 [React Sync] 发送状态到 Phaser:', myStatus);
+      (window as any).updateMyStatus(myStatus);
+    }
+  }, [myStatus])
+
+  // 将 currentUser 同步到 Phaser 游戏实例
+  useEffect(() => {
+    if (typeof window !== 'undefined' && (window as any).updatePhaserUserData && currentUser) {
+      console.log('📤 [React Sync] 发送数据到 Phaser:', {
+        id: currentUser.id,
+        workstationId: currentUser.workstationId
+      });
+      (window as any).updatePhaserUserData(currentUser);
+    }
+  }, [currentUser])
+  // 检查首次访问
+  useEffect(() => {
+    if (isFirstTimeVisitor()) {
+      setShowWelcomeModal(true)
+    }
+  }, [])
 
   // 检测移动设备和加载用户数据 - 优化resize处理
   useEffect(() => {
@@ -301,8 +378,16 @@ export default function Home() {
 
     // 设置全局函数供Phaser调用
     if (typeof window !== 'undefined') {
-      window.setWorkstationBindingModal = (modalState: any) => {
-        setBindingModal(modalState)
+      window.setWorkstationBindingModal = ({ isVisible, workstation, mode = 'bind' }) => {
+        setWorkstationModal({ isVisible, workstation, mode })
+      }
+
+      window.showUnbindingDialog = (workstationId) => {
+        if (typeof window !== 'undefined' && window.workstationBindingManager) {
+          // 在解约场景下，我们只需要 ID，位置可以设为 0
+          const workstation = { id: workstationId, position: { x: 0, y: 0 } }
+          window.workstationBindingManager.showUnbindingDialog(workstation, user)
+        }
       }
 
       // 设置工位信息弹窗的全局函数
@@ -438,17 +523,45 @@ export default function Home() {
         setShowAuthPrompt(true)
       }
 
+      // 禁用/启用游戏输入的全局函数
+      window.disableGameInput = () => {
+        const scene = (window as any).gameScene
+        if (scene && scene.input) {
+          scene.input.enabled = false
+          console.log('🎮 游戏输入已禁用')
+        }
+      }
+
+      window.enableGameInput = () => {
+        const scene = (window as any).gameScene
+        if (scene && scene.input) {
+          scene.input.enabled = true
+          console.log('🎮 游戏输入已启用')
+        }
+      }
+
       // 监听Phaser游戏初始化完成事件
       window.addEventListener('phaser-game-ready', () => {
         // Phaser游戏已准备好
         loadWorkstationStats()
       })
 
-      // 监听工位统计数据更新事件（已禁用 - 改用后台API）
-      // 注意：工位统计现在完全从后台配置获取，不再使用Phaser游戏的统计
-      // window.addEventListener('workstation-stats-updated', (event: any) => {
-      //   setWorkstationStats(event.detail)
-      // })
+      // 监听工位解约事件
+      window.addEventListener('workstation-unbound', (event: any) => {
+        const { userId, workstationId } = event.detail
+        console.log(`🗑️ 工位解约成功: 玩家 ${userId}, 工位 ${workstationId}`)
+
+        // 1. 更新本地状态
+        setCurrentUser((prev: any) => {
+          if (prev && prev.id === userId) {
+            return { ...prev, workstationId: null }
+          }
+          return prev
+        })
+
+        // 2. 清理缓存
+        localStorage.removeItem(`workstation_binding_${userId}`)
+      })
     }
 
     checkDeviceType()
@@ -458,17 +571,24 @@ export default function Home() {
       window.removeEventListener('resize', debouncedCheckDeviceType)
       clearTimeout(resizeTimeout)
     }
-  }, [])
+  }, [user])
 
   // 监听认证用户变化，同步currentUser状态
   useEffect(() => {
     syncAuthenticatedUser()
 
     // 如果用户已认证，立即加载工位绑定信息
-    if (user?.id) {
+    if (user?.id && !isLoading) {
+      // 如果已经加载过该用户的绑定，或者正在进行加载，则跳过
+      if (lastLoadedBindingUserId.current === user.id || isBindingLoading.current) {
+        // console.log('⏭️ [Home] 跳过重复的工位绑定加载:', user.id)
+        return
+      }
+
       // 直接调用改进的工位绑定加载函数
       const loadBinding = async () => {
         // console.log('🔍 [inline-loadBinding] 开始加载用户工位绑定:', user.id)
+        isBindingLoading.current = true
 
         // 首先尝试从localStorage获取缓存的绑定信息
         const cachedBinding = localStorage.getItem(`workstation_binding_${user.id}`)
@@ -476,17 +596,22 @@ export default function Home() {
           try {
             const binding = JSON.parse(cachedBinding)
             // console.log('💾 [inline-loadBinding] 使用缓存的绑定信息:', binding)
-            setCurrentUser((prev: any) => ({
-              ...prev,
-              workstationId: String(binding.workstationId)
-            }))
+            setCurrentUser((prev: any) => {
+              // 只有在还没有workstationId或者不同的时候才更新，减少渲染次数
+              if (prev && prev.workstationId === String(binding.workstationId)) return prev
+              return {
+                ...prev,
+                workstationId: String(binding.workstationId)
+              }
+            })
           } catch (error) {
             // 缓存解析失败
           }
         }
 
         try {
-          const response = await fetch(`/api/workstations/user-bindings?userId=${user.id}&cleanup=true`)
+          // 优化：移除 cleanup=true，由服务端自动处理。减少 redundant 请求。
+          const response = await fetch(`/api/workstations/user-bindings?userId=${user.id}`)
 
           if (response.ok) {
             const data = await response.json()
@@ -510,23 +635,25 @@ export default function Home() {
                 timestamp: Date.now()
               }))
 
+              lastLoadedBindingUserId.current = user.id
               // console.log('✅ [inline-loadBinding] 工位绑定已加载:', workstationId)
 
             } else if (data.success && data.data.length === 0) {
-              setCurrentUser((prev: any) => ({
-                ...prev,
-                workstationId: null
-              }))
+              setCurrentUser((prev: any) => {
+                if (prev && prev.workstationId === null) return prev
+                return { ...prev, workstationId: null }
+              })
               localStorage.removeItem(`workstation_binding_${user.id}`)
+              lastLoadedBindingUserId.current = user.id
               // console.log('⚠️ [inline-loadBinding] 用户未绑定工位')
 
             } else if (!data.success && data.code?.startsWith('DB_')) {
               console.warn('⚠️ [inline-loadBinding] 数据库连接问题，使用缓存数据:', data.error)
               if (!cachedBinding) {
-                setCurrentUser((prev: any) => ({
-                  ...prev,
-                  workstationId: null
-                }))
+                setCurrentUser((prev: any) => {
+                  if (prev && prev.workstationId === null) return prev
+                  return { ...prev, workstationId: null }
+                })
               }
             }
           }
@@ -540,11 +667,16 @@ export default function Home() {
               workstationId: null
             }))
           }
+        } finally {
+          isBindingLoading.current = false
         }
       }
       loadBinding()
+    } else if (!user && !isLoading) {
+      // 退出登录时，清理状态
+      lastLoadedBindingUserId.current = null
     }
-  }, [user])
+  }, [user, isLoading, syncAuthenticatedUser])
 
   // 监听积分更新事件 - 优化：使用useRef避免频繁重建监听器
   const currentUserRef = useRef(currentUser)
@@ -571,18 +703,78 @@ export default function Home() {
     }
   }, []) // 移除currentUser依赖，避免频繁重建监听器
 
-  // 重新启用工位统计功能
+  // 监听 AI NPC 聊天事件
+  useEffect(() => {
+    const handleOpenAiChat = (event: CustomEvent) => {
+      const { npcId, npcName, greeting } = event.detail
+      console.log('🤖 打开 AI 聊天:', npcName)
+      setAiChatModal({
+        isOpen: true,
+        npcId,
+        npcName,
+        greeting: greeting || ''
+      })
+    }
+
+    // 监听前台客服聊天事件（由 F 键触发）
+    const handleOpenFrontDeskChat = (event: CustomEvent) => {
+      const { id, name, serviceScope, greeting } = event.detail
+      console.log('🏢 打开前台客服聊天:', name)
+      setFrontDeskModal({
+        isOpen: true,
+        id,
+        name,
+        serviceScope,
+        greeting: greeting || ''
+      })
+    }
+
+    // 监听前台碰撞事件（显示 toast 提示）
+    const handleFrontDeskCollision = (event: CustomEvent) => {
+      const { id, name, serviceScope, greeting } = event.detail
+      console.log('🏢 显示前台交互提示:', name)
+
+      // 在 Phaser 中显示提示（如果 gameScene 存在）
+      if (typeof window !== 'undefined' && (window as any).gameScene) {
+        (window as any).gameScene.showCollisionNotification(t.common.press_f_to_talk.replace('{name}', name), 'info')
+      }
+    }
+
+    window.addEventListener('open-ai-chat', handleOpenAiChat as EventListener)
+    window.addEventListener('open-front-desk-chat', handleOpenFrontDeskChat as EventListener)
+    window.addEventListener('front-desk-collision-start', handleFrontDeskCollision as EventListener)
+
+    // 监听碰到自己工位的事件
+    const handleMyWorkstationCollision = (e: any) => {
+      console.log('🎯 [Home] 收到碰撞事件 start:', e.detail)
+      setShowStatusPopup(true)
+    }
+    const handleMyWorkstationCollisionEnd = (e: any) => {
+      console.log('👋 [Home] 收到碰撞事件 end:', e.detail)
+      setShowStatusPopup(false)
+    }
+
+    window.addEventListener('my-workstation-collision-start', handleMyWorkstationCollision)
+    window.addEventListener('my-workstation-collision-end', handleMyWorkstationCollisionEnd)
+
+    return () => {
+      window.removeEventListener('open-ai-chat', handleOpenAiChat as EventListener)
+      window.removeEventListener('open-front-desk-chat', handleOpenFrontDeskChat as EventListener)
+      window.removeEventListener('front-desk-collision-start', handleFrontDeskCollision as EventListener)
+      window.removeEventListener('my-workstation-collision-start', handleMyWorkstationCollision)
+      window.removeEventListener('my-workstation-collision-end', handleMyWorkstationCollisionEnd)
+    }
+  }, [])
+
+  // 重新启用工位统计功能 - 优化：使用 ConfigStore 避免重复 API 调用
   const loadWorkstationStats = useCallback(async () => {
     try {
-      const response = await fetch('/api/workstations/stats')
-      if (response.ok) {
-        const data = await response.json()
-        if (data.success) {
-          setWorkstationStats(data.data)
-        }
-      }
+      const { configStore } = await import('@/lib/stores/ConfigStore')
+      const stats = await configStore.getStats()
+      setWorkstationStats(stats)
+      console.log('✅ [page.tsx] 工位统计已从 ConfigStore 加载')
     } catch (error) {
-      console.warn('Failed to load workstation stats:', error)
+      console.warn('❌ [page.tsx] 加载工位统计失败:', error)
     }
   }, [])
 
@@ -661,32 +853,18 @@ export default function Home() {
     console.log('[HomePage] Player click handler (legacy, actual handling in Phaser):', playerData)
   }, [])
 
-  // 处理工位绑定确认
-  const handleBindingConfirm = useCallback(async () => {
-    console.log('=== React handleBindingConfirm 被调用 ===')
-    try {
-      // 直接使用全局实例
-      if (typeof window !== 'undefined' && window.workstationBindingManager) {
-        const workstationBindingManager = window.workstationBindingManager
-        console.log('使用全局 workstationBindingManager:', workstationBindingManager)
-        console.log('workstationBindingManager 状态:', {
-          currentWorkstation: workstationBindingManager.getCurrentWorkstation(),
-          currentUser: workstationBindingManager.getCurrentUser(),
-          isProcessing: workstationBindingManager.isBindingProcessing()
-        })
+  /**
+   * 处理工位绑定或解约确认
+   */
+  const handleWorkstationBindingConfirm = useCallback(async () => {
+    if (!window.workstationBindingManager) return { success: false, error: 'Manager not loaded' }
 
-        const result = await workstationBindingManager.handleBindingConfirm()
-        console.log('绑定结果:', result)
-        return result
-      } else {
-        console.error('全局 workstationBindingManager 不存在')
-        return { success: false, error: '绑定管理器不可用' }
-      }
-    } catch (error) {
-      console.error('工位绑定失败:', error)
-      return { success: false, error: '绑定失败，请重试' }
+    if (workstationModal.mode === 'unbind') {
+      return await window.workstationBindingManager.handleUnbindingConfirm()
+    } else {
+      return await window.workstationBindingManager.handleBindingConfirm()
     }
-  }, [])
+  }, [workstationModal.mode])
 
   // 处理工位绑定取消
   const handleBindingCancel = useCallback(() => {
@@ -704,10 +882,10 @@ export default function Home() {
 
   // 关闭工位绑定弹窗
   const handleBindingModalClose = useCallback(() => {
-    setBindingModal({
+    setWorkstationModal({
       isVisible: false,
       workstation: null,
-      user: null
+      mode: 'bind'
     })
   }, [])
 
@@ -736,37 +914,74 @@ export default function Home() {
     window.open(`/posts/${postId}`, '_blank')
   }, [handlePostDetailModalClose])
 
-  // 检查Player状态 - 仅对正式用户检查
-  useEffect(() => {
-    if (user && playerExists === false && !isTemporaryPlayer) {
-      // PlayerExists状态由UserContext管理，这里直接显示角色创建弹窗
-      console.log('显示角色创建弹窗:', { user: !!user, playerExists, isTemporaryPlayer })
-      setShowCharacterCreation(true)
-    } else if (isTemporaryPlayer) {
-      // 临时玩家直接设置为已有玩家，不需要创建角色
-      setPlayerExists(true)
-      setShowCharacterCreation(false)
-    } else if (user && playerExists === true) {
-      // 用户已有角色，确保关闭弹窗
-      setShowCharacterCreation(false)
-    }
-  }, [user, playerExists, isTemporaryPlayer, setPlayerExists])
+  const handleOpenPostcardRequest = useCallback((request: any) => {
+    setPostcardRequest(request)
+    setShowPostcardRequestModal(true)
+  }, [])
 
-  // 额外的用户登录后状态检查 - 确保弹窗在登录后立即显示
-  useEffect(() => {
-    if (user && !isTemporaryPlayer) {
-      // 用户登录且不是临时用户，检查是否需要显示角色创建弹窗
-      // 添加小延迟确保playerExists状态已更新
-      const timer = setTimeout(() => {
-        if (playerExists === false) {
-          console.log('用户登录后检查角色状态，需要创建角色')
-          setShowCharacterCreation(true)
-        }
-      }, 100)
-
-      return () => clearTimeout(timer)
+  const handleAcceptExchange = async (exchangeId: string) => {
+    try {
+      const res = await fetch('/api/postcards/exchange', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ exchangeId, action: 'ACCEPT' })
+      })
+      const data = await res.json()
+      if (data.success) {
+        console.log(t.postcard?.swap_confirm_success || 'Exchange accepted!')
+        alert('Exchange successful! Card added to collection.')
+        setShowPostcardRequestModal(false)
+        setPostcardRequest(null)
+      } else {
+        console.error(data.error || 'Failed to accept')
+        alert(data.error || 'Failed to accept exchange. Make sure you have created your own postcard first!')
+      }
+    } catch (error) {
+      console.error('Accept exchange failed', error)
     }
-  }, [user, isTemporaryPlayer, playerExists])
+  }
+
+  const handleRejectExchange = async (exchangeId: string) => {
+    try {
+      const res = await fetch('/api/postcards/exchange', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ exchangeId, action: 'REJECT' })
+      })
+      const data = await res.json()
+      if (data.success) {
+        console.log(t.postcard?.swap_reject_success || 'Exchange rejected')
+        setShowPostcardRequestModal(false)
+        setPostcardRequest(null)
+      } else {
+        console.error(data.error || 'Failed to reject')
+      }
+    } catch (error) {
+      console.error('Reject exchange failed', error)
+    }
+  }
+
+  useEffect(() => {
+    // 只有在非登录状态下，才考虑临时玩家逻辑
+    if (user) {
+      setIsTemporaryPlayer(false)
+      if (playerExists === false) {
+        setShowCharacterCreation(true)
+      } else if (playerExists === true) {
+        setShowCharacterCreation(false)
+      }
+    } else {
+      // 未登录时的逻辑
+      const tempPlayerData = getTempPlayerGameData()
+      if (tempPlayerData) {
+        setIsTemporaryPlayer(true)
+        setPlayerExists(true) // 临时玩家不需要创建角色
+        setShowCharacterCreation(false)
+      }
+    }
+  }, [user, playerExists, setPlayerExists])
+
+  // 移除多余的延时检查，逻辑已在上方的 useEffect 中处理
 
   // 关闭工位信息弹窗
   const handleWorkstationInfoModalClose = useCallback(() => {
@@ -803,11 +1018,7 @@ export default function Home() {
         onStatusUpdate={handleStatusUpdate}
         currentStatus={myStatus}
         userId={currentUser?.id}
-        userData={{
-          username: currentUser?.name,
-          points: currentUser?.points,
-          workstationId: currentUser?.workstationId
-        }}
+        userData={currentUser}
       />
     )
   }, [handleStatusUpdate, myStatus, currentUser?.id, currentUser?.name, currentUser?.points, currentUser?.workstationId]) // 包含所有相关字段依赖
@@ -826,11 +1037,17 @@ export default function Home() {
       isTablet={isTablet}
       isCollapsed={leftPanelCollapsed}
       onCollapsedChange={setLeftPanelCollapsed}
+      onOpenPostcardDesigner={() => setShowPostcardDesigner(true)}
+      isTemporaryPlayer={isTemporaryPlayer}
+      onAuthClick={() => {
+        setAuthPromptMessage('登录或注册账号即可享受完整体验，包括工位绑定、名信片收集等功能！')
+        setShowAuthPrompt(true)
+      }}
     >
       {/* 状态更新组件 */}
       {memoizedPostStatus}
     </LeftPanel>
-  ), [currentUser?.id, currentUser?.name, currentUser?.points, workstationStats, isMobile, isTablet, memoizedPostStatus, leftPanelCollapsed])
+  ), [currentUser?.id, currentUser?.name, currentUser?.points, workstationStats, isMobile, isTablet, memoizedPostStatus, leftPanelCollapsed, isTemporaryPlayer])
 
   // Create memoized right panel content
   const memoizedRightPanel = useMemo(() => (
@@ -838,6 +1055,7 @@ export default function Home() {
       currentUser={currentUser}
       selectedPlayer={selectedPlayer}
       onPostClick={handlePostClick}
+      onOpenPostcardRequest={handleOpenPostcardRequest}
       isMobile={isMobile}
       isTablet={isTablet}
       isCollapsed={rightPanelCollapsed}
@@ -851,20 +1069,36 @@ export default function Home() {
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-black via-gray-900 to-black">
         <div className="flex flex-col items-center space-y-4">
           <div className="w-16 h-16 border-4 border-retro-purple border-t-transparent rounded-full "></div>
-          <p className="text-white text-lg">Loading PixelDesk...</p>
+          <p className="text-white text-lg">Loading Tembo PX Workshop...</p>
         </div>
       </div>
     )
   }
 
-  // 如果没有当前用户（既没有登录用户也没有临时玩家），直接显示游戏界面
-  // syncAuthenticatedUser会自动创建临时玩家
+  // 如果没有当前用户（既没有登录用户也没有临时玩家），显示准备中
   if (!currentUser) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-black via-gray-900 to-black">
         <div className="flex flex-col items-center space-y-4">
-          <div className="w-16 h-16 border-4 border-retro-purple border-t-transparent rounded-full "></div>
+          <div className="w-16 h-16 border-4 border-retro-purple border-t-transparent rounded-full animate-spin"></div>
           <p className="text-white text-lg">Preparing your gaming experience...</p>
+          <p className="text-gray-500 text-sm">正在初始化玩家数据... (isLoading: {String(isLoading)})</p>
+          <button
+            onClick={() => {
+              // 强制设置一个紧急的回退状态
+              setCurrentUser({
+                id: 'emergency-guest-' + Date.now(),
+                name: '访客',
+                character: 'hangli',
+                points: 100,
+                isTemporary: true
+              })
+              setIsTemporaryPlayer(true)
+            }}
+            className="mt-8 px-4 py-2 text-xs text-gray-400 hover:text-white border border-gray-800 rounded transition-colors"
+          >
+            如果长时间没响应，点击此处强制进入
+          </button>
         </div>
       </div>
     )
@@ -885,11 +1119,6 @@ export default function Home() {
             setPlayerExists(true)
             setShowCharacterCreation(false)
           }}
-          onSkip={() => {
-            console.log('跳过角色创建')
-            setShowCharacterCreation(false)
-            setPlayerExists(true) // 跳过后也允许进入游戏
-          }}
         />
       </div>
     )
@@ -909,12 +1138,13 @@ export default function Home() {
       {/* All modals */}
       {/* 工位绑定弹窗 */}
       <WorkstationBindingModal
-        isVisible={bindingModal.isVisible}
-        workstation={bindingModal.workstation}
-        user={bindingModal.user}
-        onConfirm={handleBindingConfirm}
-        onCancel={handleBindingCancel}
-        onClose={handleBindingModalClose}
+        isVisible={workstationModal.isVisible}
+        workstation={workstationModal.workstation}
+        user={user}
+        mode={workstationModal.mode}
+        onConfirm={handleWorkstationBindingConfirm}
+        onCancel={() => setWorkstationModal(prev => ({ ...prev, isVisible: false }))}
+        onClose={() => setWorkstationModal(prev => ({ ...prev, isVisible: false }))}
       />
 
       {/* 工位信息弹窗 */}
@@ -943,6 +1173,28 @@ export default function Home() {
         onClose={handlePostDetailModalClose}
         onNavigateToPage={handleNavigateToPostPage}
       />
+
+      {/* AI NPC 聊天弹窗 */}
+      <AiChatModal
+        isOpen={aiChatModal.isOpen}
+        onClose={() => setAiChatModal(prev => ({ ...prev, isOpen: false }))}
+        npcId={aiChatModal.npcId}
+        npcName={aiChatModal.npcName}
+        greeting={aiChatModal.greeting}
+      />
+
+      {/* 前台客服聊天弹窗 */}
+      <FrontDeskChatModal
+        isOpen={frontDeskModal.isOpen}
+        onClose={() => setFrontDeskModal(prev => ({ ...prev, isOpen: false }))}
+        deskInfo={{
+          id: frontDeskModal.id,
+          name: frontDeskModal.name,
+          serviceScope: frontDeskModal.serviceScope,
+          greeting: frontDeskModal.greeting
+        }}
+      />
+
 
       {/* 错误消息弹窗 */}
       {errorMessage && (
@@ -974,6 +1226,7 @@ export default function Home() {
       {showAuthPrompt && (
         <div className="fixed inset-0 bg-black flex items-center justify-center z-50 p-4">
           <div className="bg-gradient-to-br from-retro-bg-darker via-gray-900 to-retro-bg-darker border-2 border-retro-purple/30 rounded-xl p-6 w-full max-w-lg">
+            {/* 隐藏的背景遮罩（用于点击面板外部关闭） */}
             {/* 顶部装饰线 */}
             <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-20 h-1 bg-gradient-to-r from-retro-purple to-retro-pink"></div>
 
@@ -1027,9 +1280,20 @@ export default function Home() {
                 <button
                   onClick={() => {
                     setShowAuthPrompt(false)
+                    setAuthModalMode('login')
                     setShowAuthModal(true)
                   }}
-                  className="bg-gradient-to-r from-retro-purple to-retro-pink hover:from-retro-purple/90 hover:to-retro-pink/90 text-white font-bold py-2 px-6 rounded-lg  shadow-lg hover:shadow-purple-500/25 transform hover:scale-[1.02] active:scale-[0.98]"
+                  className="bg-retro-bg-dark border border-retro-border hover:bg-retro-border/30 text-white font-medium py-2 px-4 rounded-lg transition-all"
+                >
+                  已有账号登录
+                </button>
+                <button
+                  onClick={() => {
+                    setShowAuthPrompt(false)
+                    setAuthModalMode('register')
+                    setShowAuthModal(true)
+                  }}
+                  className="bg-gradient-to-r from-retro-purple to-retro-pink hover:from-retro-purple/90 hover:to-retro-pink/90 text-white font-bold py-2 px-6 rounded-lg shadow-lg hover:shadow-purple-500/25 transform hover:scale-[1.02] active:scale-[0.98]"
                 >
                   立即注册
                 </button>
@@ -1046,34 +1310,50 @@ export default function Home() {
         </div>
       )}
 
-      {/* 临时玩家状态指示器 */}
-      {isTemporaryPlayer && (
-        <div className="fixed bottom-4 left-4 z-40">
-          <div className="bg-gradient-to-r from-yellow-600/90 to-orange-600/90 backdrop-blur-sm rounded-lg px-4 py-2 border border-yellow-500/30">
-            <div className="flex items-center space-x-2">
-              <span className="text-white text-sm">🎮</span>
-              <span className="text-white text-sm font-medium">体验模式</span>
-              <button
-                onClick={() => {
-                  setAuthPromptMessage('注册账号即可享受完整游戏体验，包括工位绑定、进度保存等功能！')
-                  setShowAuthPrompt(true)
-                }}
-                className="text-yellow-200 hover:text-white text-xs underline "
-              >
-                升级账号
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* 临时玩家的认证模态框 */}
       {showAuthModal && (
         <AuthModal
           isOpen={showAuthModal}
           onClose={() => setShowAuthModal(false)}
+          initialMode={authModalMode}
         />
       )}
+
+      {/* 图书馆弹窗 - 始终监听，组件内部通过事件控制显示 */}
+      <LibraryModal onClose={() => console.log('Library closed')} />
+      <BillboardUI />
+
+      {/* 工位状态更新弹窗 */}
+      <WorkstationStatusPopup
+        isVisible={showStatusPopup}
+        onStatusUpdate={handleStatusUpdate}
+        onClose={() => setShowStatusPopup(false)}
+        userId={currentUser?.id}
+        workstationId={currentUser?.workstationId ? parseInt(currentUser.workstationId) : undefined}
+        language={(typeof window !== 'undefined' ? (localStorage.getItem('pixeldesk-language') || 'zh-CN') : 'zh-CN') as any}
+      />
+      <PostcardDesignerModal
+        isOpen={showPostcardDesigner}
+        onClose={() => setShowPostcardDesigner(false)}
+      />
+
+      <PostcardRequestModal
+        isOpen={showPostcardRequestModal}
+        onClose={() => setShowPostcardRequestModal(false)}
+        request={postcardRequest}
+        onAccept={handleAcceptExchange}
+        onReject={handleRejectExchange}
+      />
+
+      {/* 欢迎弹窗 */}
+      <WelcomeModal
+        isOpen={showWelcomeModal}
+        onClose={() => setShowWelcomeModal(false)}
+        onLogin={() => {
+          setAuthModalMode('login')
+          setShowAuthModal(true)
+        }}
+      />
     </div>
   )
 }

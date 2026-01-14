@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'User ID required' }, { status: 400 })
     }
 
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: userId }
     })
 
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
       updateData.avatar = avatar
     }
 
-    const user = await prisma.user.upsert({
+    const user = await prisma.users.upsert({
       where: { id },
       update: updateData,
       create: {
@@ -66,7 +66,8 @@ export async function POST(request: NextRequest) {
         name,
         email,
         avatar: avatar || null, // 存储角色key
-        points: points || 0
+        points: points || 0,
+        updatedAt: new Date()
       }
     })
 

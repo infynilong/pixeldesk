@@ -4,11 +4,17 @@ import { WashroomManager } from "../logic/WashroomManager.js"
 import { ZoomControl } from "../components/ZoomControl.js"
 import { WorkstationBindingUI } from "../components/WorkstationBindingUI.js"
 import { ChunkManager } from "../logic/ChunkManager.js"
+import { AiNpcManager } from "../logic/AiNpcManager.js"
+import { FrontDeskManager } from "../logic/FrontDeskManager.js"
+import { DayNightManager } from "../logic/DayNightManager.js"
+import { IndoorAreasManager } from "../logic/IndoorAreasManager.js"
+import { BillboardManager } from "../logic/BillboardManager.js"
+import { MobileControlsManager } from "../logic/MobileControlsManager.js"
 
 // ===== 性能优化配置 =====
 const PERFORMANCE_CONFIG = {
   // 禁用控制台日志以大幅减少CPU消耗（开发时可设为true）
-  ENABLE_DEBUG_LOGGING: false,
+  ENABLE_DEBUG_LOGGING: true,
   // 关键错误和警告仍然显示
   ENABLE_ERROR_LOGGING: true,
   // 性能监控日志
@@ -21,16 +27,36 @@ const debugWarn = PERFORMANCE_CONFIG.ENABLE_ERROR_LOGGING ? console.warn.bind(co
 const debugError = PERFORMANCE_CONFIG.ENABLE_ERROR_LOGGING ? console.error.bind(console) : () => { }
 const perfLog = PERFORMANCE_CONFIG.ENABLE_PERFORMANCE_LOGGING ? console.log.bind(console) : () => { }
 
+// ===== 渲染层级 (Depth) 配置 =====
+const MAP_DEPTHS = {
+  FLOOR: 0,
+  CARPET: 1,
+  BUILDING: 5,
+  FURNITURE: 10,
+  BILLBOARD: 15,
+  PLAYER: 100,
+  NPC: 100,
+  UI: 1000
+}
+
 export class Start extends Phaser.Scene {
   constructor() {
     super("Start")
     this.workstationManager = null
     this.washroomManager = null // 添加洗手间管理器
     this.chunkManager = null // 区块管理器
+    this.aiNpcManager = null // AI NPC管理器
+    this.frontDeskManager = null // 前台客服管理器
+    this.dayNightManager = null // 昼夜管理器
+    this.indoorAreasManager = null // 室内区域管理器
     this.player = null
     this.cursors = null
     this.wasdKeys = null
     this.deskColliders = null
+    this.billboardSensors = null // 📺 大屏近场感应区
+    this.billboardManager = null // 📺 大屏管理器 (Hot Billboard)
+    this.bulletinBoardSensors = null // 📋 公告栏 (Leaderboard) 感应区
+    this.mobileControls = null // 📱 移动端控制
     this.currentUser = null
     this.bindingUI = null
     this.otherPlayers = new Map() // 存储其他玩家
@@ -44,6 +70,60 @@ export class Start extends Phaser.Scene {
     this.playerDeskCollider = null // 玩家与工位group的碰撞器
     this.otherPlayersGroup = null  // 其他玩家的物理group
     this.playerCharacterCollider = null // 玩家与角色group的碰撞器
+
+    // 动态资源注册表 (按需加载)
+    this.dynamicAssetRegistry = {
+      // 书架 (优先使用 webp)
+      "bookcase_middle": "/assets/desk/library_bookcase_normal.png",
+      "library_bookcase_normal": "/assets/desk/library_bookcase_normal.png",
+      "bookcase_tall": "/assets/desk/library_bookcase_tall.webp",
+      "library_bookcase_tall": "/assets/desk/library_bookcase_tall.webp",
+      "library_bookcase_tall_webp": "/assets/desk/library_bookcase_tall.webp",
+      "Classroom_and_Library_Singles_48x48_58": "/assets/desk/Classroom_and_Library_Singles_48x48_58.png",
+
+      // 地垫 / 门垫 (GID 58)
+      "door_mat": "/assets/desk/Classroom_and_Library_Singles_48x48_58.png",
+
+      // 洗手间
+      "Shadowless_washhand": "/assets/bathroom/Shadowless_washhand.png",
+      "Bathroom_matong": "/assets/bathroom/Bathroom_matong.png",
+      "Shadowless_glass_2": "/assets/bathroom/Shadowless_glass_2.webp",
+      "Shadowless_glass": "/assets/bathroom/Shadowless_glass.png",
+
+      // 沙发
+      "sofa-left-1": "/assets/sofa/sofa-left-1.png",
+      "sofa-left-2": "/assets/sofa/sofa-left-2.png",
+      "sofa-left-3": "/assets/sofa/sofa-left-3.png",
+      "sofa-right-1": "/assets/sofa/sofa-right-1.png",
+      "sofa-right-2": "/assets/sofa/sofa-right-2.png",
+      "sofa-right-3": "/assets/sofa/sofa-right-3.png",
+
+      // 大桌/管理桌
+      "desk-big-manager-left-1": "/assets/desk/desk-big-manager-left-1.png",
+      "desk-big-manager-center-1": "/assets/desk/desk-big-manager-center-1.png",
+      "desk-big-manager-right-1": "/assets/desk/desk-big-manager-right-1.png",
+      "desk-big-manager-center-2": "/assets/desk/desk-big-manager-center-2.png",
+
+      // 装饰/其他
+      "flower": "/assets/tileset/flower.png",
+      "rug": "/assets/tileset/rug.png",
+      "cabinet": "/assets/tileset/cabinet.png",
+      "stair-red": "/assets/tileset/stair-red.png",
+      "announcement_board_wire": "/assets/announcement_board_wire.webp",
+      "front_wide_display": "/assets/front_wide_display.webp",
+      "wall_decoration_1": "/assets/desk/Classroom_and_Library_Singles_48x48_31.png",
+      "wall_decoration_2": "/assets/desk/Classroom_and_Library_Singles_48x48_32.png",
+      "wall_decoration_3": "/assets/desk/Classroom_and_Library_Singles_48x48_33.png",
+      "wall_decoration_4": "/assets/desk/Classroom_and_Library_Singles_48x48_39.png",
+      "wall_decoration_5": "/assets/desk/Classroom_and_Library_Singles_48x48_36.png",
+      "pixel_cafe_building": "/assets/building/pixel_cafe_building_512.png",
+      "cofe_desk_up": "/assets/desk/cofe_desk_up.png"
+    };
+
+    // 正在进行的动态加载任务
+    this.pendingLoads = new Set();
+    this.failedLoads = new Set(); // 🔧 记录加载失败的资源，避免循环重试
+    this.loadTimer = null;
   }
 
   preload() {
@@ -51,6 +131,7 @@ export class Start extends Phaser.Scene {
     this.loadTilemap()
     this.loadTilesetImages()
     this.loadLibraryImages()
+
   }
 
   async create() {
@@ -124,109 +205,109 @@ export class Start extends Phaser.Scene {
 
       // 添加简单的键盘控制接口
       window.disableGameKeyboard = () => {
-        // 游戏键盘输入已禁用
+        console.log('🎮 [Internal] Disabling Game Keyboard');
         this.keyboardInputEnabled = false;
 
-        // 彻底停用Phaser的键盘处理
         if (this.input && this.input.keyboard) {
-          // 移除所有键盘监听
-          this.input.keyboard.removeAllKeys();
-          this.cursors = null;
-          this.wasdKeys = null;
+          // 1. 停止当前物理移动
+          if (this.player && this.player.body) {
+            this.player.body.setVelocity(0, 0);
+          }
 
-          // 停用键盘管理器
+          // 2. 核心修复：重置所有按键状态，防止“粘滞键”和自动走向大老远的问题
+          this.input.keyboard.resetKeys();
+
+          // 3. 停用阻止默认行为，允许在输入框中输入 WASD
+          this.input.keyboard.preventDefault = false;
+
+          // 4. 彻底停用按键管理器
           this.input.keyboard.enabled = false;
-
-          // 清除任何现有的键盘事件捕获
-          if (this.input.keyboard.capture && this.input.keyboard.capture.length > 0) {
-            this.input.keyboard.capture = [];
-          }
-
-          // 移除canvas上的键盘事件监听
-          const canvas = this.game.canvas;
-          if (canvas) {
-            // 移除tabindex，让canvas不能获得焦点
-            canvas.removeAttribute('tabindex');
-            // 如果canvas当前有焦点，移除焦点
-            if (document.activeElement === canvas) {
-              canvas.blur();
-            }
-
-            // 临时添加事件监听器阻止键盘事件传播到Phaser
-            this.keyboardBlockHandler = (event) => {
-              // 检查事件是否来自输入元素
-              const isFromInput = event.target.tagName.toLowerCase() === 'input' ||
-                event.target.tagName.toLowerCase() === 'textarea' ||
-                event.target.contentEditable === 'true';
-
-              if (isFromInput) {
-                // 如果来自输入元素，不阻止事件，让输入正常工作
-                return;
-              }
-
-              // 对于其他情况，阻止事件传播到Phaser
-              event.stopPropagation();
-            };
-
-            // 在捕获阶段添加监听器，优先级更高
-            document.addEventListener('keydown', this.keyboardBlockHandler, true);
-            document.addEventListener('keyup', this.keyboardBlockHandler, true);
-            document.addEventListener('keypress', this.keyboardBlockHandler, true);
-          }
-
-          // 完全禁用Phaser的keyboard插件
           if (this.input.keyboard.manager) {
             this.input.keyboard.manager.enabled = false;
           }
 
-          // Phaser键盘完全禁用
-        }
+          // 5. 暂时禁用 canvas 焦点及TabIndex
+          const canvas = this.game.canvas;
+          if (canvas) {
+            canvas.removeAttribute('tabindex');
+            if (document.activeElement === canvas) {
+              canvas.blur();
+            }
+          }
 
+          // 6. 全局拦截拦截穿透事件 (双保险)
+          if (!this.keyboardBlockHandler) {
+            this.keyboardBlockHandler = (event) => {
+              const target = event.target;
+              const isFromInput = target.tagName.toLowerCase() === 'input' ||
+                target.tagName.toLowerCase() === 'textarea' ||
+                target.contentEditable === 'true';
+
+              // 如果是输入框事件，允许传播；否则停止传播以保护 Phaser 内部状态
+              if (isFromInput) return;
+              event.stopPropagation();
+            };
+            document.addEventListener('keydown', this.keyboardBlockHandler, true);
+            document.addEventListener('keyup', this.keyboardBlockHandler, true);
+          }
+        }
         return { success: true, enabled: false };
       }
 
       window.enableGameKeyboard = () => {
-        // 游戏键盘输入已启用
+        console.log('🎮 [Internal] Enabling Game Keyboard');
         this.keyboardInputEnabled = true;
 
-        // 重新启用Phaser的键盘处理
         if (this.input && this.input.keyboard) {
-          // 移除临时的键盘事件拦截器
+          // 1. 移除全局拦截器
           if (this.keyboardBlockHandler) {
             document.removeEventListener('keydown', this.keyboardBlockHandler, true);
             document.removeEventListener('keyup', this.keyboardBlockHandler, true);
-            document.removeEventListener('keypress', this.keyboardBlockHandler, true);
             this.keyboardBlockHandler = null;
-            // 已移除键盘事件拦截器
           }
 
-          // 重新启用键盘管理器
+          // 2. 重新启用 Phaser 键盘
           this.input.keyboard.enabled = true;
-
-          // 重新启用Phaser的keyboard插件
           if (this.input.keyboard.manager) {
             this.input.keyboard.manager.enabled = true;
           }
 
-          // 恢复canvas的tabindex，让它可以获得焦点
+          // 3. 恢复阻止默认行为，保护游戏健位
+          this.input.keyboard.preventDefault = true;
+
+          // 4. 恢复 canvas 聚焦能力
           const canvas = this.game.canvas;
           if (canvas) {
             canvas.setAttribute('tabindex', '0');
+            // 延迟一点点聚焦，确保 DOM 状态已更新
+            setTimeout(() => canvas.focus(), 10);
           }
 
-          // 重新创建键盘监听
-          this.cursors = this.input.keyboard.createCursorKeys();
-          this.wasdKeys = this.input.keyboard.addKeys('W,S,A,D');
+          // 5. 确保按键状态是干净的
+          this.input.keyboard.resetKeys();
 
-          // Phaser键盘完全恢复
+          // 6. 确保 cursors 重建并可用
+          if (!this.cursors) {
+            this.cursors = this.input.keyboard.createCursorKeys();
+          }
+          if (!this.wasdKeys) {
+            this.wasdKeys = this.input.keyboard.addKeys('W,S,A,D');
+          }
         }
-
         return { success: true, enabled: true };
       }
 
       window.isGameKeyboardEnabled = () => {
         return { enabled: this.keyboardInputEnabled !== false };
       }
+
+      // 窗口重新获得焦点时重置按键状态，防止粘滞键
+      window.addEventListener('focus', () => {
+        if (this.keyboardInputEnabled !== false && this.input && this.input.keyboard) {
+          console.log('🎮 [Internal] Window Focused - Resetting Keys');
+          this.input.keyboard.resetKeys();
+        }
+      });
 
       // 游戏状态测试函数已移除以优化性能
 
@@ -258,6 +339,19 @@ export class Start extends Phaser.Scene {
         return { success: false, error: '玩家对象不存在' };
       }
 
+      // 添加全局鼠标交互控制接口
+      window.disableGameMouse = () => {
+        console.log('🖱️ [Internal] Disabling Game Mouse');
+        if (this.input) this.input.enabled = false;
+        return { success: true };
+      };
+
+      window.enableGameMouse = () => {
+        console.log('🖱️ [Internal] Enabling Game Mouse');
+        if (this.input) this.input.enabled = true;
+        return { success: true };
+      };
+
       // 添加禁用玩家移动的全局函数
       window.disablePlayerMovement = () => {
         // 禁用玩家移动
@@ -275,252 +369,518 @@ export class Start extends Phaser.Scene {
         return { success: false, error: '玩家对象不存在' };
       }
 
+      // 交互恢复逻辑：点击游戏区域时，如果焦点在输入框，自动释放焦点以回复键盘控制
+      this.input.on('pointerdown', () => {
+        const activeElement = document.activeElement;
+        const isInput = activeElement && (
+          activeElement.tagName === 'INPUT' ||
+          activeElement.tagName === 'TEXTAREA' ||
+          activeElement.contentEditable === 'true'
+        );
+
+        console.log('🎮 Game Canvas Clicked, Active Element:', activeElement?.tagName, 'Is Input:', isInput);
+
+        if (isInput) {
+          activeElement.blur();
+        }
+
+        // 无论当前是否有输入框焦点，点击 Canvas 都尝试唤醒键盘
+        window.enableGameKeyboard();
+
+        window.focus();
+        if (this.game.canvas) this.game.canvas.focus();
+      });
+
       // 触发Phaser游戏初始化完成事件
       window.dispatchEvent(new Event("phaser-game-ready"))
-    }
 
-    // 初始化碰撞检测系统
-    this.collisionSensitivity = 50 // 碰撞检测半径
-    this.currentCollisions = new Set() // 当前碰撞的玩家
-    this.collisionHistory = [] // 碰撞历史记录
-    this.collisionDebounceTime = 100 // 防抖时间（毫秒）
-    this.lastCollisionCheck = 0
+      // 初始化碰撞检测系统
+      this.collisionSensitivity = 50 // 碰撞检测半径
+      this.currentCollisions = new Set() // 当前碰撞的玩家
+      this.collisionHistory = [] // 碰撞历史记录
+      this.collisionDebounceTime = 100 // 防抖时间（毫秒）
+      this.lastCollisionCheck = 0
 
-    // 碰撞检测系统已初始化
+      // 碰撞检测系统已初始化
 
-    // Initialize performance optimization systems - 临时禁用以修复移动问题
-    // this.initializeOptimizationSystems()
+      // Initialize performance optimization systems - 临时禁用以修复移动问题
+      // this.initializeOptimizationSystems()
 
-    // 初始化简单的键盘输入控制
-    this.keyboardInputEnabled = true // 默认启用
-    // 简化键盘输入控制已初始化
+      // 初始化简单的键盘输入控制
+      this.keyboardInputEnabled = true // 默认启用
+      // 简化键盘输入控制已初始化
 
-    // 获取用户数据（从场景参数或本地存储）
-    const sceneData = this.scene.settings.data || {}
-    this.currentUser = sceneData.userData || this.getCurrentUserFromStorage()
+      // 获取用户数据（从场景参数获取，React会通过参数传进来）
+      const sceneData = this.scene.settings.data || {}
+      this.currentUser = sceneData.userData
 
-    if (!this.currentUser) {
-      // 在新的认证系统下，如果没有用户数据，创建默认临时数据
-      // React层面已经处理了认证和角色创建
-      // 没有找到用户数据，使用默认设置
-      this.currentUser = {
-        id: 'temp_user',
-        username: 'Guest',
-        character: 'hangli',
-        points: 50,
-        gold: 50
-      }
-    }
-
-    // 同步用户数据到数据库
-    this.syncUserToDatabase()
-
-    // 确保积分字段一致性 - 如果有gold字段但没有points字段，进行同步
-    if (
-      this.currentUser.gold !== undefined &&
-      this.currentUser.points === undefined
-    ) {
-      this.currentUser.points = this.currentUser.gold
-      // 同步积分字段：gold -> points
-    } else if (
-      this.currentUser.points !== undefined &&
-      this.currentUser.gold === undefined
-    ) {
-      this.currentUser.gold = this.currentUser.points
-      // 同步积分字段：points -> gold
-    }
-
-    // 游戏逻辑
-    this.userData = {
-      username: this.currentUser.username,
-      level: 1,
-      hp: 80,
-      maxHp: 100,
-      gold: 150,
-      deskCount: 1000,
-    }
-
-    // 初始化其他玩家物理组（用于碰撞检测）
-    // 🔧 关键修复：必须在WorkstationManager创建之前初始化，因为loadWorkstation可能会立即尝试添加角色到这个组
-    this.otherPlayersGroup = this.physics.add.group()
-    debugLog('✅ [Start] otherPlayersGroup 物理组已初始化')
-
-    // 初始化工位管理器
-    this.workstationManager = new WorkstationManager(this)
-
-    // 🚀 启用视口优化功能 
-    this.workstationManager.enableViewportOptimization()
-    // 视口优化已启用
-
-    // 初始化洗手间管理器
-    this.washroomManager = new WashroomManager(this)
-    // 初始化工位绑定UI
-    this.bindingUI = new WorkstationBindingUI(this)
-
-    // 为UI更新设置定时器而不是每帧更新
-    // 暂时禁用UI更新定时器以排查CPU占用问题
-    // this.uiUpdateTimer = this.time.addEvent({
-    //   delay: 1000, // 改为每秒更新一次
-    //   callback: () => {
-    //     if (this.bindingUI) {
-    //       this.bindingUI.update()
-    //     }
-    //   },
-    //   callbackScope: this,
-    //   loop: true
-    // })
-
-    this.setupWorkstationEvents()
-    this.setupUserEvents()
-
-    // 🔧 性能优化：创建其他玩家/角色的物理group（用于碰撞检测）
-    this.otherPlayersGroup = this.physics.add.group({
-      collideWorldBounds: false
-    })
-    debugLog('✅ 其他玩家group已创建')
-
-    const map = this.createTilemap()
-    this.mapLayers = this.createTilesetLayers(map)
-    this.renderObjectLayer(map, "desk_objs")
-
-    // 创建洗手间
-    this.washroomManager.createWashroom(map)
-    this.renderObjectLayer(map, "washroom/washroom_objs")
-
-    // 创建floor图层
-    this.renderObjectLayer(map, "floor")
-
-    // 从数据库加载玩家保存的位置和状态
-    let playerStartX = null
-    let playerStartY = null
-    let playerDirection = null
-
-    try {
-      debugLog('🔍 Loading player position from database...')
-
-      // 直接使用 fetch 调用 API
-      const response = await fetch('/api/player', {
-        method: 'GET',
-        credentials: 'include'
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        if (data.success && data.hasPlayer && data.data?.player) {
-          playerStartX = data.data.player.currentX
-          playerStartY = data.data.player.currentY
-          playerDirection = data.data.player.playerState?.direction || null
-          debugLog('✅ Loaded player position from database:',
-            playerStartX, playerStartY, 'direction:', playerDirection)
+      if (!this.currentUser) {
+        // 如果没有从React传过来，尝试从本地缓存获取（仅作为备选）
+        // 这里的逻辑应该由 React 层面统一调度
+        const cachedUser = this.getCurrentUserFromStorage()
+        if (cachedUser) {
+          this.currentUser = cachedUser
         } else {
-          debugLog('ℹ️ No saved position found, will use Tiled map default')
+          // 没有找到用户数据，使用默认设置
+          this.currentUser = {
+            id: 'temp_user',
+            username: 'Guest',
+            character: 'hangli',
+            points: 100,
+            gold: 100
+          }
         }
-      } else {
-        debugLog('ℹ️ Failed to fetch player data, status:', response.status)
       }
-    } catch (error) {
-      debugWarn('⚠️ Failed to load player position from database, using default:', error)
-    }
 
-    // 创建玩家 - 传入保存的位置和朝向（如果有）
-    this.createPlayer(map, playerStartX, playerStartY, playerDirection)
+      // 注意：不再在Phaser内部主动调用 syncUserToDatabase()
+      // 用户数据的持久化应由 app/api/player 等后台接口统一处理，或由 React 层面触发同步
 
-    // 设置输入
-    this.setupInput()
+      // 暴露全局方法给React同步最新的用户数据
+      if (typeof window !== 'undefined') {
+        window.updatePhaserUserData = (userData) => {
+          if (!userData) return
+          console.log('🔄 [Phaser Sync] 收到 React 数据:', {
+            id: userData.id,
+            workstationId: userData.workstationId,
+            points: userData.points
+          })
+          this.currentUser = { ...this.currentUser, ...userData }
+          // 同时也更新WorkstationManager中的引用
+          if (this.workstationManager) {
+            this.workstationManager.currentUser = this.currentUser
+          }
+        }
+      }
 
-    // 设置相机
-    this.setupCamera(map)
+      // 确保积分字段一致性 - 如果有gold字段但没有points字段，进行同步
+      if (
+        this.currentUser.gold !== undefined &&
+        this.currentUser.points === undefined
+      ) {
+        this.currentUser.points = this.currentUser.gold
+        // 同步积分字段：gold -> points
+      } else if (
+        this.currentUser.points !== undefined &&
+        this.currentUser.gold === undefined
+      ) {
+        this.currentUser.gold = this.currentUser.points
+        // 同步积分字段：points -> gold
+      }
 
-    // 🔧 关键修复：相机设置完成后，立即更新区块（确保加载玩家周围的工位）
-    if (this.chunkManager) {
-      debugLog('🎯 相机设置完成，强制更新区块')
-      this.time.delayedCall(50, () => {
-        this.chunkManager.updateActiveChunks()
-      })
+      // 游戏逻辑
+      this.userData = {
+        username: this.currentUser.username,
+        level: 1,
+        hp: 80,
+        maxHp: 100,
+        gold: 150,
+        deskCount: 1000,
+      }
 
-      // 🔧 双保险：区块加载后再次确保碰撞器已创建
-      this.time.delayedCall(500, () => {
-        this.ensurePlayerDeskCollider()
-      })
-    }
+      // 初始化其他玩家物理组（用于碰撞检测）
+      // 🔧 关键修复：必须在WorkstationManager创建之前初始化，因为loadWorkstation可能会立即尝试添加角色到这个组
+      if (!this.otherPlayersGroup) {
+        this.otherPlayersGroup = this.physics.add.group({ immovable: true })
+        this.otherPlayersGroup.setDepth(MAP_DEPTHS.PLAYER)
+      }
+      this.npcGroup = this.physics.add.group({ immovable: true })
+      debugLog('✅ [Start] player groups 物理组已初始化')
 
-    // 设置社交功能
-    this.setupSocialFeatures()
+      // 初始化工位管理器
+      this.workstationManager = new WorkstationManager(this)
 
-    // 创建完成后的初始化
-    this.time.delayedCall(100, async () => {
-      // 清理所有现有绑定和星星标记
-      this.workstationManager.clearAllBindings()
-      this.workstationManager.printStatistics()
+      // 🚀 启用视口优化功能 
+      this.workstationManager.enableViewportOptimization()
+      // 视口优化已启用
 
-      // 从服务器同步工位绑定信息 - 重新启用，但添加错误处理
+      // 初始化洗手间管理器
+      this.washroomManager = new WashroomManager(this)
+      // 初始化工位绑定UI
+      this.bindingUI = new WorkstationBindingUI(this)
+
+      // 初始化 AI NPC 管理器
+      this.aiNpcManager = new AiNpcManager(this)
+
+      // 初始化前台客服管理器
+      this.frontDeskManager = new FrontDeskManager(this)
+
+      // 📺 初始化大屏管理器
+      this.billboardManager = new BillboardManager(this)
+      this.billboardSensors = this.physics.add.group() // 动态组，作为触发器用
+      this.bulletinBoardSensors = this.physics.add.group() // 📋 公告栏感应器组
+
+      // 为UI更新设置定时器而不是每帧更新
+      // 暂时禁用UI更新定时器以排查CPU占用问题
+      // this.uiUpdateTimer = this.time.addEvent({
+      //   delay: 1000, // 改为每秒更新一次
+      //   callback: () => {
+      //     if (this.bindingUI) {
+      //       this.bindingUI.update()
+      //     }
+      //   },
+      //   callbackScope: this,
+      //   loop: true
+      // })
+
+      this.setupWorkstationEvents()
+      this.setupUserEvents()
+
+      // 🔧 性能优化：创建其他玩家/角色的物理group（用于碰撞检测）
+      // 已在上方统一初始化，此处仅保留逻辑说明
+      debugLog('✅ 玩家物理组已准备就绪')
+
+      const map = this.createTilemap()
+      this.mapLayers = this.createTilesetLayers(map)
+      this.renderObjectLayer(map, "desk_objs")
+
+      // 创建洗手间
+      this.washroomManager.createWashroom(map)
+      this.renderObjectLayer(map, "washroom/washroom_objs")
+
+      // 创建floor图层
+      this.renderObjectLayer(map, "floor")
+
+      // 🔧 关键修复：在渲染前台对象之前，先初始化FrontDeskManager并等待API数据加载完成
+      if (this.frontDeskManager) {
+        try {
+          await this.frontDeskManager.init()
+          console.log('✅ [Start] FrontDeskManager 初始化完成，API数据已加载')
+        } catch (error) {
+          console.error('❌ [Start] FrontDeskManager 初始化失败:', error)
+        }
+      }
+
+      // 创建前台图层（确保在FrontDeskManager初始化之后）
       try {
-        await this.workstationManager.syncWorkstationBindings()
+        this.renderObjectLayer(map, "front_desk_objs")
+      } catch (e) {
+        console.warn("Front desk layer optional/missing")
+      }
+
+      // 创建书架图层
+      try {
+        this.renderObjectLayer(map, "bookcase_objs")
+      } catch (e) {
+        console.warn("Bookcase layer optional/missing")
+      }
+
+      // 创建大屏预览对象图层
+      try {
+        this.renderObjectLayer(map, "front_display")
+      } catch (e) {
+        console.warn("Front display layer optional/missing")
+      }
+
+      // 🖼️ 渲染装饰图层 (由用户新增)
+      try {
+        this.renderObjectLayer(map, "wall_obj")
+      } catch (e) {
+        console.warn("Wall decoration layer missing")
+      }
+
+      // 🏰 渲染建筑图层 (由用户新增)
+      try {
+        this.renderObjectLayer(map, "building")
+      } catch (e) {
+        console.warn("Building layer missing")
+      }
+
+      // 所有对象层加载完毕后，统一初始化区块系统
+      if (this.workstationObjects.length > 0) {
+        this.initializeChunkSystem()
+      }
+
+      // 🔧 混合加载逻辑：检查数据库和 localStorage
+      let playerStartX = null
+      let playerStartY = null
+      let playerDirection = null
+
+      try {
+        debugLog('🔍 正在加载玩家位置 (数据库)...')
+        const response = await fetch('/api/player', {
+          method: 'GET',
+          credentials: 'include'
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success && data.hasPlayer && data.data?.player) {
+            playerStartX = data.data.player.currentX
+            playerStartY = data.data.player.currentY
+            playerDirection = data.data.player.playerState?.direction || null
+
+            // 同步用户状态
+            if (data.data.user && data.data.user.current_status) {
+              this.currentUser = { ...this.currentUser, currentStatus: data.data.user.current_status }
+            }
+          }
+        }
       } catch (error) {
-        debugError('同步工位绑定失败，但游戏继续运行:', error)
+        debugWarn('⚠️ 数据库加载失败:', error)
       }
 
-      // 高亮当前用户的工位
-      if (this.currentUser) {
-        this.workstationManager.highlightUserWorkstation(this.currentUser.id)
+      // 检查本地缓存是否更新
+      try {
+        const localStateStr = localStorage.getItem('playerState')
+        if (localStateStr) {
+          const localState = JSON.parse(localStateStr)
+          // 如果数据库没有数据，或者本地缓存是最新移动的（简单判断：有本地缓存就优先，因为本地同步是毫秒级的）
+          if (playerStartX === null || localState.x !== undefined) {
+            debugLog('📱 发现本地缓存位置，将优先使用本地数据以实现无缝恢复')
+            playerStartX = localState.x
+            playerStartY = localState.y
+            playerDirection = localState.direction || playerDirection
+          }
+        }
+      } catch (e) {
+        debugWarn('⚠️ 本地缓存解析失败:', e)
       }
 
-      // 检查过期工位
-      this.checkExpiredWorkstations()
+      // 创建玩家 - 传入保存的位置和朝向（如果有）
+      await this.createPlayer(map, playerStartX, playerStartY, playerDirection)
 
-      // 设置定时同步工位状态（每30秒）- 重新启用但添加错误处理
-      this.setupWorkstationSync()
+      // 设置输入
+      this.setupInput()
 
-      // 更新UI显示用户数据（积分和工位绑定状态）
+      // 加载 AI NPCs
+      if (this.aiNpcManager) {
+        this.aiNpcManager.init()
+      }
+
+      // 📱 初始化移动端控制
+      this.mobileControls = new MobileControlsManager(this)
+      this.mobileControls.init()
+
+      // 监听移动端交互
+      this.events.on('mobile-action-press', () => {
+        this.handleInteraction()
+      })
+
+      // 前台客服已在渲染前台对象之前初始化完成，这里不需要再次调用
+      // 如果frontDeskManager未初始化，在这里也不应该再初始化（会导致重复加载）
+
+      // 设置相机
+      this.setupCamera(map)
+
+      // 🔧 关键修复：相机设置完成后，立即更新区块（确保加载玩家周围的工位）
+      if (this.chunkManager) {
+        debugLog('🎯 相机设置完成，强制更新区块')
+        this.time.delayedCall(50, () => {
+          this.chunkManager.updateActiveChunks()
+        })
+
+        // 🔧 双保险：区块加载后再次确保碰撞器已创建
+        this.time.delayedCall(500, () => {
+          this.ensurePlayerDeskCollider()
+        })
+      }
+
+      // 设置社交功能
+      this.setupSocialFeatures()
+
+      // 创建完成后的初始化
+      this.time.delayedCall(100, async () => {
+        // 清理所有现有绑定和星星标记
+        this.workstationManager.clearAllBindings()
+        this.workstationManager.printStatistics()
+
+        // 从服务器同步工位绑定信息 - 重新启用，但添加错误处理
+        try {
+          await this.workstationManager.syncWorkstationBindings()
+        } catch (error) {
+          debugError('同步工位绑定失败，但游戏继续运行:', error)
+        }
+
+        // 高亮当前用户的工位
+        if (this.currentUser) {
+          this.workstationManager.highlightUserWorkstation(this.currentUser.id)
+        }
+
+        // 检查过期工位
+        this.checkExpiredWorkstations()
+
+        // 设置定时同步工位状态（每30秒）- 重新启用但添加错误处理
+        this.setupWorkstationSync()
+
+        // 更新UI显示用户数据（积分和工位绑定状态）
+        this.sendUserDataToUI()
+
+        // 确保玩家移动是启用的
+        // 检查玩家移动状态
+        // enableMovement属性检查
+        // enableMovement方法类型检查
+        if (this.player && !this.player.enableMovement) {
+          this.player.enableMovement = true
+          // 设置enableMovement属性为true
+        } else if (
+          this.player &&
+          typeof this.player.enableMovement === "function"
+        ) {
+          this.player.enableMovement()
+          // 调用enableMovement()方法
+        }
+
+        // 保存游戏场景引用到全局变量，供工位绑定使用
+        this.saveGameScene()
+
+        // 移除定期检查玩家移动的定时器以优化CPU使用
+        // 玩家移动问题现在通过其他机制处理，不需要每2秒检查
+      })
+
+      // 发送用户数据到UI
       this.sendUserDataToUI()
 
-      // 确保玩家移动是启用的
-      // 检查玩家移动状态
-      // enableMovement属性检查
-      // enableMovement方法类型检查
-      if (this.player && !this.player.enableMovement) {
-        this.player.enableMovement = true
-        // 设置enableMovement属性为true
-      } else if (
-        this.player &&
-        typeof this.player.enableMovement === "function"
-      ) {
-        this.player.enableMovement()
-        // 调用enableMovement()方法
-      }
-
-      // 保存游戏场景引用到全局变量，供工位绑定使用
+      // 保存游戏场景引用，确保工位绑定功能可用
       this.saveGameScene()
 
-      // 移除定期检查玩家移动的定时器以优化CPU使用
-      // 玩家移动问题现在通过其他机制处理，不需要每2秒检查
-    })
+      // AI NPC 已经在上方的 aiNpcManager.init() 中加载
 
-    // 发送用户数据到UI
-    this.sendUserDataToUI()
+      // 🌓 初始化昼夜系统
+      this.initializeDayNightSystem()
 
-    // 保存游戏场景引用，确保工位绑定功能可用
-    this.saveGameScene()
+      console.log('🎮 游戏配置信息:', {
+        渲染器: this.game.renderer.type === 0 ? 'CANVAS' : 'WEBGL',
+        尺寸: `${this.game.config.width}x${this.game.config.height}`,
+        FPS目标: this.game.loop.targetFps,
+        实际FPS: this.game.loop.actualFps
+      });
 
-    console.log('🎮 游戏配置信息:', {
-      渲染器: this.game.renderer.type === 0 ? 'CANVAS' : 'WEBGL',
-      尺寸: `${this.game.config.width}x${this.game.config.height}`,
-      FPS目标: this.game.loop.targetFps,
-      实际FPS: this.game.loop.actualFps
-    });
+    }
+
+    // 🔧 新增：监听用户登录事件,刷新玩家和工位状态
+    this.setupLoginListener()
   }
 
   update() {
     // 只处理需要每帧更新的核心逻辑
     this.handlePlayerMovement()
 
-    // 检查T键按下，快速回到工位（临时禁用）
-    // if (this.teleportKey && Phaser.Input.Keyboard.JustDown(this.teleportKey)) {
-    //   this.handleTeleportKeyPress()
-    // }
+    // 更新前台标签位置
+    if (this.frontDeskManager) {
+      this.frontDeskManager.update()
+    }
 
-    // 移除不必要的每帧UI更新和碰撞检测，改为定时执行
-    // bindingUI.update() 和 collision detection 现在使用定时器
+    // 📺 更新大屏管理器 (处理玩家靠近检测 - 使用碰撞组而非数学计算)
+    if (this.billboardManager && this.player) {
+      if (this.updateCounter % 5 === 0) { // 每5帧检查一次 overlap
+        const nearBillboard = this.billboardSensors ? this.physics.overlap(this.player, this.billboardSensors) : false;
+        const nearBulletin = this.bulletinBoardSensors ? this.physics.overlap(this.player, this.bulletinBoardSensors) : false;
+
+        this.billboardManager.setProximity(nearBillboard || nearBulletin);
+      }
+      this.billboardManager.update()
+    }
+
+    // 记录并在控制台打印坐标 (每隔 2 秒打印一次，避免刷屏)
+    if (this.player && this.updateCounter % 120 === 0) {
+      console.log(`📍 当前坐标: X=${Math.round(this.player.x)}, Y=${Math.round(this.player.y)}`);
+    }
+
+    // 为 update 循环添加一个简单的计数器（如果还不存在）
+    if (!this.updateCounter) this.updateCounter = 0
+    this.updateCounter++
+
+    // 每 10 周期进行一次自己的工位距离检查
+    if (this.updateCounter % 10 === 0) {
+      if (this.currentUser) {
+        this.checkMyWorkstationProximity()
+      }
+
+      // 每 100 周期输出一次心跳日志，确认系统在运行
+      if (this.updateCounter % 100 === 0) {
+        console.log('💓 [Phaser Heartbeat]', {
+          hasUser: !!this.currentUser,
+          userId: this.currentUser?.id,
+          workstationId: this.currentUser?.workstationId,
+          activeCollisions: this.collisionManager?.activeCollisions?.size
+        })
+      }
+    }
+
+    // 每帧检测前台碰撞，触发离开时的事件
+    if (this.updateCounter % 30 === 0 && this.frontDeskManager && this.player) {
+      this.checkFrontDeskCollisionEnd()
+    }
+
+    // 🤖 每 1 秒 (60 帧) 更新一次动态 NPC 遭遇
+    if (this.updateCounter % 60 === 0 && this.aiNpcManager && this.player) {
+      this.aiNpcManager.updateDynamicNpcs(this.player.x, this.player.y)
+    }
+  }
+
+
+  // 检查前台碰撞是否结束（玩家离开前台范围）
+  checkFrontDeskCollisionEnd() {
+    // 检查是否有碰撞中的前台
+    if (!this.currentCollidingDesk) return
+
+    // 检查玩家是否还在碰撞范围内
+    const collidingDesks = this.frontDeskManager.getCollidingDesks(this.player, 80)
+
+    if (collidingDesks.length === 0) {
+      // 玩家已离开前台范围
+      console.log(`🏢 [碰撞结束] 离开前台: ${this.currentCollidingDesk.name}`)
+      this.currentCollidingDesk = null
+
+      // 触发碰撞结束事件
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('front-desk-collision-end'))
+      }
+    }
+  }
+
+  // 检查与自己工位的距离（物理碰撞的可靠补充）
+  checkMyWorkstationProximity() {
+    if (!this.player || !this.currentUser) return
+
+    let myWorkstationId = this.currentUser.workstationId
+
+    // 🔧 关键修复：如果 currentUser 中没有 workstationId，尝试从管理器中找
+    if (!myWorkstationId && this.workstationManager) {
+      const boundWs = this.workstationManager.getWorkstationByUser(this.currentUser.id)
+      if (boundWs) {
+        myWorkstationId = boundWs.id
+        this.currentUser.workstationId = myWorkstationId
+        console.log(`✅ [Proximity] 从管理器自动找回了工位 ID: ${myWorkstationId}`)
+      }
+    }
+
+    if (!myWorkstationId) return
+    // 尝试不同的 ID 类型查找桌面
+    let desk = this.loadedWorkstations.get(Number(myWorkstationId)) ||
+      this.loadedWorkstations.get(String(myWorkstationId))
+
+    if (!desk) {
+      // 如果按ID找不到，遍历所有加载的工位看看
+      for (const [id, sprite] of this.loadedWorkstations) {
+        if (String(id) === String(myWorkstationId)) {
+          desk = sprite
+          break
+        }
+      }
+    }
+
+    if (!desk) {
+      if (this.updateCounter % 200 === 0) {
+        console.warn(`[Proximity] 找不到对应的工位对象: ${myWorkstationId}, 当前场景已加载总数: ${this.loadedWorkstations.size}`)
+      }
+      return
+    }
+
+    const deskWidth = desk.displayWidth || desk.width || 48
+    const deskHeight = desk.displayHeight || desk.height || 48
+    const deskCenterX = desk.x + (desk.originX === 0 ? deskWidth / 2 : 0)
+    const deskCenterY = desk.y + (desk.originY === 0 ? deskHeight / 2 : 0)
+
+    const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, deskCenterX, deskCenterY)
+
+    // 如果在 100 像素范围内 (再次放大范围以防万一)，视为"在工位"
+    if (dist < 100) {
+      if (!this.collisionManager.activeCollisions.has(`workstation_${myWorkstationId}`)) {
+        console.log(`[Proximity] 接近工位: ${myWorkstationId}, 距离: ${Math.round(dist)}`)
+      }
+      this.handleWorkstationFurnitureOverlap(this.player, desk)
+    }
   }
 
   // 已删除无用的性能优化系统初始化函数
@@ -528,7 +888,7 @@ export class Start extends Phaser.Scene {
   // 已删除无用的优化碰撞检测函数
 
   // ===== 玩家相关方法 =====
-  createPlayer(map, savedX = null, savedY = null, savedDirection = null) {
+  async createPlayer(map, savedX = null, savedY = null, savedDirection = null) {
     // 从对象层获取玩家位置（作为默认fallback）
     const userLayer = map.getObjectLayer("player_objs")
     if (!userLayer) {
@@ -551,11 +911,14 @@ export class Start extends Phaser.Scene {
     const playerSpriteKey =
       this.currentUser?.character || "characters_list_image"
 
+    // 🔧 关键修复：确保角色纹理已加载（按需加载）
+    await this.ensureCharacterTexture(playerSpriteKey)
+
     // 创建主玩家的playerData
     const mainPlayerData = {
       id: this.currentUser?.id || "main-player",
       name: this.currentUser?.username || "我",
-      currentStatus: {
+      currentStatus: this.currentUser?.currentStatus || {
         type: "working",
         status: "工作中",
         emoji: "💼",
@@ -575,6 +938,23 @@ export class Start extends Phaser.Scene {
       mainPlayerData
     )
     this.add.existing(this.player)
+    this.player.setDepth(MAP_DEPTHS.PLAYER)
+
+    // 如果当前下班了，初始化时就隐藏角色（针对主玩家自己）
+    if (mainPlayerData.currentStatus.type === 'off_work') {
+      this.player.setVisible(false)
+    }
+
+    // 记录初始状态到 status_history（用于活动跟踪）
+    if (this.currentUser && typeof window !== 'undefined' && mainPlayerData.currentStatus) {
+      this.time.delayedCall(1000, async () => {
+        if (window.updateMyStatus) {
+          // 仅同步，不触发重新记录历史（传入 true 表示跳过 API）
+          await window.updateMyStatus(mainPlayerData.currentStatus, true)
+          debugLog('✅ 初始玩家状态已同步')
+        }
+      })
+    }
 
     // 设置保存的朝向
     if (savedDirection) {
@@ -606,6 +986,8 @@ export class Start extends Phaser.Scene {
         treeLayer?.setCollisionByProperty({ solid: true })
       }
 
+
+
       // 🔧 移除：group碰撞器会在第一次加载工位后创建，不在这里创建
       // 原因：此时deskColliders可能还是空的（区块异步加载）
 
@@ -633,13 +1015,16 @@ export class Start extends Phaser.Scene {
 
     // 检查玩家enableMovement状态
     if (!this.player.enableMovement) {
-      // debugLog('DEBUG: Player movement is disabled, enableMovement =', this.player.enableMovement);
+      // 停止移动，防止禁用后继续滑行
+      if (this.player.body.setVelocity) {
+        this.player.body.setVelocity(0, 0);
+      }
       return;
     }
 
-    // 检查是否应该处理键盘输入（简化版本）
+    // 检查是否应该处理输入
     if (this.keyboardInputEnabled === false) {
-      // 当键盘输入被禁用时，停止角色移动
+      // 当输入被禁用时，停止角色移动
       if (this.player.body.setVelocity) {
         this.player.body.setVelocity(0, 0);
       }
@@ -658,11 +1043,11 @@ export class Start extends Phaser.Scene {
       this.wasdKeys = this.input.keyboard.addKeys('W,S,A,D');
     }
 
-    const cursors = this.cursors;
-    const wasdKeys = this.wasdKeys;
+    // 获取摇杆数据
+    const joystickVector = this.mobileControls ? this.mobileControls.getVector() : null;
 
     // 将移动处理委托给Player类
-    this.player.handleMovement(cursors, wasdKeys)
+    this.player.handleMovement(this.cursors, this.wasdKeys, joystickVector)
   }
 
   // ===== 工位事件处理 =====
@@ -753,77 +1138,21 @@ export class Start extends Phaser.Scene {
   }
 
   loadLibraryImages() {
-    // 默认桌子图像
+    // 核心必需图像 (最小化预加载 - 确保基本场景可见)
     this.load.image("desk_image", "/assets/desk/desk_long_right.png")
     this.load.image("desk_long_right", "/assets/desk/desk_long_right.png")
     this.load.image("desk_long_left", "/assets/desk/desk_long_left.png")
-    this.load.image("desk_short_right", "/assets/desk/single_desk.png")
-    this.load.image(
-      "desk_short_left",
-      "/assets/desk/single_desk_short_left.png"
-    )
-    this.load.image(
-      "desk_park_short_down",
-      "/assets/desk/desk_park_short_down.png"
-    )
-    this.load.image(
-      "desk_park_short_top",
-      "/assets/desk/desk_park_short_top.png"
-    )
-    this.load.image("desk_park_long_top", "/assets/desk/desk_park_long_top.png")
     this.load.image("single_desk", "/assets/desk/single_desk.png")
-    this.load.image(
-      "library_bookcase_normal",
-      "/assets/desk/library_bookcase_normal.png"
-    )
-    this.load.image(
-      "library_bookcase_tall",
-      "/assets/desk/library_bookcase_tall.png"
-    )
+    this.load.image("desk_short_right", "/assets/desk/single_desk.png")
 
-    this.load.image(
-      "Shadowless_washhand",
-      "/assets/bathroom/Shadowless_washhand.png"
-    )
-    this.load.image("Bathroom_matong", "/assets/bathroom/Bathroom_matong.png")
-    this.load.image(
-      "Shadowless_glass_2",
-      "/assets/bathroom/Shadowless_glass_2.webp"
-    )
-    this.load.image("Shadowless_glass", "/assets/bathroom/Shadowless_glass.png")
-
-    this.load.image("sofa-left-1", "/assets/sofa/sofa-left-1.png")
-    this.load.image("sofa-left-2", "/assets/sofa/sofa-left-2.png")
-    this.load.image("sofa-left-3", "/assets/sofa/sofa-left-3.png")
-    this.load.image("sofa-right-1", "/assets/sofa/sofa-right-1.png")
-    this.load.image("sofa-right-2", "/assets/sofa/sofa-right-2.png")
-    this.load.image("sofa-right-3", "/assets/sofa/sofa-right-3.png")
-
-    this.load.image(
-      "desk-big-manager-left-1",
-      "/assets/desk/desk-big-manager-left-1.png"
-    )
-    this.load.image(
-      "desk-big-manager-center-1",
-      "/assets/desk/desk-big-manager-center-1.png"
-    )
-    this.load.image(
-      "desk-big-manager-right-1",
-      "/assets/desk/desk-big-manager-right-1.png"
-    )
-    this.load.image(
-      "desk-big-manager-center-2",
-      "/assets/desk/desk-big-manager-center-2.png"
-    )
-
-    this.load.image("flower", "/assets/tileset/flower.png")
-    this.load.image("rug", "/assets/tileset/rug.png")
-    this.load.image("cabinet", "/assets/tileset/cabinet.png")
-    this.load.image("stair-red", "/assets/tileset/stair-red.png")
+    // 其余资源已移至 this.dynamicAssetRegistry 进行按需加载
   }
 
   /**
    * 从API数据加载角色精灵
+   */
+  /**
+   * 优化后的角色加载逻辑：仅存储配置，不立即预加载所有图片
    */
   loadCharacterSprites(apiResponse) {
     try {
@@ -836,32 +1165,65 @@ export class Start extends Phaser.Scene {
       // 存储角色配置信息供后续使用
       this.characterConfigs = new Map()
 
-      // 加载所有角色的spritesheet
+      // 收集所有角色配置
       apiResponse.data.forEach((character) => {
-        // 存储角色配置
         this.characterConfigs.set(character.name, {
           isCompactFormat: character.isCompactFormat,
           totalFrames: character.totalFrames,
           frameWidth: character.frameWidth,
-          frameHeight: character.frameHeight
-        })
-
-        // 加载spritesheet
-        this.load.spritesheet(character.name, character.imageUrl, {
-          frameWidth: character.frameWidth,
           frameHeight: character.frameHeight,
+          imageUrl: character.imageUrl // 保存URL，用于后续按需加载
         })
       })
 
-      debugLog(`✅ Loaded ${apiResponse.data.length} characters from API`)
-
-      // 启动加载队列
-      this.load.start()
+      debugLog(`✅ Registered ${apiResponse.data.length} character configs (lazy loading enabled)`)
 
     } catch (error) {
       debugError('Error loading character sprites:', error)
       this.loadDefaultCharacter()
     }
+  }
+
+  /**
+   * 按需加载角色纹理
+   */
+  async ensureCharacterTexture(characterName) {
+    if (this.textures.exists(characterName)) return true;
+
+    const config = this.characterConfigs?.get(characterName);
+    if (!config || !config.imageUrl) return false;
+
+    // 避免并发重复加载同一个角色
+    const loadKey = `char_${characterName}`;
+    if (this.pendingLoads.has(loadKey)) {
+      return new Promise((resolve) => {
+        this.load.once(`filecomplete-spritesheet-${characterName}`, () => resolve(true));
+        this.load.once(`loaderror-spritesheet-${characterName}`, () => resolve(false));
+      });
+    }
+
+    this.pendingLoads.add(loadKey);
+
+    return new Promise((resolve) => {
+      this.load.spritesheet(characterName, config.imageUrl, {
+        frameWidth: config.frameWidth,
+        frameHeight: config.frameHeight
+      });
+
+      this.load.once(`filecomplete-spritesheet-${characterName}`, () => {
+        this.pendingLoads.delete(loadKey);
+        debugLog(`🎉 [LazyLoad] Character ${characterName} loaded on-demand`);
+        resolve(true);
+      });
+
+      this.load.once(`loaderror-spritesheet-${characterName}`, () => {
+        this.pendingLoads.delete(loadKey);
+        debugError(`❌ [LazyLoad] Failed to load character ${characterName}`);
+        resolve(false);
+      });
+
+      this.load.start();
+    });
   }
 
   /**
@@ -915,6 +1277,8 @@ export class Start extends Phaser.Scene {
       }
     }
 
+
+
     return layers
   }
 
@@ -962,8 +1326,8 @@ export class Start extends Phaser.Scene {
       debugLog('✅ deskColliders group已创建')
     }
 
-    // 对于desk_objs图层，使用区块管理系统
-    if (layerName === "desk_objs") {
+    // 对于desk_objs和bookcase_objs图层，使用区块管理系统
+    if (layerName === "desk_objs" || layerName === "bookcase_objs") {
       debugLog(`📦 收集工位对象，总数: ${objectLayer.objects.length}`)
 
       // 收集所有工位对象（不立即创建精灵）
@@ -973,10 +1337,10 @@ export class Start extends Phaser.Scene {
         }
       })
 
-      // 初始化区块管理器
-      this.initializeChunkSystem()
+      // ⚠️ 移除这里对 initializeChunkSystem 的调用，防止重复初始化
+      // 这里的逻辑改为只收集对象，统一在 create() 末尾初始化区块系统
 
-      // 更新工位总数
+      // 更新工位总数 (暂时更新，最后还会再次更新)
       this.userData.deskCount = this.workstationObjects.length
       this.sendUserDataToUI()
     } else {
@@ -1004,6 +1368,86 @@ export class Start extends Phaser.Scene {
       this.addDeskCollision(sprite, obj)
     }
 
+    // 🏢 如果是前台对象，注册到前台管理器
+    if (obj.type === "front-desk") {
+      console.log(`🏢 [Start] 检测到前台对象: ${obj.name} at (${obj.x}, ${obj.y})`, {
+        hasSprite: !!sprite,
+        hasFrontDeskManager: !!this.frontDeskManager,
+        spriteTexture: sprite?.texture?.key
+      });
+
+      if (sprite && this.frontDeskManager) {
+        this.frontDeskManager.registerFrontDesk(obj, sprite)
+      } else if (!sprite) {
+        console.error(`❌ [Start] 前台对象 ${obj.name} 没有创建精灵！`);
+      } else if (!this.frontDeskManager) {
+        console.error(`❌ [Start] FrontDeskManager 未初始化！`);
+      }
+    }
+
+    // 📺 如果是大屏推流对象 (Hot Billboard) - 优先判断 Type (Class)
+    const isBillboard = obj.type === "billboard" || obj.type === "hot-billboard" ||
+      [5569, 5570, 5576, 5577, 5580, 5581].includes(obj.gid);
+
+    if (isBillboard) {
+      console.log(`📺 [Start] 检测到大屏对象 at (${obj.x}, ${obj.y}), Type: ${obj.type}`);
+      if (sprite) {
+        // 为大屏添加物理碰撞，使其不可穿透
+        this.addDeskCollision(sprite, obj);
+
+        // 注册到大屏管理器
+        if (this.billboardManager) {
+          this.billboardManager.createBillboard(obj, sprite);
+        }
+
+        // 创建感应区 (比大屏本身大的感应对象，确保容易触发)
+        if (this.billboardSensors) {
+          const centerX = obj.x + (obj.width / 2);
+          const centerY = adjustedY + (obj.height / 2);
+
+          const sensor = this.add.rectangle(centerX, centerY, obj.width + 120, obj.height + 120, 0x000000, 0);
+          this.physics.add.existing(sensor, false);
+          if (sensor.body) {
+            sensor.body.setImmovable(true);
+          }
+
+          // 区分：如果是公告栏 (GID 5580)，加入专门的公告栏感应组
+          if (obj.gid === 5580 || obj.type === "bulletin-board") {
+            sensor.isBulletinBoard = true;
+            this.bulletinBoardSensors.add(sensor);
+          } else {
+            this.billboardSensors.add(sensor);
+          }
+        }
+      }
+    }
+
+    // 🏰 如果是建筑对象 (例如咖啡厅) - 优先判断 Type (Class)
+    const isBuilding = obj.type === "building" || obj.name?.includes("building") ||
+      [5578, 5582].includes(obj.gid);
+
+    if (isBuilding) {
+      if (sprite) {
+        console.log(`🏰 [Start] 为建筑添加物理碰撞 at (${obj.x}, ${obj.y}), Type: ${obj.type}`);
+        this.addDeskCollision(sprite, obj);
+      }
+    }
+
+    // 为不同类型的对象设置层级
+    if (sprite) {
+      if (isBillboard) {
+        sprite.setDepth(MAP_DEPTHS.BILLBOARD);
+      } else if (isBuilding) {
+        sprite.setDepth(MAP_DEPTHS.BUILDING);
+      } else if (obj.name === "door_mat" || obj.gid === 58) {
+        sprite.setDepth(MAP_DEPTHS.CARPET);
+      } else if (this.isDeskObject(obj)) {
+        sprite.setDepth(MAP_DEPTHS.FURNITURE);
+      } else {
+        sprite.setDepth(MAP_DEPTHS.FURNITURE); // 默认大多数对象在家具层
+      }
+    }
+
     // 添加调试边界（已注释）
     // this.addDebugBounds(obj, adjustedY);
   }
@@ -1014,7 +1458,7 @@ export class Start extends Phaser.Scene {
     this.deskColliders.add(sprite)
 
     // 根据桌子类型调整碰撞边界
-    const collisionSettings = this.getCollisionSettings(obj)
+    const collisionSettings = this.getCollisionSettings(obj, sprite.texture.key)
 
     // 🔧 添加到group后，物理体才被创建，现在可以调整碰撞边界
     if (sprite.body) {
@@ -1039,28 +1483,41 @@ export class Start extends Phaser.Scene {
       // 🔧 移除setImmovable调用：StaticBody默认就是immovable，没有这个方法
       // sprite.body.setImmovable(true)  // ❌ StaticBody没有这个方法
     }
-
-    // 🔧 性能优化：不单独创建碰撞器
-    // group碰撞器在ensurePlayerDeskCollider()中创建
-    // this.physics.add.collider(this.player, this.deskColliders)  // ✅ 只有1个碰撞器
   }
 
-  getCollisionSettings(obj) {
+  getCollisionSettings(obj, textureKey = "") {
     const objName = obj.name || ""
     const objType = obj.type || ""
 
-    // 根据不同的桌子类型返回不同的碰撞设置
-    if (objName.includes("long") || objType.includes("long")) {
-      // 长桌子 - 更小的碰撞边界
+    // 针对“向上”朝向的桌子（桌子在后，椅子在前）优化：只需碰撞上半部分的桌体
+    if (textureKey.includes("_up") || objName.includes("_up") || objType.includes("_up")) {
+      // 缩小高度并向上偏移，使下半部分的椅子区域可通行
+      return {
+        scaleX: 0.8,
+        scaleY: 0.4,
+        offsetX: 0,
+        offsetY: -20  // 向上偏移，确保碰撞在桌子上
+      }
+    }
+
+    // 根据不同的类名/类型返回不同的碰撞设置
+    if (objType === "billboard" || objName.includes("display") || objType.includes("display") || objName.includes("board")) {
+      // 电子告示牌/大屏 - 完全碰撞边界
+      return { scaleX: 1.0, scaleY: 1.0, offsetX: 0, offsetY: 0 }
+    } else if (objType === "building" || objName.includes("building")) {
+      // 建筑 - 完全碰撞边界
+      return { scaleX: 1.0, scaleY: 0.8, offsetX: 0, offsetY: 0 }
+    } else if (objName.includes("long") || objType.includes("long") || objType === "desk-long") {
+      // 长桌子
       return { scaleX: 0.4, scaleY: 0.4, offsetX: 0, offsetY: 0 }
-    } else if (objName.includes("single") || objType.includes("single")) {
-      // 单人桌 - 中等碰撞边界
+    } else if (objName.includes("single") || objType.includes("single") || objType === "desk-single" || objType === "desk") {
+      // 单人桌
       return { scaleX: 0.6, scaleY: 0.6, offsetX: 0, offsetY: 0 }
     } else if (objName.includes("bookcase") || objType.includes("bookcase")) {
-      // 书架 - 更大的碰撞边界
+      // 书架
       return { scaleX: 0.7, scaleY: 0.7, offsetX: 0, offsetY: 0 }
     } else if (objName.includes("sofa") || objType.includes("sofa")) {
-      // 沙发 - 特殊的碰撞边界
+      // 沙发
       return { scaleX: 0.5, scaleY: 0.3, offsetX: 0, offsetY: 0 }
     } else {
       // 默认设置
@@ -1069,12 +1526,160 @@ export class Start extends Phaser.Scene {
   }
 
   renderTilesetObject(obj, adjustedY) {
-    const imageKey = obj.name || "desk_image"
+    let imageKey = obj.name
+
+    // 如果名字为空，尝试根据 GID 推断
+    if (!imageKey && obj.gid) {
+      imageKey = this.resolveKeyByGid(obj.gid)
+    }
+
+    // 如果名字为空，尝试根据类型或其他属性推断
+    if (!imageKey) {
+      if (obj.type === "bookcase") {
+        imageKey = "bookcase_middle"
+      } else {
+        imageKey = "desk_image"
+      }
+    }
+
     if (!imageKey) return null
+
+    // 如果找不到纹理，尝试从注册表动态加载
+    if (!this.textures.exists(imageKey)) {
+      this.dynamicLoadTexture(imageKey)
+      // 渲染时使用占位符，等加载完后再自动更新
+      const sprite = this.add.image(obj.x, adjustedY, "desk_image")
+      sprite._targetTexture = imageKey
+      // 保存原始预期大小，以便加载后重置
+      sprite._originalWidth = obj.width
+      sprite._originalHeight = obj.height
+      this.configureSprite(sprite, obj)
+      return sprite
+    }
 
     const sprite = this.add.image(obj.x, adjustedY, imageKey)
     this.configureSprite(sprite, obj)
     return sprite
+  }
+
+  /**
+   * 辅助：根据 GID 获取注册表中的 Key
+   */
+  resolveKeyByGid(gid) {
+    if (!gid) return null;
+
+    // 1. 动态查找 Tileset (核心：防止 GID 位移)
+    if (this.map) {
+      const tileset = this.map.getTilesetByGID(gid);
+      if (tileset) {
+        const tsName = tileset.name.toLowerCase();
+
+        // 根据 Tileset 名称映射资源
+        if (tsName.includes("announcement")) return "announcement_board_wire";
+        if (tsName.includes("display")) return "front_wide_display";
+        if (tsName.includes("cafe_building")) return "pixel_cafe_building";
+        if (tsName.includes("cofe_desk")) return "cofe_desk_up";
+        if (tsName.includes("tall_bookcase")) return "bookcase_tall";
+        // 可以根据需要添加更多 Tileset 映射
+      }
+    }
+
+    // 2. 静态 GID 映射 (回退方案)
+    if (gid === 87) return "sofa-left-1"
+    if (gid === 88) return "sofa-left-2"
+    if (gid === 89) return "sofa-left-3"
+    if (gid === 90) return "sofa-right-1"
+    if (gid === 91) return "sofa-right-2"
+    if (gid === 92) return "sofa-right-3"
+    if (gid === 106) return "bookcase_tall"
+    if (gid === 107) return "bookcase_middle"
+    if (gid === 108) return "wall_decoration_1"
+    if (gid === 109) return "wall_decoration_2"
+    if (gid === 110) return "wall_decoration_3"
+    if (gid === 111) return "wall_decoration_5"
+    if (gid === 112) return "wall_decoration_4"
+    if (gid === 58) return "door_mat"
+    if (gid === 5569 || gid === 5576 || gid === 5580) return "announcement_board_wire"
+    if (gid === 5570 || gid === 5577 || gid === 5581) return "front_wide_display"
+    if (gid === 5578 || gid === 5582) return "pixel_cafe_building"
+    if (gid === 118) return "cofe_desk_up"
+    return null
+  }
+
+  /**
+   * 动态加载纹理并更新现有精灵 (优化版：分步处理+防抖加载)
+   */
+  dynamicLoadTexture(key) {
+    if (this.textures.exists(key) || this.pendingLoads.has(key) || this.failedLoads.has(key)) return
+
+    const path = this.dynamicAssetRegistry[key]
+    if (!path) return
+
+    this.pendingLoads.add(key)
+    debugLog(`🚚 [LazyLoad] 准备加载: ${key}`)
+
+    this.load.image(key, path)
+
+    // 监听单个文件完成
+    this.load.once(`filecomplete-image-${key}`, (fileKey, type, texture) => {
+      debugLog(`✅ [LazyLoad] 单个资源加载完成: ${fileKey}`)
+      this.pendingLoads.delete(fileKey)
+      this.updatePendingSprites(fileKey)
+    })
+
+    // 监听加载错误
+    this.load.once(`loaderror-image-${key}`, (fileKey) => {
+      debugWarn(`❌ [LazyLoad] 资源加载失败: ${fileKey}`)
+      this.pendingLoads.delete(fileKey)
+      this.failedLoads.add(fileKey)
+    })
+
+    // 使用 debounce 机制，确保一帧内多个资源的加载只触发一次 start()
+    if (this.loadTimer) clearTimeout(this.loadTimer)
+    this.loadTimer = setTimeout(() => {
+      if (this.load.isLoading()) {
+        // 如果加载器正在忙，确保当前加载完成后再次检查队列
+        this.load.once('complete', () => {
+          if (this.pendingLoads.size > 0) {
+            debugLog(`🔄 [LazyLoad] 忙碌结束，启动后续队列`)
+            this.load.start()
+          }
+        })
+        return
+      }
+      debugLog(`🚀 [LazyLoad] 启动加载器循环`)
+      this.load.start()
+      this.loadTimer = null
+    }, 50)
+  }
+
+
+  /**
+   * 刷新那些等待特定纹理的精灵
+   */
+  updatePendingSprites(specificKey = null) {
+    this.children.list.forEach(child => {
+      // 如果指定了 specificKey，则只更新匹配该 key 的精灵
+      const targetKey = child._targetTexture
+      if (!targetKey) return
+      if (specificKey && targetKey !== specificKey) return
+
+      if (this.textures.exists(targetKey)) {
+        // 关键：检查是否是无效的 missing 纹理
+        const texture = this.textures.get(targetKey)
+        if (texture.key === '__MISSING') return
+
+        if (typeof child.setTexture === 'function') {
+          child.setTexture(targetKey)
+          // 重新应用大小，防止纹理切换后显示异常
+          if (child._originalWidth && child._originalHeight) {
+            child.setDisplaySize(child._originalWidth, child._originalHeight)
+          }
+          delete child._targetTexture
+          debugLog(`✨ [LazyLoad] 精灵贴图已更新: ${targetKey}`)
+        }
+      }
+    })
   }
 
   renderGeometricObject(obj, adjustedY) {
@@ -1192,7 +1797,54 @@ export class Start extends Phaser.Scene {
     }
 
     // 创建group碰撞器（只有1个）
-    this.playerDeskCollider = this.physics.add.collider(this.player, this.deskColliders)
+    // 创建group碰撞器（只有1个），并添加回调函数处理书架和前台交互
+    this.playerDeskCollider = this.physics.add.collider(
+      this.player,
+      this.deskColliders,
+      (player, deskSprite) => {
+        // 检查是否是书架
+        if (deskSprite.texture.key.includes("bookcase")) {
+          // 简单的防抖，防止频繁触发
+          if (this.lastLibraryTriggerTime && Date.now() - this.lastLibraryTriggerTime < 1000) {
+            return;
+          }
+          this.lastLibraryTriggerTime = Date.now();
+
+          // 触发前端弹窗
+          window.dispatchEvent(new CustomEvent('open-library', {
+            detail: {
+              bookcaseId: deskSprite.workstationId
+            }
+          }));
+
+          debugLog(`📚 触发图书馆弹窗，书架ID: ${deskSprite.workstationId}`);
+        }
+        // 🏢 检查是否是前台客服
+        else if (deskSprite.deskId) {
+          // 防抖，防止频繁触发
+          if (this.lastFrontDeskTriggerTime && Date.now() - this.lastFrontDeskTriggerTime < 1000) {
+            return;
+          }
+          this.lastFrontDeskTriggerTime = Date.now();
+
+          // 记录当前碰撞的前台
+          this.currentCollidingDesk = {
+            id: deskSprite.deskId,
+            name: deskSprite.deskName,
+            serviceScope: deskSprite.serviceScope,
+            greeting: deskSprite.greeting,
+            workingHours: deskSprite.workingHours
+          };
+
+          // 触发前台交互提示（改为显示 toast，而不是直接打开弹窗）
+          window.dispatchEvent(new CustomEvent('front-desk-collision-start', {
+            detail: this.currentCollidingDesk
+          }));
+
+          console.log(`🏢 [碰撞触发] 显示前台交互提示: ${deskSprite.deskName} (${deskSprite.serviceScope})`);
+        }
+      }
+    )
     console.log(`✅✅✅ 玩家与工位group碰撞器已创建！(1个碰撞器管理${groupLength}个工位)`)
   }
 
@@ -1213,6 +1865,9 @@ export class Start extends Phaser.Scene {
       // 使用WorkstationManager创建工位
       const workstation = this.workstationManager.createWorkstation(obj, sprite)
 
+      // 🔧 关键：设置工位ID到精灵上，方便碰撞检测时识别
+      sprite.workstationId = obj.id
+
       // 🔧 性能优化：使用group碰撞器，避免为每个工位创建独立碰撞器
       this.addDeskCollision(sprite, obj)
       // 已移除详细工位日志，使用区块级别的统计信息代替
@@ -1224,12 +1879,11 @@ export class Start extends Phaser.Scene {
         // 重新应用绑定的视觉效果
         this.workstationManager.setupInteraction(workstation)
 
-        // 重新创建角色精灵
+        // 重新创建角色精灵和状态图标
         if (workstation.userId && workstation.userInfo) {
-          this.workstationManager.addCharacterToWorkstation(
+          this.workstationManager.updateWorkstationStatusIcon(
             workstation,
-            workstation.userId,
-            workstation.userInfo
+            workstation.userInfo.currentStatus
           )
 
           // 🔧 关键修复：为新创建的角色设置碰撞检测
@@ -1281,8 +1935,36 @@ export class Start extends Phaser.Scene {
   }
 
   createWorkstationSprite(obj, adjustedY) {
-    const imageKey = obj.name || "desk_image"
+    let imageKey = obj.name
+
+    // 如果名字为空，尝试根据 GID 推断
+    if (!imageKey && obj.gid) {
+      imageKey = this.resolveKeyByGid(obj.gid)
+    }
+
+    // 如果名字为空，尝试根据类型或其他属性推断
+    if (!imageKey) {
+      if (obj.type === "bookcase") {
+        imageKey = "bookcase_middle"
+      } else {
+        imageKey = "desk_image"
+      }
+    }
+
     if (!imageKey) return null
+
+    // 如果找不到纹理，尝试从注册表动态加载 (同步 renderTilesetObject 逻辑)
+    if (!this.textures.exists(imageKey)) {
+      this.dynamicLoadTexture(imageKey)
+      // 渲染时使用占位符，等加载完后再自动更新
+      const sprite = this.add.image(obj.x, adjustedY, "desk_image")
+      sprite._targetTexture = imageKey
+      // 保存原始预期大小，以便加载后重置
+      sprite._originalWidth = obj.width
+      sprite._originalHeight = obj.height
+      this.configureSprite(sprite, obj)
+      return sprite
+    }
 
     const sprite = this.add.image(obj.x, adjustedY, imageKey)
     this.configureSprite(sprite, obj)
@@ -1291,15 +1973,18 @@ export class Start extends Phaser.Scene {
 
   // ===== 辅助方法 =====
   isDeskObject(obj) {
-    // 修改为同时识别desk和bookcase对象
+    // 识别工位对象的逻辑：支持 Type 识别和传统的 Name/GID 识别
     return (
+      obj.type === "desk" ||
+      obj.type === "workstation" ||
       obj.name === "desk" ||
       obj.type === "desk" ||
       obj.name.includes("desk_") ||
-      obj.name === "library_bookcase_normal" ||
-      obj.name === "library_bookcase_tall" ||
       obj.type === "bookcase" ||
-      obj.type === "bookcase_tall" ||
+      obj.name.includes("bookcase") ||
+      obj.gid === 106 || // bookcase_tall
+      obj.gid === 107 || // bookcase_middle
+      obj.gid === 118 || // cofe_desk_up
       obj.type === "sofa" ||
       obj.type === "flower"
     )
@@ -1346,8 +2031,8 @@ export class Start extends Phaser.Scene {
   setupCameraFollow() {
     if (this.player) {
       this.cameras.main.startFollow(this.player)
-      // 设置较小的lerp值，使相机跟随更平滑
-      this.cameras.main.setLerp(0.05, 0.05)
+      // 设置较小的lerp值，使相机跟随更平滑 (从 0.05 提升到 0.1 以增强响应速度)
+      this.cameras.main.setLerp(0.1, 0.1)
       // 设置死区，允许玩家在屏幕内移动
       this.updateDeadzone()
     } else {
@@ -1355,8 +2040,8 @@ export class Start extends Phaser.Scene {
       this.time.delayedCall(100, () => {
         if (this.player) {
           this.cameras.main.startFollow(this.player)
-          // 设置较小的lerp值，使相机跟随更平滑
-          this.cameras.main.setLerp(0.05, 0.05)
+          // 设置较小的lerp值，使相机跟随更平滑 (从 0.05 提升到 0.1 以增强响应速度)
+          this.cameras.main.setLerp(0.1, 0.1)
           // 设置死区
           this.updateDeadzone()
         }
@@ -1407,10 +2092,11 @@ export class Start extends Phaser.Scene {
       const screenWidth = this.game.config.width
       const screenHeight = this.game.config.height
 
-      // 动态计算死区大小，基于缩放级别
+      // 缩小死区范围，让人物更靠近屏幕中心
+      // 增加排除比例，从 0.2 提高到 0.6，意味着死区只占投影面积的 40%
       const baseReduction = Math.min(
-        200,
-        Math.min(screenWidth, screenHeight) * 0.2
+        400,
+        Math.min(screenWidth, screenHeight) * 0.6
       )
       const adjustedWidth = (screenWidth - baseReduction) / zoom
       const adjustedHeight = (screenHeight - baseReduction) / zoom
@@ -1445,6 +2131,67 @@ export class Start extends Phaser.Scene {
     this.teleportKey = this.input.keyboard.addKey(
       Phaser.Input.Keyboard.KeyCodes.T
     )
+
+    // 🏢 配置前台客服的 F 键交互
+    this.frontDeskKey = this.input.keyboard.addKey(
+      Phaser.Input.Keyboard.KeyCodes.F
+    )
+
+    // 监听 F 键按下
+    if (this.frontDeskKey) {
+      this.frontDeskKey.on('down', () => {
+        this.handleInteraction()
+      })
+    }
+  }
+
+  /**
+   * 统一处理玩家交互逻辑 (F键 或 移动端交互按钮)
+   */
+  handleInteraction() {
+    if (!this.player) return
+
+    // 1. 检查前台客服管理器交互
+    if (this.frontDeskManager) {
+      const collidingDesks = this.frontDeskManager.getCollidingDesks(this.player, 150)
+
+      if (collidingDesks.length > 0) {
+        // 找到最近的前台
+        const nearestDesk = collidingDesks.reduce((nearest, current) =>
+          current.distance < nearest.distance ? current : nearest
+        )
+
+        const deskSprite = nearestDesk.sprite
+        console.log(`🏢 [交互] 激活最近的前台: ${deskSprite.deskName}`)
+
+        // 触发前台聊天弹窗
+        window.dispatchEvent(new CustomEvent('open-front-desk-chat', {
+          detail: {
+            id: deskSprite.deskId,
+            name: deskSprite.deskName,
+            serviceScope: deskSprite.serviceScope,
+            greeting: deskSprite.greeting,
+            workingHours: deskSprite.workingHours
+          }
+        }))
+        return
+      }
+    }
+
+    // 2. 检查公告栏/大屏 (Billboard & Bulletin) 交互
+    if (this.billboardManager) {
+      const nearBillboard = this.billboardSensors && this.physics.overlap(this.player, this.billboardSensors);
+      const nearBulletin = this.bulletinBoardSensors && this.physics.overlap(this.player, this.bulletinBoardSensors);
+
+      if (nearBillboard || nearBulletin) {
+        console.log('📋 [交互] 触发公告栏 UI');
+        // 如果是特殊感应器（公告栏感应器），可以在 detail 中带上 tab 提示
+        this.billboardManager.showBillboardUI();
+        return;
+      }
+    }
+
+    // 3. 这里可以添加其他物体的交互逻辑...
   }
 
   // ===== 全局函数方法 =====
@@ -1481,6 +2228,33 @@ export class Start extends Phaser.Scene {
       }
     }
   }
+
+  // 处理与前台客服的交互
+  // 🏢 [已废弃] 前台交互已改为自动碰撞触发,不再使用F键方式
+  // 保留此方法以防将来需要恢复F键交互
+  // handleFrontDeskInteraction() {
+  //   if (!this.player || !this.frontDeskManager) return
+  //
+  //   // 检查玩家附近是否有前台
+  //   const nearbyDesk = this.frontDeskManager.getNearbyDesk(this.player, 80)
+  //
+  //   if (nearbyDesk) {
+  //     console.log(`🏢 [Front Desk] 打开前台对话: ${nearbyDesk.deskName}`)
+  //
+  //     // 发送事件到React层，打开前台聊天弹窗
+  //     const event = new CustomEvent('open-front-desk-chat', {
+  //       detail: {
+  //         id: nearbyDesk.deskId,
+  //         name: nearbyDesk.deskName,
+  //         serviceScope: nearbyDesk.serviceScope,
+  //         greeting: nearbyDesk.greeting
+  //       }
+  //     })
+  //     window.dispatchEvent(event)
+  //   } else {
+  //     console.log('🏢 [Front Desk] 附近没有前台客服')
+  //   }
+  // }
 
   getWorkstationCount() {
     // 获取工位总数的全局函数
@@ -1530,8 +2304,6 @@ export class Start extends Phaser.Scene {
   getAvailableWorkstations() {
     return this.workstationManager.getAvailableWorkstations()
   }
-
-  // setupTestBindings and placeCharactersAtOccupiedWorkstations functions removed for performance optimization
 
   // 根据工位方向计算角色位置和朝向
   calculateCharacterPosition(workstation) {
@@ -1687,22 +2459,12 @@ export class Start extends Phaser.Scene {
 
   // 设置工位状态定时同步
   setupWorkstationSync() {
-    // 每30秒同步一次工位状态
-    // 暂时禁用定时同步以排查CPU占用问题
-    // this.time.addEvent({
-    //   delay: 60000, // 改为60秒
-    //   callback: async () => {
-    //     try {
-    //       await this.workstationManager.syncWorkstationBindings()
-    //     } catch (error) {
-    //       debugError('定时同步工位状态失败，跳过此次同步:', error)
-    //     }
-    //   },
-    //   callbackScope: this,
-    //   loop: true,
-    // })
-
-    debugLog("工位状态定时同步已设置（每30秒）")
+    if (this.workstationManager) {
+      // 使用 WorkstationManager 自带的带 Page Visibility 优化的轮询机制
+      // 默认 30 秒轮询一次，兼顾实时性与性能
+      this.workstationManager.startStatusPolling(30000);
+      debugLog("✅ 工位状态定时同步已启动（基于 Page Visibility 优化，30s/次）");
+    }
   }
 
   sendUserDataToUI() {
@@ -1806,22 +2568,70 @@ export class Start extends Phaser.Scene {
   setupSocialFeatures() {
     // 监听状态更新事件
     if (typeof window !== "undefined") {
-      window.updateMyStatus = async (statusData) => {
+      window.updateMyStatus = async (statusData, skipApi = false) => {
+        console.log('📢 [Start] updateMyStatus called:', statusData, 'skipApi:', skipApi)
         this.myStatus = statusData
-        // 根据状态更新工位角色可见性
+
+        // 🔧 关键修复：同步更新 currentUser 内部的状态，避免逻辑判断使用旧状态
+        if (this.currentUser) {
+          this.currentUser.currentStatus = statusData
+        }
+
+        // 如果明确要求跳过API（通常是初始化同步），则不记录历史，不触发时间追踪
+        if (this.currentUser && !skipApi) {
+          try {
+            // 调用API来保存状态历史
+            const response = await fetch('/api/status-history', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                userId: this.currentUser.id,
+                status: statusData.status || statusData.type,
+                type: statusData.type,
+                emoji: statusData.emoji || '',
+                message: statusData.message || ''
+              })
+            })
+
+            if (response.ok) {
+              debugLog('状态历史已记录:', statusData.type, statusData.status)
+            } else {
+              debugWarn('记录状态历史失败:', response.status)
+            }
+          } catch (error) {
+            debugWarn('记录状态历史错误:', error)
+          }
+        }
+
         if (this.currentUser && this.workstationManager) {
           const userWorkstation = this.workstationManager.getWorkstationByUser(
             this.currentUser.id
           )
-          if (userWorkstation && userWorkstation.character) {
-            // 如果状态是"下班了"，隐藏角色；否则显示角色
-            const isOffWork = statusData.type === "off_work"
-            userWorkstation.character.player.setVisible(!isOffWork)
+          if (userWorkstation) {
+            // 依赖 WorkstationManager.updateWorkstationStatusIcon 方法处理所有视图逻辑（包括下班牌、隐藏角色等）
+            this.workstationManager.updateWorkstationStatusIcon(userWorkstation, statusData)
           }
         }
 
-        // 如果是下班状态，结束所有活动
-        if (statusData.type === "off_work" && this.currentUser) {
+        // 🔧 修复：处理主玩家自身的可见性
+        if (this.player) {
+          if (statusData.type === 'off_work') {
+            this.player.setVisible(false)
+            console.log('👻 [Start] 用户下班，隐藏主玩家角色')
+          } else {
+            this.player.setVisible(true)
+            this.player.setAlpha(1) // 确保透明度正常
+            console.log('🚶 [Start] 用户上班/在岗，显示主玩家角色')
+
+            // 如果用户刚刚切换到“工作中”，且不在任何工位附近，可以考虑给出提示或自动传送
+            // 这里为了稳妥，我们至少保证它是显示的
+          }
+        }
+
+        // 如果是下班状态且不是初始化同步，结束所有活动
+        if (statusData.type === "off_work" && this.currentUser && !skipApi) {
           try {
             const response = await fetch("/api/time-tracking", {
               method: "POST",
@@ -1944,8 +2754,8 @@ export class Start extends Phaser.Scene {
     this.collisionManager = {
       activeCollisions: new Set(),
       debounceTimers: new Map(),
-      debounceDelay: 300, // 300ms防抖延迟
-      collisionThreshold: 60, // 碰撞检测阈值（像素）
+      debounceDelay: 800, // 增加到800ms，配合距离校验更稳定
+      collisionThreshold: 70, // 略微增加检测阈值
     }
 
     // 设置主玩家与其他玩家的碰撞检测
@@ -1968,19 +2778,158 @@ export class Start extends Phaser.Scene {
     // 设置主玩家与工位角色的碰撞检测
     this.setupWorkstationCharacterCollisions()
 
+    // 设置主玩家与工位家具的碰撞重叠检测 (用于触发状态更新)
+    this.setupWorkstationFurnitureCollisions()
+
     // 已删除无用的碰撞检测循环设置
+  }
+
+  // 设置工位家具碰撞检测
+  setupWorkstationFurnitureCollisions() {
+    if (!this.player || !this.deskColliders) return
+
+    debugLog('🎯 [Start] 设置玩家与工位家具的重叠检测')
+    this.physics.add.overlap(
+      this.player,
+      this.deskColliders,
+      (player, desk) => {
+        this.handleWorkstationFurnitureOverlap(player, desk)
+      },
+      null,
+      this
+    )
+  }
+
+  // 处理工位家具重叠
+  handleWorkstationFurnitureOverlap(player, desk) {
+    // ⚡ 性能优化：只在玩家停止移动时检查（避免帧帧触发）
+    if (player.body && (player.body.velocity.x !== 0 || player.body.velocity.y !== 0)) {
+      return
+    }
+
+    if (!this.currentUser || !desk.workstationId) {
+      // 静默返回，不再打印日志以优化性能
+      return
+    }
+
+    // 获取当前用户及其绑定的工位ID
+    const myBoundWorkstationId = this.currentUser.workstationId
+
+    // 如果没有任何绑定，尝试从WorkstationManager获取最新的
+    const userWorkstation = myBoundWorkstationId ?
+      { id: myBoundWorkstationId } :
+      this.workstationManager.getWorkstationByUser(this.currentUser.id)
+
+    if (!userWorkstation || String(userWorkstation.id) !== String(desk.workstationId)) {
+      // 不匹配用户的工位，静默返回
+      return
+    }
+
+    // 🔧 新增：检查玩家是否真的非常靠近工位中心,避免误触发
+    const deskCenterX = desk.x + (desk.displayWidth || desk.width || 48) / 2
+    const deskCenterY = desk.y + (desk.displayHeight || desk.height || 48) / 2
+    const distance = Phaser.Math.Distance.Between(player.x, player.y, deskCenterX, deskCenterY)
+
+    // 只有距离小于 70 像素时才触发工位状态弹窗
+    if (distance > 70) {
+      console.log(`⏭️ [工位碰撞] 距离过远(${Math.round(distance)}px > 70px)，跳过触发`)
+      return
+    }
+
+    const workstationId = desk.workstationId
+    const collisionId = `workstation_${workstationId}`
+
+    // 如果这是一个新的碰撞
+    if (!this.collisionManager.activeCollisions.has(collisionId)) {
+      this.collisionManager.activeCollisions.add(collisionId)
+
+      console.log(`🚀 [Phaser] 触发工位家具碰撞! workstationId: ${workstationId}, 用户ID: ${this.currentUser.id}, 用户绑定工位ID: ${myBoundWorkstationId}`)
+
+      // 触发自定义事件给React组件
+      if (typeof window !== 'undefined') {
+        console.log(`📢 [Phaser] 即将dispatch my-workstation-collision-start 事件`)
+        window.dispatchEvent(new CustomEvent('my-workstation-collision-start', {
+          detail: {
+            workstationId,
+            userId: this.currentUser.id,
+            position: { x: desk.x, y: desk.y }
+          }
+        }))
+      }
+    }
+
+    // 重置防抖计时器
+    this.resetWorkstationCollisionDebounceTimer(collisionId, player, desk)
+  }
+
+  // 重置工位碰撞防抖计时器
+  resetWorkstationCollisionDebounceTimer(collisionId, player, desk) {
+    if (this.collisionManager.debounceTimers.has(collisionId)) {
+      this.time.removeEvent(this.collisionManager.debounceTimers.get(collisionId))
+    }
+
+    const timer = this.time.delayedCall(
+      this.collisionManager.debounceDelay,
+      () => {
+        if (this.collisionManager.activeCollisions.has(collisionId)) {
+          // 粘性检查：即使没有物理接触，只要还在附近就认为碰撞仍在继续
+          // 🔧 修复：使用更可靠的中心点计算方式
+          const deskWidth = desk.displayWidth || desk.width || 48
+          const deskHeight = desk.displayHeight || desk.height || 48
+
+          // 如果origin是0，0 (Start.js 1142行设置的)，则desk.x/y是左上角
+          const deskCenterX = desk.x + (desk.originX === 0 ? deskWidth / 2 : 0)
+          const deskCenterY = desk.y + (desk.originY === 0 ? deskHeight / 2 : 0)
+
+          const dist = Phaser.Math.Distance.Between(player.x, player.y, deskCenterX, deskCenterY)
+
+          // 如果玩家离工位足够近 (100像素内，比之前略大以适应边缘情况)
+          if (dist < 100) {
+            this.resetWorkstationCollisionDebounceTimer(collisionId, player, desk)
+          } else {
+            console.log(`🔚 离开自己的工位: ${collisionId}, 距离: ${Math.round(dist)}`)
+            this.collisionManager.activeCollisions.delete(collisionId)
+
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('my-workstation-collision-end', {
+                detail: { workstationId: collisionId.replace('workstation_', '') }
+              }))
+            }
+          }
+        }
+      }
+    )
+    this.collisionManager.debounceTimers.set(collisionId, timer)
   }
 
   // 处理玩家碰撞（带防抖机制）
   handlePlayerCollision(mainPlayer, otherPlayer) {
     const playerId = otherPlayer.playerData.id
 
+    // 🔧 新增：如果对方是 AI NPC，让它面向玩家
+    if (playerId.toString().startsWith('npc_') && typeof otherPlayer.setDirectionFrame === 'function') {
+      const dx = mainPlayer.x - otherPlayer.x
+      const dy = mainPlayer.y - otherPlayer.y
+
+      // 根据位移差判断方向
+      if (Math.abs(dx) > Math.abs(dy)) {
+        otherPlayer.setDirectionFrame(dx > 0 ? 'right' : 'left')
+      } else {
+        otherPlayer.setDirectionFrame(dy > 0 ? 'down' : 'up')
+      }
+
+      // 🔧 特殊逻辑：碰撞时强制停止 NPC 的移动速度
+      if (otherPlayer.body) {
+        otherPlayer.body.setVelocity(0, 0)
+      }
+    }
+
     // 如果这是一个新的碰撞
     if (!this.collisionManager.activeCollisions.has(playerId)) {
       // 添加到活动碰撞集合
       this.collisionManager.activeCollisions.add(playerId)
 
-      // 触发碰撞开始事件
+      // ... 触发碰撞事件逻辑保持不变 ...
       otherPlayer.handleCollisionStart(mainPlayer)
 
       // 保持向后兼容的碰撞处理
@@ -2004,9 +2953,19 @@ export class Start extends Phaser.Scene {
     const timer = this.time.delayedCall(
       this.collisionManager.debounceDelay,
       () => {
-        // 防抖时间到，检查是否仍在碰撞
+        // 防抖时间到，执行“粘性”检查：如果玩家虽然没有物理碰撞但依然在附近，则维持状态
         if (this.collisionManager.activeCollisions.has(playerId)) {
-          // 从活动碰撞中移除
+          // 获取当前距离
+          const dist = Phaser.Math.Distance.Between(mainPlayer.x, mainPlayer.y, otherPlayer.x, otherPlayer.y);
+
+          // 如果距离依然在阈值内，说明玩家只是停下了或者被物理引擎推开了一点点，不应关闭面板
+          if (dist < this.collisionManager.collisionThreshold) {
+            // 自动续期
+            this.resetCollisionDebounceTimer(playerId, mainPlayer, otherPlayer);
+            return;
+          }
+
+          // 距离过远，真正断开
           this.collisionManager.activeCollisions.delete(playerId)
 
           // 触发碰撞结束事件
@@ -2176,12 +3135,12 @@ export class Start extends Phaser.Scene {
       return
     }
 
-    // 创建group overlap检测器（只有1个）
+    // 创建 group 物理阻挡 (Collider) + 交互触发 (逻辑注入)
+    // 仅使用 overlap 进行交互检测，允许穿透（防止推走其他玩家/NPC）
     this.playerCharacterCollider = this.physics.add.overlap(
       this.player,
       this.otherPlayersGroup,
       (player1, player2) => {
-        // 确保是其他玩家触发了碰撞
         if (player2.isOtherPlayer) {
           this.handlePlayerCollision(player1, player2)
         }
@@ -2218,6 +3177,63 @@ export class Start extends Phaser.Scene {
       this.collisionManager.collisionThreshold = radius
       debugLog("碰撞敏感度已设置为:", radius)
     }
+  }
+
+  // 🔧 新增：设置登录监听器
+  setupLoginListener() {
+    if (typeof window === 'undefined') return
+
+    const handleLoginSuccess = async (event) => {
+      console.log('🔄 [Start] 检测到用户登录,开始刷新游戏状态:', event.detail)
+
+      const { userId, characterSprite } = event.detail
+
+      // 1. 更新当前用户信息
+      if (this.currentUser) {
+        this.currentUser.id = userId
+      }
+
+      // 2. 更新玩家角色形象
+      if (this.player && characterSprite) {
+        console.log('🎨 [Start] 尝试更新玩家角色形象:', characterSprite)
+        if (typeof this.player.updateCharacterSprite === 'function') {
+          this.player.updateCharacterSprite(characterSprite)
+        } else {
+          console.warn('⚠️ [Start] this.player 缺少 updateCharacterSprite 方法，尝试手动更新纹理')
+          // 后备手动更新逻辑
+          if (this.player.headSprite && this.player.bodySprite) {
+            this.player.headSprite.setTexture(characterSprite)
+            this.player.bodySprite.setTexture(characterSprite)
+            if (this.player.setDirectionFrame) {
+              this.player.setDirectionFrame(this.player.currentDirection || 'down')
+            }
+          }
+        }
+      }
+
+      // 3. 重新同步工位绑定状态
+      if (this.workstationManager) {
+        console.log('🔄 [Start] 重新同步工位绑定状态')
+        await this.workstationManager.syncWorkstationBindings()
+
+        // 4. 移除自己工位上的工位角色 (因为现在你就是工位的主人)
+        const myWorkstation = this.workstationManager.getWorkstationByUser(userId)
+        if (myWorkstation && myWorkstation.characterSprite) {
+          console.log('🗑️ [Start] 移除自己工位上的工位角色')
+          myWorkstation.characterSprite.destroy()
+          myWorkstation.characterSprite = null
+        }
+      }
+
+      console.log('✅ [Start] 登录刷新完成')
+    }
+
+    window.addEventListener('user-login-success', handleLoginSuccess)
+
+    // 清理函数
+    this.events.once('shutdown', () => {
+      window.removeEventListener('user-login-success', handleLoginSuccess)
+    })
   }
 
   // 已删除重复的碰撞检测函数
@@ -2521,7 +3537,74 @@ export class Start extends Phaser.Scene {
 
   // ===== 清理方法 =====
 
+  // ===== AI NPC 系统 (由 AiNpcManager.js 管理) =====
+
+
+  // ===== 昼夜系统方法 =====
+  initializeDayNightSystem() {
+    debugLog('🌓 初始化昼夜系统')
+
+    // 创建室内区域管理器
+    this.indoorAreasManager = new IndoorAreasManager(this)
+
+    // 尝试从 Tiled 地图加载室内区域（如果有的话）
+    // this.indoorAreasManager.loadFromTiledMap('indoor-areas')
+
+    // 手动定义室内区域（示例，根据实际地图调整坐标）
+    // 如果你知道室内区域的坐标，可以在这里定义
+    this.indoorAreasManager.defineIndoorAreas([
+      // 示例：办公室内部区域
+      // { x: 500, y: 500, width: 800, height: 600, name: '办公室主区域' },
+      // { x: 1400, y: 500, width: 400, height: 400, name: '会议室' }
+      // TODO: 根据实际地图添加室内区域坐标
+    ])
+
+    // 创建昼夜管理器（只对 background 图块层应用夜晚效果）
+    this.dayNightManager = new DayNightManager(this, this.mapLayers, {
+      nightStart: 18,  // 晚上8点开始
+      nightEnd: 6,     // 早上6点结束
+      transitionDuration: 2000, // 2秒过渡时间
+      checkInterval: 60000, // 每分钟检查一次
+      nightTint: 0x3030aa,  // 夜晚色调（深蓝紫色）
+      nightAlpha: 0.7      // 夜晚透明度
+    })
+
+    // 🔧 暂时禁用室内外检测以优化性能
+    // 添加定时器，每500ms检查一次玩家位置并调整遮罩
+    // this.indoorCheckTimer = this.time.addEvent({
+    //   delay: 500, // 每500ms检查一次
+    //   callback: this.updateNightOverlayForPlayerPosition,
+    //   callbackScope: this,
+    //   loop: true
+    // })
+
+    // 添加全局函数用于测试和调试
+    if (typeof window !== 'undefined') {
+      window.forceNight = () => this.dayNightManager.forceNight()
+      window.forceDay = () => this.dayNightManager.forceDay()
+      window.isNight = () => this.dayNightManager.isNightTime()
+      window.getTimeDescription = () => this.dayNightManager.getTimeDescription()
+      window.isPlayerIndoor = () => this.indoorAreasManager.isPlayerIndoor()
+      window.addIndoorArea = (x, y, w, h, name) => {
+        this.indoorAreasManager.addArea({ x, y, width: w, height: h, name })
+        debugLog(`🏠 已添加室内区域: ${name} (${x}, ${y}, ${w}x${h})`)
+      }
+    }
+
+    debugLog('✅ 昼夜系统初始化完成 (影响 background 和 tree 图块层)')
+  }
+
   shutdown() {
+    // 清理昼夜系统
+    if (this.dayNightManager) {
+      this.dayNightManager.destroy()
+      this.dayNightManager = null
+    }
+    if (this.indoorAreasManager) {
+      this.indoorAreasManager.destroy()
+      this.indoorAreasManager = null
+    }
+
     // 清理定时器
     if (this.collisionCheckTimer) {
       this.collisionCheckTimer.remove()
@@ -2532,6 +3615,12 @@ export class Start extends Phaser.Scene {
       this.uiUpdateTimer.remove()
       this.uiUpdateTimer = null
     }
+
+    // 🔧 室内外检测已禁用，相应的清理代码也注释掉
+    // if (this.indoorCheckTimer) {
+    //   this.indoorCheckTimer.remove()
+    //   this.indoorCheckTimer = null
+    // }
 
     // 清理区块管理器
     if (this.chunkManager) {

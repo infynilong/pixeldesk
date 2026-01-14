@@ -7,15 +7,45 @@ interface PageProps {
   params: { id: string }
 }
 
+// 获取品牌配置的辅助函数
+async function getBrandConfig(locale: string = 'zh-CN') {
+  try {
+    const configs = await prisma.brand_config.findMany({
+      where: { locale }
+    })
+
+    const configMap = configs.reduce((acc, config) => {
+      acc[config.key] = config.value
+      return acc
+    }, {} as Record<string, string>)
+
+    return {
+      app_name: configMap.app_name || '象素工坊',
+      app_slogan: configMap.app_slogan || '社交办公游戏',
+      app_logo: configMap.app_logo || '/assets/icon.png',
+      app_description: configMap.app_description || '一个有趣的社交办公游戏平台'
+    }
+  } catch (error) {
+    console.error('Error fetching brand config:', error)
+    return {
+      app_name: '象素工坊',
+      app_slogan: '社交办公游戏',
+      app_logo: '/assets/icon.png',
+      app_description: '一个有趣的社交办公游戏平台'
+    }
+  }
+}
+
 // 生成动态metadata用于SEO
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { id } = params
+  const brandConfig = await getBrandConfig('zh-CN')
 
   try {
-    const post = await prisma.post.findUnique({
+    const post = await prisma.posts.findUnique({
       where: { id },
       include: {
-        author: {
+        users: {
           select: {
             id: true,
             name: true,
@@ -27,7 +57,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
     if (!post) {
       return {
-        title: '文章未找到 - PixelDesk',
+        title: `文章未找到 - ${brandConfig.app_name}`,
         description: '您访问的文章不存在'
       }
     }
@@ -37,9 +67,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     const imageUrl = post.coverImage || post.imageUrl || '/default-og-image.png'
 
     return {
-      title: `${title} - PixelDesk`,
+      title: `${title} - ${brandConfig.app_name}`,
       description,
-      authors: [{ name: post.author.name }],
+      authors: [{ name: post.users.name }],
       keywords: post.tags || [],
       openGraph: {
         title,
@@ -47,7 +77,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
         type: 'article',
         publishedTime: (post.publishedAt || post.createdAt).toISOString(),
         modifiedTime: post.updatedAt.toISOString(),
-        authors: [post.author.name],
+        authors: [post.users.name],
         tags: post.tags || [],
         images: [
           {
@@ -68,21 +98,22 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   } catch (error) {
     console.error('Error generating metadata:', error)
     return {
-      title: 'PixelDesk - 社交办公游戏',
-      description: '一个有趣的社交办公游戏平台'
+      title: `${brandConfig.app_name} - ${brandConfig.app_slogan}`,
+      description: brandConfig.app_description
     }
   }
 }
 
 export default async function PostDetailPage({ params }: PageProps) {
   const { id } = params
+  const brandConfig = await getBrandConfig('zh-CN')
 
   try {
     // 服务器端获取帖子数据
-    const post = await prisma.post.findUnique({
+    const post = await prisma.posts.findUnique({
       where: { id },
       include: {
-        author: {
+        users: {
           select: {
             id: true,
             name: true,
@@ -91,19 +122,23 @@ export default async function PostDetailPage({ params }: PageProps) {
         },
         _count: {
           select: {
-            replies: true,
-            likes: true
+            post_replies: true,
+            post_likes: true
           }
         }
       }
     })
+
+    // 获取工位配置，特别是推流成本
+    const wsConfig = await prisma.workstation_config.findFirst()
+    const billboardPromotionCost = (wsConfig as any)?.billboardPromotionCost ?? 50
 
     if (!post) {
       notFound()
     }
 
     // 增加浏览量
-    await prisma.post.update({
+    await prisma.posts.update({
       where: { id },
       data: { viewCount: { increment: 1 } }
     })
@@ -115,13 +150,15 @@ export default async function PostDetailPage({ params }: PageProps) {
       content: post.content,
       type: post.type as 'TEXT' | 'IMAGE' | 'MIXED' | 'MARKDOWN',
       imageUrl: post.imageUrl,
+      imageUrls: post.imageUrls,
       isPublic: post.isPublic,
-      likeCount: post._count.likes,
-      replyCount: post._count.replies,
+      likeCount: post._count.post_likes,
+      replyCount: post._count.post_replies,
       viewCount: post.viewCount,
+      promotionCount: (post as any).promotionCount || 0,
       createdAt: post.createdAt.toISOString(),
       updatedAt: post.updatedAt.toISOString(),
-      author: post.author,
+      author: post.users,
       isLiked: false, // 客户端会更新这个值
       summary: post.summary,
       wordCount: post.wordCount,
@@ -143,14 +180,14 @@ export default async function PostDetailPage({ params }: PageProps) {
       dateModified: post.updatedAt.toISOString(),
       author: {
         '@type': 'Person',
-        name: post.author.name
+        name: post.users.name
       },
       publisher: {
         '@type': 'Organization',
-        name: 'PixelDesk',
+        name: brandConfig.app_name,
         logo: {
           '@type': 'ImageObject',
-          url: '/logo.png'
+          url: brandConfig.app_logo
         }
       },
       wordCount: post.wordCount,
@@ -166,7 +203,10 @@ export default async function PostDetailPage({ params }: PageProps) {
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
 
-        <PostDetailClient initialPost={postData} />
+        <PostDetailClient
+          initialPost={postData}
+          billboardPromotionCost={billboardPromotionCost}
+        />
       </>
     )
   } catch (error) {

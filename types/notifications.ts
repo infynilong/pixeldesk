@@ -8,9 +8,10 @@ export interface Notification {
   relatedPostId?: string
   relatedReplyId?: string
   relatedUserId?: string
+  relatedExchangeId?: string
   createdAt: string
   updatedAt: string
-  
+
   // 关联数据
   relatedPost?: {
     id: string
@@ -32,7 +33,10 @@ export interface Notification {
 export enum NotificationType {
   POST_REPLY = 'POST_REPLY',
   POST_LIKE = 'POST_LIKE',
-  SYSTEM = 'SYSTEM'
+  SYSTEM = 'SYSTEM',
+  POSTCARD_EXCHANGE_REQUEST = 'POSTCARD_EXCHANGE_REQUEST',
+  POSTCARD_EXCHANGE_ACCEPT = 'POSTCARD_EXCHANGE_ACCEPT',
+  POSTCARD_EXCHANGE_REJECT = 'POSTCARD_EXCHANGE_REJECT'
 }
 
 export interface CreateNotificationData {

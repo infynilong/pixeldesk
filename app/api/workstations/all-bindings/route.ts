@@ -5,17 +5,11 @@ export async function GET() {
   try {
     const now = new Date()
 
-    // 先清理过期的工位绑定
-    await prisma.userWorkstation.deleteMany({
-      where: {
-        expiresAt: {
-          lt: now
-        }
-      }
-    })
+    // 注意：已移除每请求执行的 deleteMany 逻辑，以优化高并发下的查询性能。
+    // 过期清理应由专门的后台任务（如 cleanup-expired/route.ts）处理。
 
     // 获取所有有效的工位绑定信息
-    const allBindings = await prisma.userWorkstation.findMany({
+    const allBindings = await prisma.user_workstations.findMany({
       where: {
         OR: [
           { expiresAt: null }, // 兼容旧数据
@@ -23,17 +17,24 @@ export async function GET() {
         ]
       },
       include: {
-        user: {
+        users: {
           select: {
             id: true,
             name: true,
             email: true,
             avatar: true,
             points: true,
-            player: {
+            players: {
               select: {
                 characterSprite: true
               }
+            },
+            // 获取最新的一条状态历史作为当前状态
+            status_history: {
+              orderBy: {
+                timestamp: 'desc'
+              },
+              take: 1
             }
           }
         }
@@ -53,8 +54,17 @@ export async function GET() {
         ? (binding.expiresAt.getTime() - now.getTime()) <= (3 * 24 * 60 * 60 * 1000) // 3天内过期
         : false
 
+      // 提取最新状态
+      const users: any = binding.users;
+      if (users && users.status_history && users.status_history.length > 0) {
+        users.current_status = users.status_history[0];
+        // 清理掉不需要直接返回的数组
+        delete users.status_history;
+      }
+
       return {
         ...binding,
+        users,
         remainingDays,
         isExpiringSoon
       }

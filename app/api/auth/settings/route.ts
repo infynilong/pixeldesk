@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import prisma from '@/lib/prisma'
+import prisma from '@/lib/db'
 import { verifyToken, hashPassword, isValidPassword, isValidUsername } from '@/lib/auth'
 import { getBasicUserFromRequest } from '@/lib/serverAuth'
 
@@ -7,14 +7,14 @@ export async function PUT(request: NextRequest) {
   try {
     // 获取并验证token
     const token = request.cookies.get('auth-token')?.value
-    
+
     if (!token) {
       return NextResponse.json({
         success: false,
         error: 'Authentication required'
       }, { status: 401 })
     }
-    
+
     const payload = verifyToken(token)
     if (!payload?.userId) {
       return NextResponse.json({
@@ -22,9 +22,9 @@ export async function PUT(request: NextRequest) {
         error: 'Invalid authentication token'
       }, { status: 401 })
     }
-    
+
     // 验证会话是否仍然活跃
-    const activeSession = await prisma.userSession.findFirst({
+    const activeSession = await prisma.user_sessions.findFirst({
       where: {
         userId: payload.userId,
         token: token,
@@ -32,30 +32,30 @@ export async function PUT(request: NextRequest) {
         expiresAt: { gt: new Date() }
       }
     })
-    
+
     if (!activeSession) {
       return NextResponse.json({
         success: false,
         error: 'Session expired or invalid'
       }, { status: 401 })
     }
-    
+
     const { name, currentPassword, newPassword } = await request.json()
-    
+
     // 获取当前用户信息
-    const currentUser = await prisma.user.findUnique({
+    const currentUser = await prisma.users.findUnique({
       where: { id: payload.userId }
     })
-    
+
     if (!currentUser) {
       return NextResponse.json({
         success: false,
         error: 'User not found'
       }, { status: 404 })
     }
-    
+
     const updateData: any = {}
-    
+
     // 验证并更新用户名
     if (name !== undefined && name !== currentUser.name) {
       const usernameValidation = isValidUsername(name)
@@ -67,7 +67,7 @@ export async function PUT(request: NextRequest) {
       }
       updateData.name = name.trim()
     }
-    
+
     // 如果要更新密码，需要验证当前密码
     if (newPassword) {
       if (!currentPassword) {
@@ -76,7 +76,7 @@ export async function PUT(request: NextRequest) {
           error: 'Current password is required to change password'
         }, { status: 400 })
       }
-      
+
       // 验证当前密码
       if (!currentUser.password) {
         return NextResponse.json({
@@ -84,7 +84,7 @@ export async function PUT(request: NextRequest) {
           error: 'No password set for this account'
         }, { status: 400 })
       }
-      
+
       const bcrypt = require('bcryptjs')
       const isCurrentPasswordValid = await bcrypt.compare(currentPassword, currentUser.password)
       if (!isCurrentPasswordValid) {
@@ -93,7 +93,7 @@ export async function PUT(request: NextRequest) {
           error: 'Current password is incorrect'
         }, { status: 400 })
       }
-      
+
       // 验证新密码强度
       const passwordValidation = isValidPassword(newPassword)
       if (!passwordValidation.valid) {
@@ -102,11 +102,11 @@ export async function PUT(request: NextRequest) {
           error: passwordValidation.message
         }, { status: 400 })
       }
-      
+
       // 哈希新密码
       updateData.password = await hashPassword(newPassword)
     }
-    
+
     // 如果没有要更新的数据
     if (Object.keys(updateData).length === 0) {
       return NextResponse.json({
@@ -114,14 +114,14 @@ export async function PUT(request: NextRequest) {
         error: 'No changes to update'
       }, { status: 400 })
     }
-    
+
     // 更新用户信息
     updateData.updatedAt = new Date()
-    const updatedUser = await prisma.user.update({
+    const updatedUser = await prisma.users.update({
       where: { id: payload.userId },
       data: updateData
     })
-    
+
     // 返回更新后的用户信息（不包含密码）
     const userResponse = {
       id: updatedUser.id,
@@ -130,15 +130,16 @@ export async function PUT(request: NextRequest) {
       avatar: updatedUser.avatar,
       points: updatedUser.points,
       emailVerified: updatedUser.emailVerified,
-      updatedAt: updatedUser.updatedAt
+      updatedAt: updatedUser.updatedAt,
+      inviteCode: updatedUser.inviteCode
     }
-    
+
     return NextResponse.json({
       success: true,
       data: userResponse,
       message: 'Settings updated successfully'
     })
-    
+
   } catch (error) {
     console.error('Settings update error:', error)
     return NextResponse.json({
@@ -160,6 +161,32 @@ export async function GET(request: NextRequest) {
       }, { status: 401 })
     }
 
+    // 自动延长工位租期 & 更新最后登录时间
+    const now = new Date();
+    const sevenDaysLater = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+    // 1. 更新用户最后活动时间
+    await prisma.users.update({
+      where: { id: authResult.user.id },
+      data: { lastLogin: now }
+    });
+
+    // 2. 如果用户有绑定工位，自动续期到 7 天后
+    const binding = await prisma.user_workstations.findFirst({
+      where: { userId: authResult.user.id }
+    });
+
+    if (binding) {
+      await prisma.user_workstations.update({
+        where: { id: binding.id },
+        data: {
+          expiresAt: sevenDaysLater,
+          lastInactivityWarningAt: null // 重置警告状态
+        }
+      });
+      console.log(`📡 [Workstation] Auto-extended lease for User ${authResult.user.id} to ${sevenDaysLater.toISOString()}`);
+    }
+
     // 返回用户信息
     const userResponse = {
       id: authResult.user.id,
@@ -167,7 +194,8 @@ export async function GET(request: NextRequest) {
       email: authResult.user.email,
       avatar: authResult.user.avatar,
       points: authResult.user.points,
-      emailVerified: authResult.user.emailVerified
+      emailVerified: authResult.user.emailVerified,
+      inviteCode: authResult.user.inviteCode
     }
 
     return NextResponse.json({

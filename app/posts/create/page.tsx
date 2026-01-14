@@ -6,7 +6,9 @@ import { useUser } from '@/contexts/UserContext'
 import { useCurrentUser } from '@/lib/hooks/useCurrentUser'
 import BlogSidebar from '@/components/blog/BlogSidebar'
 import BlogEditor from '@/components/blog/BlogEditor'
+import UserAvatar from '@/components/UserAvatar'
 import { SocialUser } from '@/types/social'
+import { useTranslation } from '@/lib/hooks/useTranslation'
 
 interface BlogPost {
   id: string
@@ -21,6 +23,7 @@ export default function BlogManagementPage() {
   const router = useRouter()
   const { user } = useUser()
   const { currentUser, userId: currentUserId } = useCurrentUser()
+  const { t } = useTranslation()
 
   const isAuthenticated = !!user
 
@@ -65,13 +68,13 @@ export default function BlogManagementPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
           </div>
-          <h2 className="text-2xl font-bold text-white mb-2">需要登录</h2>
-          <p className="text-gray-300 mb-6">请先登录后再管理博客</p>
+          <h2 className="text-2xl font-bold text-white mb-2">{t.social.login_required}</h2>
+          <p className="text-gray-300 mb-6">{t.social.login_required_desc}</p>
           <button
             onClick={() => router.push('/')}
             className="cursor-pointer w-full bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-white font-bold py-3 px-6 rounded-lg transition-all"
           >
-            前往登录
+            {t.social.go_to_login}
           </button>
         </div>
       </div>
@@ -98,42 +101,56 @@ export default function BlogManagementPage() {
   return (
     <div className="h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 flex flex-col overflow-hidden">
       {/* 顶部导航栏 */}
-      <nav className="flex-shrink-0 bg-gray-900/80 backdrop-blur-sm border-b border-gray-800">
-        <div className="px-6 py-4">
+      <nav className="flex-shrink-0 bg-gray-900/80 backdrop-blur-sm border-b border-gray-800 z-50">
+        <div className="px-6 py-3">
           <div className="flex items-center justify-between">
-            {/* 左侧 - Logo */}
-            <button
-              onClick={() => router.push('/')}
-              className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer"
-            >
-              <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-teal-500 rounded-xl flex items-center justify-center shadow-lg shadow-cyan-500/20">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-white font-bold text-lg">PixelDesk</span>
-                <span className="text-gray-400 text-xs font-mono">Blog Management</span>
-              </div>
-            </button>
-
-            {/* 右侧 - 用户信息 */}
-            <div className="flex items-center gap-3">
-              <div className="text-right">
-                <p className="text-sm font-medium text-white">{user.name}</p>
-                <p className="text-xs text-gray-400">{user.points || 0} 积分</p>
-              </div>
-              {user.avatar ? (
-                <img
-                  src={user.avatar}
-                  alt={user.name || ''}
-                  className="w-10 h-10 rounded-full ring-2 ring-cyan-500/30"
-                />
-              ) : (
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-600 to-teal-600 flex items-center justify-center text-white font-bold">
-                  {(user.name || 'U')[0].toUpperCase()}
+            {/* 左侧 - Logo + 动态插入的标题 */}
+            <div className="flex items-center gap-8">
+              <button
+                onClick={() => router.push('/')}
+                className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer shrink-0"
+              >
+                <div className="w-9 h-9 bg-gradient-to-br from-cyan-500 to-teal-500 rounded-xl flex items-center justify-center shadow-lg shadow-cyan-500/20">
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
                 </div>
-              )}
+                <div className="hidden sm:flex flex-col text-left">
+                  <span className="text-white font-bold text-base leading-tight">象素工坊</span>
+                  <span className="text-gray-500 text-[10px] font-mono leading-tight">Blog Admin</span>
+                </div>
+              </button>
+
+              <div className="h-6 w-px bg-gray-800 hidden md:block"></div>
+
+              {/* Portal for Editor Title */}
+              <div id="editor-title-portal" className="flex items-center"></div>
+            </div>
+
+            {/* 右侧 - 按钮组合 + 用户信息 */}
+            <div className="flex items-center gap-6">
+              {/* Portal for Editor Actions */}
+              <div id="editor-actions-portal" className="flex items-center gap-2"></div>
+
+              <div className="h-6 w-px bg-gray-800 hidden sm:block"></div>
+
+              <div className="flex items-center gap-3">
+                <div className="text-right flex flex-col justify-center">
+                  <p className="text-xs font-bold text-white tracking-wide">{user.name}</p>
+                  <p className="text-[10px] text-yellow-500/80 font-bold uppercase tracking-tighter">
+                    {user.points || 0} {t.leftPanel.points}
+                  </p>
+                </div>
+                <UserAvatar
+                  userId={user.id}
+                  userName={user.name || ''}
+                  customAvatar={user.avatar}
+                  userAvatar={currentUser.avatar}
+                  size="sm"
+                  showStatus={false}
+                  className="ring-1 ring-white/10 p-0.5 rounded-full"
+                />
+              </div>
             </div>
           </div>
         </div>

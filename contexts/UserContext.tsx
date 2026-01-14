@@ -4,13 +4,15 @@ import { createContext, useContext, useState, useEffect, useRef, ReactNode } fro
 import { initializePlayerSync, clearPlayerFromLocalStorage } from '@/lib/playerSync'
 import { migrateTempPlayerToUser, clearTempPlayer } from '@/lib/tempPlayerManager'
 
-interface User {
+export interface User {
   id: string
   name: string
   email: string
   avatar?: string
   points?: number
   emailVerified?: boolean
+  workstationId?: string
+  inviteCode?: string
 }
 
 interface UserContextType {
@@ -18,9 +20,9 @@ interface UserContextType {
   isLoading: boolean
   playerExists: boolean | null
   login: (email: string, password: string) => Promise<boolean>
-  register: (name: string, email: string, password: string) => Promise<{ success: boolean; error?: string }>
+  register: (name: string, email: string, password: string, inviteCode?: string) => Promise<{ success: boolean; error?: string }>
   logout: () => Promise<void>
-  refreshUser: () => Promise<void>
+  refreshUser: (silent?: boolean) => Promise<void>
   setPlayerExists: (exists: boolean) => void
 }
 
@@ -30,152 +32,119 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [playerExists, setPlayerExists] = useState<boolean | null>(null)
-  const authCheckedRef = useRef(false) // 防止 React Strict Mode 重复请求
+  const authCheckedRef = useRef(false)
+  const isCheckingRef = useRef(false)
 
-  // Check for existing session on mount
-  useEffect(() => {
-    // 防止重复请求（React Strict Mode 会导致 useEffect 执行两次）
-    if (authCheckedRef.current) return
-    authCheckedRef.current = true
+  const checkAuth = async (silent = false) => {
+    if (isCheckingRef.current) return
+    isCheckingRef.current = true
 
-    const checkAuth = async () => {
-      try {
-        // Get user info from cookie-based session
-        const response = await fetch('/api/auth/settings', {
-          method: 'GET',
-          credentials: 'include', // Include cookies
-        })
-
-        if (response.ok) {
-          const data = await response.json()
-          if (data.success && data.data) {
-            setUser(data.data)
-            // Initialize player sync for authenticated user
-            const playerSyncResult = await initializePlayerSync()
-            setPlayerExists(playerSyncResult.hasPlayer)
-          }
-        } else {
-          // 忽略预期的认证失败日志以优化性能
-        }
-      } catch (error) {
-        // 静默处理认证错误以减少日志噪音
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    checkAuth()
-  }, [])
-
-  const login = async (email: string, password: string): Promise<boolean> => {
+    if (!silent) setIsLoading(true)
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include', // Include cookies
-        body: JSON.stringify({ email, password }),
+      if (!silent) console.log('🌐 [UserContext] 正在验证身份...')
+      const response = await fetch('/api/auth/settings', {
+        method: 'GET',
+        credentials: 'include',
       })
 
       if (response.ok) {
         const data = await response.json()
         if (data.success && data.data) {
+          if (!silent) console.log('✅ [UserContext] 身份验证成功:', data.data.name)
+
+          // 批量更新状态以减少重新渲染
           setUser(data.data)
+          if (!silent) setIsLoading(false)
 
-          // 处理临时玩家迁移
-          const migrationResult = migrateTempPlayerToUser(data.data.id)
-          if (migrationResult.migrationSuccess) {
-            // 临时玩家数据迁移成功
-            console.log('临时玩家数据已迁移到正式用户')
-          }
-
-          // Clear any existing player data from localStorage for the user
-          clearPlayerFromLocalStorage()
-          clearTempPlayer() // 清理临时玩家数据
-
-          // Initialize player sync after successful login
+          // 登录成功后初始化玩家同步
           const playerSyncResult = await initializePlayerSync()
           setPlayerExists(playerSyncResult.hasPlayer)
-          return true
+        } else {
+          setUser(null)
+          if (!silent) setIsLoading(false)
         }
+      } else {
+        setUser(null)
+        if (!silent) setIsLoading(false)
+      }
+    } catch (error) {
+      console.error('❌ [UserContext] 身份验证请求失败:', error)
+      setUser(null)
+      if (!silent) setIsLoading(false)
+    } finally {
+      isCheckingRef.current = false
+    }
+  }
+
+  useEffect(() => {
+    if (authCheckedRef.current) return
+    authCheckedRef.current = true
+    checkAuth()
+  }, [])
+
+  const login = async (email: string, password: string) => {
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      })
+
+      const data = await response.json()
+      if (response.ok && data.success) {
+        setUser(data.data)
+        const playerSyncResult = await initializePlayerSync()
+        setPlayerExists(playerSyncResult.hasPlayer)
+
+        // 触发 Phaser 刷新
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('user-login-success', {
+            detail: {
+              userId: data.data.id,
+              characterSprite: playerSyncResult.playerData?.character,
+              needsRefresh: true
+            }
+          }))
+        }
+        return true
       }
       return false
     } catch (error) {
-      console.error('Login failed:', error)
+      console.error('Login error:', error)
       return false
     }
   }
 
-  const register = async (name: string, email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+  const register = async (name: string, email: string, password: string, inviteCode?: string) => {
     try {
       const response = await fetch('/api/auth/register', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include', // Include cookies
-        body: JSON.stringify({ name, email, password }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password, inviteCode }),
       })
 
       const data = await response.json()
-
       if (response.ok && data.success) {
-        // Registration successful, user is automatically logged in
         setUser(data.data)
-        
-        // 处理临时玩家迁移
-        const migrationResult = migrateTempPlayerToUser(data.data.id)
-        if (migrationResult.migrationSuccess) {
-          // 临时玩家数据迁移成功
-        }
-        
-        // Clear any existing player data from localStorage for new user
-        clearPlayerFromLocalStorage()
-        clearTempPlayer() // 清理临时玩家数据
-        
+        await initializePlayerSync()
+        setPlayerExists(false) // 新注册用户通常没有玩家
         return { success: true }
-      } else {
-        return { success: false, error: data.error || 'Registration failed' }
       }
+      return { success: false, error: data.error || 'Registration failed' }
     } catch (error) {
-      console.error('Registration failed:', error)
-      return { success: false, error: 'Network error occurred' }
+      return { success: false, error: 'Network error' }
     }
   }
 
   const logout = async () => {
     try {
-      // Call logout API to invalidate session
-      await fetch('/api/auth/logout', {
-        method: 'POST',
-        credentials: 'include', // Include cookies
-      })
-    } catch (error) {
-      console.error('Logout API call failed:', error)
+      await fetch('/api/auth/logout', { method: 'POST' })
     } finally {
-      // Always clear user state and player data regardless of API success
       setUser(null)
       setPlayerExists(null)
       await clearPlayerFromLocalStorage()
-    }
-  }
-
-  const refreshUser = async () => {
-    try {
-      const response = await fetch('/api/auth/settings', {
-        method: 'GET',
-        credentials: 'include', // Include cookies
-      })
-      
-      if (response.ok) {
-        const data = await response.json()
-        if (data.success && data.data) {
-          setUser(data.data)
-        }
-      }
-    } catch (error) {
-      console.error('Failed to refresh user:', error)
+      clearTempPlayer()
+      window.location.reload() // 退出时刷新页面最保险
     }
   }
 
@@ -187,7 +156,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       login,
       register,
       logout,
-      refreshUser,
+      refreshUser: checkAuth,
       setPlayerExists
     }}>
       {children}
@@ -195,7 +164,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
   )
 }
 
-export function useUser() {
+export const useUser = () => {
   const context = useContext(UserContext)
   if (context === undefined) {
     throw new Error('useUser must be used within a UserProvider')

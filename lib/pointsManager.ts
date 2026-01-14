@@ -3,6 +3,7 @@
  * 用于获取积分配置和执行积分奖励/扣除操作
  */
 import { prisma } from './db'
+import { randomUUID } from 'crypto'
 
 // 积分配置缓存，避免频繁查询数据库
 let configCache: Record<string, number> | null = null
@@ -24,7 +25,7 @@ export async function getPointsConfig(key: string, useCache = true): Promise<num
     }
 
     // 从数据库获取
-    const config = await prisma.pointsConfig.findUnique({
+    const config = await prisma.points_config.findUnique({
       where: { key, isActive: true }
     })
 
@@ -40,25 +41,35 @@ export async function getPointsConfig(key: string, useCache = true): Promise<num
   }
 }
 
+let refreshPromise: Promise<void> | null = null
+
 /**
  * 刷新积分配置缓存
  */
 export async function refreshPointsConfigCache(): Promise<void> {
-  try {
-    const configs = await prisma.pointsConfig.findMany({
-      where: { isActive: true }
-    })
+  if (refreshPromise) return refreshPromise
 
-    configCache = configs.reduce((acc, config) => {
-      acc[config.key] = config.value
-      return acc
-    }, {} as Record<string, number>)
+  refreshPromise = (async () => {
+    try {
+      const configs = await prisma.points_config.findMany({
+        where: { isActive: true }
+      })
 
-    cacheTimestamp = Date.now()
-    console.log('✅ 积分配置缓存已刷新')
-  } catch (error) {
-    console.error('刷新积分配置缓存失败:', error)
-  }
+      configCache = configs.reduce((acc, config) => {
+        acc[config.key] = config.value
+        return acc
+      }, {} as Record<string, number>)
+
+      cacheTimestamp = Date.now()
+      console.log('✅ 积分配置缓存已刷新')
+    } catch (error) {
+      console.error('刷新积分配置缓存失败:', error)
+    } finally {
+      refreshPromise = null
+    }
+  })()
+
+  return refreshPromise
 }
 
 /**
@@ -97,17 +108,19 @@ export async function rewardPoints(
 
     // 使用事务同时更新积分和记录历史
     const updatedUser = await prisma.$transaction(async (tx) => {
-      // 更新用户积分
-      const user = await tx.user.update({
+      // 更新用户积分 - 注意使用 tx.users 而不是 tx.user
+      const user = await tx.users.update({
         where: { id: userId },
         data: {
-          points: { increment: points }
+          points: { increment: points },
+          updatedAt: new Date()
         }
       })
 
-      // 记录历史
-      await tx.pointsHistory.create({
+      // 记录历史 - 注意使用 tx.points_history 而不是 tx.points_history
+      await tx.points_history.create({
         data: {
+          id: randomUUID(),
           userId,
           amount: points,
           reason: reason || configKey,
@@ -157,7 +170,7 @@ export async function deductPoints(
     }
 
     // 检查用户当前积分
-    const currentUser = await prisma.user.findUnique({
+    const currentUser = await prisma.users.findUnique({
       where: { id: userId },
       select: { points: true }
     })
@@ -183,16 +196,18 @@ export async function deductPoints(
     // 使用事务更新积分和记录历史
     const updatedUser = await prisma.$transaction(async (tx) => {
       // 扣除积分
-      const user = await tx.user.update({
+      const user = await tx.users.update({
         where: { id: userId },
         data: {
-          points: { decrement: points }
+          points: { decrement: points },
+          updatedAt: new Date()
         }
       })
 
       // 记录历史
-      await tx.pointsHistory.create({
+      await tx.points_history.create({
         data: {
+          id: randomUUID(),
           userId,
           amount: -points, // 扣除显示负数
           reason: reason || configKey,
@@ -228,7 +243,7 @@ export async function deductPoints(
 export async function hasEnoughPoints(userId: string, configKey: string): Promise<boolean> {
   try {
     const requiredPoints = await getPointsConfig(configKey)
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: userId },
       select: { points: true }
     })
@@ -240,5 +255,5 @@ export async function hasEnoughPoints(userId: string, configKey: string): Promis
   }
 }
 
-// 初始化时刷新缓存
-refreshPointsConfigCache().catch(console.error)
+// 初始化时不直接刷新，由首次请求触发以便错开冷启动高峰
+// refreshPointsConfigCache().catch(console.error)

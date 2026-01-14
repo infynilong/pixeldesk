@@ -23,7 +23,7 @@ export async function GET(
 
     // 获取用户的所有博客
     const [blogs, totalCount] = await Promise.all([
-      prisma.post.findMany({
+      prisma.posts.findMany({
         where: {
           authorId: userId,
           type: 'MARKDOWN',
@@ -34,14 +34,21 @@ export async function GET(
         skip,
         take: limit,
         include: {
-          author: {
+          users: {
             select: {
               id: true,
               name: true,
-              avatar: true
+              avatar: true,
+              customAvatar: true,
+              user_workstations: {
+                select: {
+                  workstationId: true
+                },
+                take: 1
+              }
             }
           },
-          likes: currentUserId ? {
+          post_likes: currentUserId ? {
             where: {
               userId: currentUserId
             },
@@ -51,7 +58,7 @@ export async function GET(
           } : false
         }
       }),
-      prisma.post.count({
+      prisma.posts.count({
         where: {
           authorId: userId,
           type: 'MARKDOWN',
@@ -61,12 +68,21 @@ export async function GET(
       })
     ])
 
-    // 处理点赞状态
-    const blogsWithLikeStatus = blogs.map(blog => ({
-      ...blog,
-      isLiked: currentUserId ? (blog.likes && blog.likes.length > 0) : false,
-      likes: undefined
-    }))
+    // 处理点赞状态和字段映射
+    const blogsWithLikeStatus = blogs.map(blog => {
+      const b = blog as any
+      return {
+        ...blog,
+        author: {
+          ...blog.users,
+          workstationId: (blog.users as any)?.user_workstations?.[0]?.workstationId || null,
+          user_workstations: undefined
+        },
+        users: undefined, // 移除 users 字段
+        isLiked: currentUserId ? (b.post_likes && b.post_likes.length > 0) : false,
+        post_likes: undefined
+      }
+    })
 
     const totalPages = Math.ceil(totalCount / limit)
 

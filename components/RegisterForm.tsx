@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { useUser } from '../contexts/UserContext'
 import GameCompatibleInput from './GameCompatibleInput'
+import { useTranslation } from '@/lib/hooks/useTranslation'
+import { useBrandConfig } from '@/lib/hooks/useBrandConfig'
 
 interface RegisterFormProps {
   onSuccess?: () => void
@@ -11,37 +13,40 @@ interface RegisterFormProps {
 
 export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) {
   const { register, isLoading } = useUser()
+  const { t } = useTranslation()
+  const { config } = useBrandConfig()
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    inviteCode: ''
   })
   const [errors, setErrors] = useState<string[]>([])
 
   const validateForm = () => {
     const newErrors = []
-    
+
     if (!formData.name.trim()) {
-      newErrors.push('用户名不能为空')
+      newErrors.push(t.auth.err_username_empty)
     }
-    
+
     if (!formData.email.trim()) {
-      newErrors.push('邮箱不能为空')
+      newErrors.push(t.auth.err_email_empty)
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.push('邮箱格式不正确')
+      newErrors.push(t.auth.err_email_invalid)
     }
-    
+
     if (!formData.password) {
-      newErrors.push('密码不能为空')
+      newErrors.push(t.auth.err_password_empty)
     } else if (formData.password.length < 6) {
-      newErrors.push('密码至少需要6位字符')
+      newErrors.push(t.auth.err_password_short)
     }
-    
+
     if (formData.password !== formData.confirmPassword) {
-      newErrors.push('两次输入的密码不一致')
+      newErrors.push(t.auth.err_password_mismatch)
     }
-    
+
     setErrors(newErrors)
     return newErrors.length === 0
   }
@@ -53,23 +58,24 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
     if (!validateForm()) {
       return
     }
-    
+
     try {
       const result = await register(
         formData.name.trim(),
         formData.email.trim(),
-        formData.password
+        formData.password,
+        formData.inviteCode?.trim()
       )
 
       if (result.success) {
         // 注册成功，用户已自动登录 - 主页面将处理角色创建
         onSuccess?.()
       } else {
-        setErrors([result.error || '注册失败，请重试'])
+        setErrors([result.error || t.auth.register_failed])
       }
     } catch (error) {
       console.error('Registration error:', error)
-      setErrors(['网络错误，请重试'])
+      setErrors([t.auth.network_error])
     }
   }
 
@@ -89,28 +95,28 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
     <div className="fixed inset-0 bg-gradient-to-br from-black via-gray-900 to-black flex items-center justify-center z-50 p-4">
       {/* 背景装饰 */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_transparent_0%,_rgba(0,0,0,0.8)_100%)]"></div>
-      
+
       <div className="relative bg-gradient-to-br from-retro-bg-darker via-gray-900 to-retro-bg-darker border-2 border-retro-purple/30 rounded-xl p-8 w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl">
         {/* 顶部装饰线 */}
         <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-20 h-1 bg-gradient-to-r from-retro-purple to-retro-pink"></div>
-        
+
         <div className="text-center mb-6">
           <div className="w-16 h-16 bg-gradient-to-r from-retro-purple to-retro-pink rounded-full flex items-center justify-center mx-auto mb-4">
             <span className="text-2xl">✨</span>
           </div>
-          <h2 className="text-white text-xl font-bold">加入 PixelDesk</h2>
-          <p className="text-retro-textMuted text-sm mt-1">创建您的游戏账户，开始精彩旅程</p>
+          <h2 className="text-white text-xl font-bold">{t.auth.join_us.replace('{appName}', config?.app_name || 'Tembo PX Workshop')}</h2>
+          <p className="text-retro-textMuted text-sm mt-1">{t.auth.registering}</p>
         </div>
-        
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <GameCompatibleInput
             type="text"
             value={formData.name}
             onChange={handleInputChange('name')}
-            label="用户名"
-            placeholder="请输入用户名"
-            helperText="支持中文、英文、数字和下划线"
-            error={errors.find(err => err.includes('用户名'))}
+            label={t.auth.username}
+            placeholder={t.auth.username_placeholder}
+            helperText={t.auth.username_helper}
+            error={errors.find(err => err.includes(t.auth.username) || err.includes(t.auth.err_username_empty))}
             required
           />
 
@@ -118,10 +124,10 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
             type="email"
             value={formData.email}
             onChange={handleInputChange('email')}
-            label="邮箱地址"
-            placeholder="请输入邮箱地址"
-            helperText="用于登录和找回密码"
-            error={errors.find(err => err.includes('邮箱'))}
+            label={t.auth.email}
+            placeholder={t.auth.email_placeholder}
+            helperText={t.auth.email_helper}
+            error={errors.find(err => err.includes(t.auth.email) || err.includes(t.auth.err_email_empty) || err.includes(t.auth.err_email_invalid))}
             required
           />
 
@@ -129,10 +135,10 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
             type="password"
             value={formData.password}
             onChange={handleInputChange('password')}
-            label="密码"
-            placeholder="请输入密码（至少6位）"
-            helperText="建议使用字母和数字组合"
-            error={errors.find(err => err.includes('密码') && !err.includes('确认'))}
+            label={t.auth.password}
+            placeholder={t.auth.password_placeholder}
+            helperText={t.auth.password_helper}
+            error={errors.find(err => (err.includes(t.auth.password) || err.includes(t.auth.err_password_empty) || err.includes(t.auth.err_password_short)) && !err.includes(t.auth.confirm_password))}
             required
           />
 
@@ -140,19 +146,28 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
             type="password"
             value={formData.confirmPassword}
             onChange={handleInputChange('confirmPassword')}
-            label="确认密码"
-            placeholder="请再次输入密码"
-            error={errors.find(err => err.includes('确认') || err.includes('一致'))}
+            label={t.auth.confirm_password}
+            placeholder={t.auth.confirm_password_placeholder}
+            error={errors.find(err => err.includes(t.auth.confirm_password) || err.includes(t.auth.err_password_mismatch))}
             required
           />
 
+          <GameCompatibleInput
+            type="text"
+            value={formData.inviteCode}
+            onChange={handleInputChange('inviteCode')}
+            label={`${(t.auth as any).invite_code || '邀请码'} (${(t.auth as any).optional || '可选'})`}
+            placeholder={(t.auth as any).invite_code_placeholder || '请输入邀请码'}
+            required={false}
+          />
+
           {/* 显示其他错误 */}
-          {errors.filter(err => 
-            !err.includes('用户名') && 
-            !err.includes('邮箱') && 
-            !err.includes('密码') && 
-            !err.includes('确认') && 
-            !err.includes('一致')
+          {errors.filter(err =>
+            !err.includes(t.auth.username) &&
+            !err.includes(t.auth.email) &&
+            !err.includes(t.auth.password) &&
+            !err.includes(t.auth.confirm_password) &&
+            !err.includes(t.auth.err_password_mismatch)
           ).map((error, index) => (
             <div key={index} className="text-red-400 text-sm flex items-center space-x-2">
               <span>⚠️</span>
@@ -168,10 +183,10 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
             {isLoading ? (
               <span className="flex items-center justify-center space-x-2">
                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full "></div>
-                <span>注册中...</span>
+                <span>{t.auth.registering}</span>
               </span>
             ) : (
-              '创建账户'
+              t.auth.create_account
             )}
           </button>
         </form>
@@ -179,12 +194,12 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
         {onSwitchToLogin && (
           <div className="mt-6 text-center">
             <p className="text-retro-textMuted text-sm">
-              已有账户？
+              {t.auth.has_account}
               <button
                 onClick={onSwitchToLogin}
                 className="ml-1 text-retro-purple hover:text-retro-pink  font-medium"
               >
-                立即登录
+                {t.auth.go_login}
               </button>
             </p>
           </div>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
+import { useTranslation } from '@/lib/hooks/useTranslation'
 
 interface UserStatusIndicatorProps {
   isOnline: boolean
@@ -17,10 +18,11 @@ export default function UserStatusIndicator({
   showText = false,
   className = ''
 }: UserStatusIndicatorProps) {
-  
+  const { t, locale } = useTranslation()
+
   const sizeClasses = {
     sm: 'w-2 h-2',
-    md: 'w-3 h-3', 
+    md: 'w-3 h-3',
     lg: 'w-4 h-4'
   }
 
@@ -41,48 +43,46 @@ export default function UserStatusIndicator({
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
 
     if (diffMinutes < 1) {
-      return '刚刚在线'
+      return t.common.online_just_now
     } else if (diffMinutes < 60) {
-      return `${diffMinutes}分钟前在线`
+      return t.common.online_ago.replace('{time}', `${diffMinutes}${t.activity.minutes_unit}`)
     } else if (diffHours < 24) {
-      return `${diffHours}小时前在线`
+      return t.common.online_ago.replace('{time}', `${diffHours}${t.activity.hours_unit}`)
     } else if (diffDays < 7) {
-      return `${diffDays}天前在线`
+      return t.common.online_ago.replace('{time}', `${diffDays}${t.activity.days_unit}`)
     } else {
-      return lastSeenDate.toLocaleDateString('zh-CN', {
+      const dateStr = lastSeenDate.toLocaleDateString(locale, {
         month: 'short',
         day: 'numeric'
-      }) + '在线'
+      })
+      return t.common.online_ago.replace('{time}', dateStr)
     }
-  }, [lastSeen, isOnline])
+  }, [lastSeen, isOnline, t, locale])
 
   if (showText) {
     return (
       <div className={`flex items-center space-x-2 ${className}`}>
-        <div className={`${sizeClasses[size]} rounded-full border border-retro-bg-darker ${
-          isOnline 
-            ? 'bg-retro-green ' 
-            : 'bg-retro-textMuted'
-        }`} />
-        <span className={`${textSizeClasses[size]} ${
-          isOnline 
-            ? 'text-retro-green' 
-            : 'text-retro-textMuted'
-        }`}>
-          {isOnline ? '在线' : formatLastSeen || '离线'}
+        <div className={`${sizeClasses[size]} rounded-full border border-retro-bg-darker ${isOnline
+          ? 'bg-retro-green '
+          : 'bg-retro-textMuted'
+          }`} />
+        <span className={`${textSizeClasses[size]} ${isOnline
+          ? 'text-retro-green'
+          : 'text-retro-textMuted'
+          }`}>
+          {isOnline ? t.common.online : formatLastSeen || t.common.offline}
         </span>
       </div>
     )
   }
 
   return (
-    <div 
-      className={`${sizeClasses[size]} rounded-full border border-retro-bg-darker ${
-        isOnline 
-          ? 'bg-retro-green ' 
-          : 'bg-retro-textMuted'
-      } ${className}`}
-      title={isOnline ? '在线' : formatLastSeen || '离线'}
+    <div
+      className={`${sizeClasses[size]} rounded-full border border-retro-bg-darker ${isOnline
+        ? 'bg-retro-green '
+        : 'bg-retro-textMuted'
+        } ${className}`}
+      title={isOnline ? t.common.online : formatLastSeen || t.common.offline}
     />
   )
 }

@@ -6,6 +6,8 @@ interface UseSocialPostsOptions {
   autoFetch?: boolean
   refreshInterval?: number // 自动刷新间隔（毫秒）
   filterByAuthor?: string // 可选：按作者ID过滤帖子
+  search?: string // 可选：搜索内容
+  nodeId?: string // 可选：节点过滤
 }
 
 interface UseSocialPostsReturn {
@@ -28,7 +30,7 @@ interface UseSocialPostsReturn {
 }
 
 export function useSocialPosts(options: UseSocialPostsOptions): UseSocialPostsReturn {
-  const { userId, autoFetch = true, refreshInterval = 30000, filterByAuthor } = options
+  const { userId, autoFetch = true, refreshInterval = 30000, filterByAuthor, search, nodeId } = options
 
   const [posts, setPosts] = useState<Post[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -62,6 +64,14 @@ export function useSocialPosts(options: UseSocialPostsOptions): UseSocialPostsRe
         queryParams.append('authorId', filterByAuthor)
       }
 
+      // 添加搜索和节点过滤
+      if (search) {
+        queryParams.append('search', search)
+      }
+      if (nodeId && nodeId !== 'all') {
+        queryParams.append('nodeId', nodeId)
+      }
+
       const response = await fetch(`/api/posts?${queryParams.toString()}`)
       const data: PostsResponse = await response.json()
 
@@ -92,7 +102,7 @@ export function useSocialPosts(options: UseSocialPostsOptions): UseSocialPostsRe
       setIsLoading(false)
       setIsRefreshing(false)
     }
-  }, [filterByAuthor, userId, autoFetch])
+  }, [filterByAuthor, userId, autoFetch, search, nodeId])
 
   // 创建新帖子
   const createPost = useCallback(async (postData: CreatePostData): Promise<Post | null> => {
@@ -195,7 +205,7 @@ export function useSocialPosts(options: UseSocialPostsOptions): UseSocialPostsRe
       }
       fetchPosts()
     }
-  }, [autoFetch, userId, filterByAuthor]) // 移除fetchPosts和options.filterByAuthor以避免循环
+  }, [autoFetch, userId, filterByAuthor, search, nodeId]) // 移除fetchPosts和options.filterByAuthor以避免循环
 
   // 定时刷新 - 临时禁用以修复性能问题
   useEffect(() => {

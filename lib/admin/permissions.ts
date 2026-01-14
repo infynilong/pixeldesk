@@ -10,6 +10,10 @@ export const PERMISSIONS = {
   ADMIN: [
     'players.view',
     'players.edit',
+    'players.delete',
+    'users.view',
+    'users.edit',
+    'users.delete',
     'characters.view',
     'characters.create',
     'characters.edit',
@@ -17,9 +21,11 @@ export const PERMISSIONS = {
     'workstations.view',
     'workstations.edit',
     'dashboard.view',
+    'ai_npcs.edit',
   ],
   VIEWER: [
     'players.view',
+    'users.view',
     'characters.view',
     'workstations.view',
     'dashboard.view',

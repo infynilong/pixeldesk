@@ -144,7 +144,7 @@ export async function middleware(request: NextRequest) {
   // If it's a protected route, verify authentication
   if (isProtectedRoute) {
     const user = await verifyAuth(request)
-    
+
     if (!user) {
       // Return 401 Unauthorized for API routes
       if (pathname.startsWith('/api/')) {
@@ -153,7 +153,7 @@ export async function middleware(request: NextRequest) {
           { status: 401 }
         )
       }
-      
+
       // For non-API routes, redirect to login (if we had login pages)
       // For now, just return 401
       return NextResponse.json(

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { rewardPoints } from '@/lib/pointsManager'
+import { randomUUID } from 'crypto'
 
 // 获取帖子的回复 - 带重试机制处理数据库连接问题
 export async function GET(
@@ -25,7 +26,7 @@ export async function GET(
       console.log(`📡 [GET replies] 尝试获取回复，剩余重试次数: ${retries}`)
 
       // 验证帖子存在
-      const post = await prisma.post.findUnique({
+      const post = await prisma.posts.findUnique({
         where: { id: postId },
         select: { id: true }
       })
@@ -38,13 +39,13 @@ export async function GET(
       }
 
       const [replies, totalCount] = await Promise.all([
-        prisma.postReply.findMany({
+        prisma.post_replies.findMany({
           where: { postId },
           orderBy: { createdAt: 'asc' },
           skip,
           take: limit,
           include: {
-            author: {
+            users: {
               select: {
                 id: true,
                 name: true,
@@ -54,17 +55,24 @@ export async function GET(
             }
           }
         }),
-        prisma.postReply.count({ where: { postId } })
+        prisma.post_replies.count({ where: { postId } })
       ])
 
       const totalPages = Math.ceil(totalCount / limit)
+
+      // 将 users 字段映射为 author 以保持 API 兼容性
+      const repliesWithAuthor = replies.map(reply => ({
+        ...reply,
+        author: reply.users,
+        users: undefined
+      }))
 
       console.log(`✅ [GET replies] 成功获取回复:`, { count: replies.length, totalCount })
 
       return NextResponse.json({
         success: true,
         data: {
-          replies,
+          replies: repliesWithAuthor,
           pagination: {
             page,
             limit,
@@ -179,14 +187,14 @@ export async function POST(
       console.log(`📡 [POST replies] 尝试创建回复，剩余重试次数: ${retries}`)
 
       // 验证帖子存在，并获取作者信息
-      const post = await prisma.post.findUnique({
+      const post = await prisma.posts.findUnique({
         where: { id: postId },
         select: {
           id: true,
           authorId: true,
           title: true,
           content: true,
-          author: {
+          users: {
             select: {
               id: true,
               name: true
@@ -203,7 +211,7 @@ export async function POST(
       }
 
       // 验证用户存在
-      const user = await prisma.user.findUnique({
+      const user = await prisma.users.findUnique({
         where: { id: userId },
         select: { id: true, name: true, avatar: true }
       })
@@ -221,14 +229,16 @@ export async function POST(
 
       // 使用事务创建回复并更新帖子的回复计数
       const result = await prisma.$transaction(async (tx) => {
-        const reply = await tx.postReply.create({
+        const reply = await tx.post_replies.create({
           data: {
+            id: randomUUID(),
             postId,
             authorId: userId,
-            content: content.trim()
+            content: content.trim(),
+            updatedAt: new Date()
           },
           include: {
-            author: {
+            users: {
               select: {
                 id: true,
                 name: true,
@@ -240,22 +250,24 @@ export async function POST(
         })
 
         // 更新帖子回复计数
-        await tx.post.update({
+        await tx.posts.update({
           where: { id: postId },
           data: { replyCount: { increment: 1 } }
         })
 
         // 创建通知：如果回复者不是帖子作者，为帖子作者创建通知
         if (post.authorId !== userId) {
-          await tx.notification.create({
+          await tx.notifications.create({
             data: {
+              id: randomUUID(),
               userId: post.authorId, // 帖子作者接收通知
               type: 'POST_REPLY',
               title: '新的回复',
               message: `${user.name} 回复了你的帖子${post.title ? `"${post.title}"` : ''}`,
               relatedPostId: postId,
               relatedReplyId: reply.id,
-              relatedUserId: userId // 回复者
+              relatedUserId: userId, // 回复者
+              updatedAt: new Date()
             }
           })
           console.log(`✅ [POST replies] 已为用户 ${post.authorId} 创建回复通知`)
@@ -277,9 +289,16 @@ export async function POST(
           console.error('❌ [POST replies] 积分奖励失败:', err)
         })
 
+      // 将 users 字段映射为 author 以保持 API 兼容性
+      const resultWithAuthor = {
+        ...result,
+        author: result.users,
+        users: undefined
+      }
+
       return NextResponse.json({
         success: true,
-        data: result
+        data: resultWithAuthor
       })
 
     } catch (error: any) {

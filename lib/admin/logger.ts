@@ -1,4 +1,4 @@
-import prisma from '@/lib/prisma'
+import prisma from '@/lib/db'
 import { headers } from 'next/headers'
 
 /**
@@ -15,8 +15,9 @@ export async function logAdminAction(params: {
   const ipAddress = headersList.get('x-forwarded-for') || headersList.get('x-real-ip')
   const userAgent = headersList.get('user-agent')
 
-  await prisma.adminLog.create({
+  await prisma.admin_logs.create({
     data: {
+      id: crypto.randomUUID(),
       adminId: params.adminId,
       action: params.action,
       resource: params.resource,
@@ -47,10 +48,10 @@ export async function getAdminLogs(params?: {
   if (params?.action) where.action = params.action
 
   const [logs, total] = await Promise.all([
-    prisma.adminLog.findMany({
+    prisma.admin_logs.findMany({
       where,
       include: {
-        admin: {
+        admins: {
           select: {
             id: true,
             username: true,
@@ -62,7 +63,7 @@ export async function getAdminLogs(params?: {
       skip: (page - 1) * pageSize,
       take: pageSize,
     }),
-    prisma.adminLog.count({ where }),
+    prisma.admin_logs.count({ where }),
   ])
 
   return {

@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 从数据库获取状态历史
-    const history = await prisma.statusHistory.findMany({
+    const history = await prisma.status_history.findMany({
       where: { userId },
       orderBy: { timestamp: 'desc' },
       take: 50
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 创建状态历史记录
-    const historyItem = await prisma.statusHistory.create({
+    const historyItem = await prisma.status_history.create({
       data: {
         userId,
         status,
@@ -64,7 +64,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // 删除用户的状态历史
-    await prisma.statusHistory.deleteMany({
+    await prisma.status_history.deleteMany({
       where: { userId }
     })
 

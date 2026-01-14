@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client'
 import bcrypt from 'bcryptjs'
+import { randomUUID } from 'crypto'
 
 const prisma = new PrismaClient()
 
@@ -8,22 +9,24 @@ async function main() {
 
   // 创建超级管理员
   const superAdminPassword = await bcrypt.hash('admin123', 10)
-  const superAdmin = await prisma.admin.upsert({
+  const superAdmin = await prisma.admins.upsert({
     where: { username: 'admin' },
-    update: {},
+    update: { updatedAt: new Date() },
     create: {
+      id: randomUUID(),
       username: 'admin',
       email: 'admin@pixeldesk.com',
       password: superAdminPassword,
       role: 'SUPER_ADMIN',
+      updatedAt: new Date()
     },
   })
   console.log('✅ Super admin created:', superAdmin.username)
 
   // 创建默认工位配置
-  const workstationConfig = await prisma.workstationConfig.upsert({
+  const workstationConfig = await prisma.workstation_config.upsert({
     where: { id: 'default' },
-    update: {},
+    update: { updatedAt: new Date() },
     create: {
       id: 'default',
       totalWorkstations: 1000,
@@ -33,6 +36,7 @@ async function main() {
       teleportCost: 2,
       defaultDuration: 24,
       maxBindingsPerUser: 1,
+      updatedAt: new Date()
     },
   })
   console.log('✅ Workstation config created')
@@ -74,10 +78,14 @@ async function main() {
 
   console.log(`🎨 Importing ${existingCharacters.length} characters...`)
   for (const char of existingCharacters) {
-    await prisma.character.upsert({
+    await prisma.characters.upsert({
       where: { name: char.name },
-      update: {},
-      create: char,
+      update: { updatedAt: new Date() },
+      create: {
+        ...char,
+        id: randomUUID(),
+        updatedAt: new Date()
+      },
     })
   }
   console.log(`✅ ${existingCharacters.length} characters imported`)

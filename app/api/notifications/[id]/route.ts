@@ -21,16 +21,16 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       }, { status: 400 })
     }
 
-    const notification = await prisma.notification.update({
+    const notification = await prisma.notifications.update({
       where: { id },
       data: { isRead },
       include: {
-        relatedPost: {
+        posts: {
           select: {
             id: true,
             title: true,
             content: true,
-            author: {
+            users: {
               select: {
                 id: true,
                 name: true,
@@ -39,7 +39,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
             }
           }
         },
-        relatedUser: {
+        users_notifications_relatedUserIdTousers: {
           select: {
             id: true,
             name: true,
@@ -49,9 +49,21 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       }
     })
 
+    // 将 posts 映射为 relatedPost, users_notifications_relatedUserIdTousers 映射为 relatedUser 以保持 API 兼容性
+    const notificationAny = notification as any
+    const notificationWithAuthor = {
+      ...notification,
+      relatedPost: notificationAny.posts ? {
+        ...notificationAny.posts,
+        author: notificationAny.posts.users,
+        users: undefined
+      } : null,
+      relatedUser: notificationAny.users_notifications_relatedUserIdTousers
+    }
+
     return NextResponse.json({
       success: true,
-      data: notification
+      data: notificationWithAuthor
     })
 
   } catch (error) {
@@ -68,7 +80,7 @@ export async function DELETE(request: NextRequest, { params }: Params) {
   try {
     const { id } = params
 
-    await prisma.notification.delete({
+    await prisma.notifications.delete({
       where: { id }
     })
 

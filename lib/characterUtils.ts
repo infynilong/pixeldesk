@@ -7,7 +7,7 @@
  * - 前端使用转换后的URL进行展示
  */
 
-import prisma from '@/lib/prisma'
+import prisma from '@/lib/db'
 
 /**
  * 角色信息接口（包含URL）
@@ -83,7 +83,7 @@ export async function getCharacterByKey(
 
   try {
     // 从数据库查询
-    const character = await prisma.character.findFirst({
+    const character = await prisma.characters.findFirst({
       where: {
         name: characterKey,
         isActive: true

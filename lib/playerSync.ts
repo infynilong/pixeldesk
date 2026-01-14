@@ -1,6 +1,6 @@
 /**
  * Player Synchronization Utility
- * 
+ *
  * This utility bridges the authentication system with the Phaser game's localStorage data.
  * It ensures that authenticated users see their own player data in the game.
  */
@@ -21,63 +21,102 @@ export interface GamePlayerData {
 
 export interface PlayerSyncResult {
   success: boolean
-  hasPlayer: boolean  
+  hasPlayer: boolean
   playerData?: GamePlayerData
   error?: string
 }
+
+// 全局 Promise 缓存,防止并发重复请求
+let playerLoadingPromise: Promise<PlayerSyncResult> | null = null
+let playerCache: { data: PlayerSyncResult; timestamp: number } | null = null
+const PLAYER_CACHE_DURATION = 30 * 1000 // 30秒缓存
 
 /**
  * Fetches the current user's player data from the API
  */
 export async function fetchPlayerData(): Promise<PlayerSyncResult> {
   try {
-    const response = await fetch('/api/player', {
-      method: 'GET',
-      credentials: 'include',
-    })
+    // 检查缓存
+    if (playerCache && Date.now() - playerCache.timestamp < PLAYER_CACHE_DURATION) {
+      console.log('📦 [playerSync] 使用缓存的玩家数据')
+      return playerCache.data
+    }
 
-    const data = await response.json()
+    // 如果正在加载,等待现有的 Promise
+    if (playerLoadingPromise) {
+      console.log('⏳ [playerSync] 等待现有的玩家数据请求')
+      return playerLoadingPromise
+    }
 
-    if (response.ok && data.success) {
-      // Convert API player data to game format
-      const gamePlayerData: GamePlayerData = {
-        id: data.data.user.id,
-        username: data.data.player.playerName,
-        character: data.data.player.characterSprite,
-        points: data.data.player.gamePoints,
-        registeredAt: data.data.player.createdAt,
-        workstations: [],
-        x: data.data.player.currentX,
+    // 创建新的加载 Promise
+    console.log('🌐 [playerSync] 发起新的玩家数据请求')
+    playerLoadingPromise = (async () => {
+      const response = await fetch('/api/player', {
+        method: 'GET',
+        credentials: 'include',
+      })
+
+      const data = await response.json()
+
+      if (response.ok && data.success) {
+        // Convert API player data to game format
+        const gamePlayerData: GamePlayerData = {
+          id: data.data.user.id,
+          username: data.data.player.playerName,
+          character: data.data.player.characterSprite,
+          points: data.data.player.gamePoints,
+          registeredAt: data.data.player.createdAt,
+          workstations: [],
+          x: data.data.player.currentX,
         y: data.data.player.currentY,
         scene: data.data.player.currentScene,
         playerState: data.data.player.playerState
       }
 
-      return {
-        success: true,
-        hasPlayer: true,
-        playerData: gamePlayerData
+        const result: PlayerSyncResult = {
+          success: true,
+          hasPlayer: true,
+          playerData: gamePlayerData
+        }
+
+        // 更新缓存
+        playerCache = { data: result, timestamp: Date.now() }
+        return result
+      } else if (response.status === 404) {
+        // User doesn't have a player yet
+        const result: PlayerSyncResult = {
+          success: true,
+          hasPlayer: false
+        }
+        playerCache = { data: result, timestamp: Date.now() }
+        return result
+      } else {
+        const result: PlayerSyncResult = {
+          success: false,
+          hasPlayer: false,
+          error: data.error || 'Failed to fetch player data'
+        }
+        playerCache = { data: result, timestamp: Date.now() }
+        return result
       }
-    } else if (response.status === 404) {
-      // User doesn't have a player yet
-      return {
-        success: true,
-        hasPlayer: false
-      }
-    } else {
-      return {
-        success: false,
-        hasPlayer: false,
-        error: data.error || 'Failed to fetch player data'
-      }
+    })()
+
+    try {
+      const result = await playerLoadingPromise
+      return result
+    } finally {
+      playerLoadingPromise = null
     }
   } catch (error) {
     console.error('Error fetching player data:', error)
-    return {
+    playerLoadingPromise = null
+    const result: PlayerSyncResult = {
       success: false,
       hasPlayer: false,
       error: 'Network error'
     }
+    playerCache = { data: result, timestamp: Date.now() }
+    return result
   }
 }
 

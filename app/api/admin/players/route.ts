@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requirePermission } from '@/lib/admin/permissions'
-import prisma from '@/lib/prisma'
+import prisma from '@/lib/db'
 
 export async function GET(request: NextRequest) {
   try {
@@ -21,16 +21,16 @@ export async function GET(request: NextRequest) {
     if (search) {
       where.OR = [
         { playerName: { contains: search, mode: 'insensitive' } },
-        { user: { name: { contains: search, mode: 'insensitive' } } },
+        { users: { name: { contains: search, mode: 'insensitive' } } },
       ]
     }
 
     // 查询数据
     const [players, total] = await Promise.all([
-      prisma.player.findMany({
+      prisma.players.findMany({
         where,
         include: {
-          user: {
+          users: {
             select: {
               id: true,
               name: true,
@@ -43,12 +43,12 @@ export async function GET(request: NextRequest) {
           },
         },
         orderBy: sortBy === 'points'
-          ? { user: { points: sortOrder as 'asc' | 'desc' } }
+          ? { users: { points: sortOrder as 'asc' | 'desc' } }
           : { [sortBy]: sortOrder },
         skip: (page - 1) * pageSize,
         take: pageSize,
       }),
-      prisma.player.count({ where }),
+      prisma.players.count({ where }),
     ])
 
     // 格式化数据
@@ -85,9 +85,9 @@ export async function GET(request: NextRequest) {
         userId: player.userId,
         playerName: player.playerName,
         characterSprite: player.characterSprite,
-        userName: player.user.name,
-        email: player.user.email,
-        points: player.user.points,
+        userName: player.users.name,
+        email: player.users.email,
+        points: player.users.points,
         totalPlayTime: player.totalPlayTime,
         totalPlayTimeText: totalHours > 0
           ? `${totalHours}小时${totalMinutes}分钟`
@@ -95,7 +95,7 @@ export async function GET(request: NextRequest) {
         lastActiveAt: player.lastActiveAt,
         lastActiveText,
         createdAt: player.createdAt,
-        isActive: player.user.isActive,
+        isActive: player.users.isActive,
       }
     })
 

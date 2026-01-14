@@ -6,11 +6,11 @@ async function checkAvatars() {
   console.log('📊 检查User表avatar字段状态\n')
 
   // 统计所有用户
-  const totalUsers = await prisma.user.count()
+  const totalUsers = await prisma.users.count()
   console.log(`总用户数: ${totalUsers}`)
 
   // 有avatar的用户
-  const usersWithAvatar = await prisma.user.count({
+  const usersWithAvatar = await prisma.users.count({
     where: { avatar: { not: null } }
   })
   console.log(`有avatar的用户: ${usersWithAvatar}`)
@@ -21,7 +21,7 @@ async function checkAvatars() {
 
   // 查看示例数据
   console.log('📋 Avatar示例：')
-  const samples = await prisma.user.findMany({
+  const samples = await prisma.users.findMany({
     where: { avatar: { not: null } },
     select: { id: true, name: true, avatar: true },
     take: 10
@@ -35,7 +35,7 @@ async function checkAvatars() {
 
   // 检查Player表
   console.log('\n📋 Player表characterSprite示例：')
-  const players = await prisma.player.findMany({
+  const players = await prisma.players.findMany({
     select: { id: true, playerName: true, characterSprite: true },
     take: 10
   })

@@ -2,21 +2,22 @@
 
 import { useState, useEffect } from 'react'
 import GameCompatibleInput from './GameCompatibleInput'
+import { useTranslation } from '@/lib/hooks/useTranslation'
 import { getAvailableCharacters, type Character } from '@/lib/services/characterService'
 
 interface CharacterCreationModalProps {
   isOpen: boolean
   userName: string
   onComplete: (playerData: any) => void
-  onSkip?: () => void
 }
 
-export default function CharacterCreationModal({ isOpen, userName, onComplete, onSkip }: CharacterCreationModalProps) {
+export default function CharacterCreationModal({ isOpen, userName, onComplete }: CharacterCreationModalProps) {
   const [characters, setCharacters] = useState<Character[]>([])
   const [selectedCharacter, setSelectedCharacter] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [isLoadingCharacters, setIsLoadingCharacters] = useState(true)
   const [error, setError] = useState('')
+  const { t } = useTranslation()
 
   // 加载角色列表
   useEffect(() => {
@@ -32,7 +33,7 @@ export default function CharacterCreationModal({ isOpen, userName, onComplete, o
       setCharacters(response.data)
     } catch (error) {
       console.error('Failed to load characters:', error)
-      setError('加载角色列表失败')
+      setError(t.character.err_load)
     } finally {
       setIsLoadingCharacters(false)
     }
@@ -42,7 +43,7 @@ export default function CharacterCreationModal({ isOpen, userName, onComplete, o
 
   const handleCreateCharacter = async () => {
     if (!selectedCharacter) {
-      setError('请选择一个角色形象')
+      setError(t.character.err_select)
       return
     }
 
@@ -67,11 +68,11 @@ export default function CharacterCreationModal({ isOpen, userName, onComplete, o
       if (response.ok && data.success) {
         onComplete(data.data)
       } else {
-        setError(data.error || '创建角色失败，请重试')
+        setError(data.error || t.character.err_create)
       }
     } catch (err) {
       console.error('Character creation error:', err)
-      setError('网络错误，请重试')
+      setError(t.auth.network_error)
     } finally {
       setIsLoading(false)
     }
@@ -91,25 +92,25 @@ export default function CharacterCreationModal({ isOpen, userName, onComplete, o
           <div className="w-20 h-20 bg-gradient-to-r from-retro-purple to-retro-pink rounded-full flex items-center justify-center mx-auto mb-4">
             <span className="text-3xl">🎮</span>
           </div>
-          <h2 className="text-white text-2xl font-bold mb-2">创建你的游戏角色</h2>
-          <p className="text-retro-textMuted text-sm">你的角色名称将是：<span className="text-retro-purple font-semibold">{userName}</span><br/>请选择你的角色外观</p>
+          <h2 className="text-white text-2xl font-bold mb-2">{t.character.create_title}</h2>
+          <p className="text-retro-textMuted text-sm">{t.character.name_hint}<span className="text-retro-purple font-semibold">{userName}</span><br />{t.character.create_subtitle}</p>
         </div>
 
         <div className="space-y-6">
           {/* 角色选择区域 */}
           <div className="space-y-4">
-            <label className="block text-white text-sm font-medium">选择角色形象</label>
+            <label className="block text-white text-sm font-medium">{t.character.select_title}</label>
 
             {/* 角色选择网格 */}
             <div className="grid grid-cols-5 gap-3 p-4 bg-gradient-to-br from-retro-bg-dark/50 to-retro-bg-darker/50 rounded-xl border border-retro-border/30">
               {isLoadingCharacters ? (
                 <div className="col-span-5 text-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-retro-purple mx-auto"></div>
-                  <p className="text-retro-textMuted text-sm mt-2">加载中...</p>
+                  <p className="text-retro-textMuted text-sm mt-2">{t.common.loading}</p>
                 </div>
               ) : characters.length === 0 ? (
                 <div className="col-span-5 text-center py-8 text-retro-textMuted">
-                  暂无可用角色
+                  {t.character.no_characters}
                 </div>
               ) : (
                 characters.map((character) => (
@@ -117,21 +118,32 @@ export default function CharacterCreationModal({ isOpen, userName, onComplete, o
                     key={character.id}
                     onClick={() => setSelectedCharacter(character.name)}
                     className={`
-                      relative aspect-square rounded-lg border-2 cursor-pointer overflow-hidden
+                      relative aspect-square rounded-xl border-2 cursor-pointer transition-all duration-300 group
                       ${selectedCharacter === character.name
-                        ? 'border-retro-purple bg-retro-purple/20 shadow-lg shadow-retro-purple/30'
-                        : 'border-retro-border/50 bg-retro-bg-dark/30 hover:border-retro-purple/50 hover:bg-retro-purple/10'
+                        ? 'border-retro-purple bg-retro-purple/30 shadow-[0_0_20px_rgba(168,85,247,0.4)] scale-105 z-10'
+                        : 'border-retro-border/30 bg-gray-800/40 hover:border-retro-purple/50 hover:bg-retro-purple/10 hover:scale-102'
                       }
                     `}
                   >
-                    <img
-                      src={character.imageUrl}
-                      alt={character.displayName}
-                      className="w-full h-full object-contain pixelated"
-                      style={{
-                        imageRendering: 'pixelated'
-                      }}
-                    />
+                    {/* 选中时的对勾效果 */}
+                    {selectedCharacter === character.name && (
+                      <div className="absolute -top-2 -right-2 w-7 h-7 bg-retro-purple rounded-full flex items-center justify-center border-2 border-white shadow-lg z-20 animate-bounce-subtle">
+                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                    )}
+
+                    <div className="absolute inset-0 flex items-center justify-center p-2">
+                      <img
+                        src={character.imageUrl}
+                        alt={character.displayName}
+                        className={`w-full h-full object-contain pixelated transition-transform ${selectedCharacter === character.name ? 'scale-110' : 'group-hover:scale-110'}`}
+                        style={{
+                          imageRendering: 'pixelated'
+                        }}
+                      />
+                    </div>
 
                     {/* 显示名称提示 */}
                     <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-xs py-1 px-2 text-center truncate">
@@ -148,7 +160,7 @@ export default function CharacterCreationModal({ isOpen, userName, onComplete, o
                     {/* 默认标签 */}
                     {character.isDefault && (
                       <div className="absolute top-1 left-1 bg-green-500 text-white text-xs px-1 rounded">
-                        推荐
+                        {t.character.recommended}
                       </div>
                     )}
                   </div>
@@ -172,19 +184,8 @@ export default function CharacterCreationModal({ isOpen, userName, onComplete, o
               disabled={!selectedCharacter || isLoading}
               className="flex-1 py-3 bg-gradient-to-r from-retro-purple to-retro-pink text-white font-semibold rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg"
             >
-              {isLoading ? '创建中...' : '确认创建'}
+              {isLoading ? t.character.creating : t.character.confirm_create}
             </button>
-
-            {onSkip && (
-              <button
-                type="button"
-                onClick={onSkip}
-                disabled={isLoading}
-                className="px-6 py-3 bg-retro-bg-dark border border-retro-border text-retro-text hover:border-retro-purple/50 rounded-lg transition-all disabled:opacity-50"
-              >
-                跳过
-              </button>
-            )}
           </div>
         </div>
       </div>

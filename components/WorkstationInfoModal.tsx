@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback, memo, useEffect } from 'react'
+import { useTranslation } from '@/lib/hooks/useTranslation'
 
 interface WorkstationInfoModalProps {
   isVisible: boolean
@@ -18,6 +19,9 @@ interface BindingInfo {
   expiresAt?: string
   remainingDays?: number
   isExpiringSoon?: boolean
+  adText?: string | null
+  adImage?: string | null
+  adUpdatedAt?: string | null
 }
 
 interface UserInfo {
@@ -30,12 +34,13 @@ interface UserInfo {
   updatedAt: string
 }
 
-const WorkstationInfoModal = memo(({ 
-  isVisible, 
-  workstationId, 
-  userId, 
-  onClose 
+const WorkstationInfoModal = memo(({
+  isVisible,
+  workstationId,
+  userId,
+  onClose
 }: WorkstationInfoModalProps) => {
+  const { t, locale } = useTranslation()
   const [bindingInfo, setBindingInfo] = useState<BindingInfo | null>(null)
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null)
   const [loading, setLoading] = useState(false)
@@ -47,7 +52,7 @@ const WorkstationInfoModal = memo(({
     const now = new Date()
 
     // 租赁开始时间
-    const rentalStart = boundDate.toLocaleString('zh-CN', {
+    const rentalStart = boundDate.toLocaleString(locale, {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
@@ -60,7 +65,7 @@ const WorkstationInfoModal = memo(({
       ? new Date(binding.expiresAt)
       : new Date(boundDate.getTime() + 30 * 24 * 60 * 60 * 1000)
 
-    const rentalEndStr = rentalEnd.toLocaleString('zh-CN', {
+    const rentalEndStr = rentalEnd.toLocaleString(locale, {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
@@ -95,45 +100,45 @@ const WorkstationInfoModal = memo(({
     return {
       rentalStart,
       rentalEnd: rentalEndStr,
-      timeUsed: `${daysUsed}天 ${hoursUsed}小时 ${minutesUsed}分钟`,
-      timeRemaining: isExpired ? '已过期' : `${daysRemaining}天 ${hoursRemaining}小时`,
+      timeUsed: `${daysUsed}${t.workstation.days} ${hoursUsed}${t.workstation.hours} ${minutesUsed}${t.workstation.minutes}`,
+      timeRemaining: isExpired ? t.workstation.expired : `${daysRemaining}${t.workstation.days} ${hoursRemaining}${t.workstation.hours}`,
       daysRemaining: binding.remainingDays || daysRemaining,
       isExpired,
       isExpiringSoon,
       totalDays,
       usagePercentage
     }
-  }, [])
+  }, [locale, t.workstation.days, t.workstation.hours, t.workstation.minutes, t.workstation.expired])
 
   // 获取绑定信息
   const fetchBindingInfo = useCallback(async () => {
     if (!isVisible || !userId || !workstationId) return
-    
+
     setLoading(true)
     setError(null)
-    
+
     try {
       // 并行获取绑定信息和用户信息
       const [bindingResponse, userResponse] = await Promise.all([
         fetch(`/api/workstations/user-bindings?userId=${userId}`),
         fetch(`/api/users?userId=${userId}`)
       ])
-      
+
       const bindingResult = await bindingResponse.json()
       const userResult = await userResponse.json()
-      
+
       if (bindingResult.success) {
         // 查找指定工位的绑定信息
         const binding = bindingResult.data.find((b: BindingInfo) => b.workstationId === workstationId)
         if (binding) {
           setBindingInfo(binding)
         } else {
-          setError('未找到该工位的绑定信息')
+          setError(t.workstation.err_not_found)
         }
       } else {
-        setError(bindingResult.error || '获取绑定信息失败')
+        setError(bindingResult.error || t.workstation.err_fetch_binding)
       }
-      
+
       if (userResult.success) {
         setUserInfo(userResult.data)
       } else {
@@ -142,11 +147,11 @@ const WorkstationInfoModal = memo(({
       }
     } catch (error) {
       console.error('获取信息失败:', error)
-      setError('获取信息失败')
+      setError(t.auth.network_error)
     } finally {
       setLoading(false)
     }
-  }, [isVisible, userId, workstationId])
+  }, [isVisible, userId, workstationId, t.workstation.err_not_found, t.workstation.err_fetch_binding, t.auth.network_error])
 
   // 处理关闭
   const handleClose = useCallback(() => {
@@ -181,7 +186,7 @@ const WorkstationInfoModal = memo(({
         onMouseDown={(e) => e.stopPropagation()}
         onMouseUp={(e) => e.stopPropagation()}
       />
-      
+
       {/* 模态框容器 - 现代像素艺术设计 */}
       <div
         className="relative bg-retro-bg-darker border-2 border-retro-border rounded-2xl p-6 w-full max-w-md shadow-2xl shadow-retro-green/20 "
@@ -192,7 +197,7 @@ const WorkstationInfoModal = memo(({
         {/* 装饰性光效 */}
         <div className="absolute inset-0 bg-gradient-to-br from-retro-green/5 via-retro-cyan/8 to-retro-blue/5 rounded-2xl "></div>
         <div className="absolute inset-0 border border-retro-green/20 rounded-2xl "></div>
-        
+
         {/* 关闭按钮 - 像素化设计 */}
         <button
           onClick={(e) => {
@@ -217,19 +222,19 @@ const WorkstationInfoModal = memo(({
               <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-white/5 rounded-xl"></div>
               <span className="relative text-2xl drop-shadow-lg">🏢</span>
             </div>
-            
+
             {/* 标题文本 */}
             <div className="flex-1">
               <h2 className="text-white text-xl font-bold font-pixel tracking-wide drop-shadow-sm">
-                WORKSTATION INFO
+                {t.workstation.info_title}
               </h2>
               <div className="flex items-center gap-2 mt-1">
                 <div className="w-2 h-2 bg-retro-green rounded-full "></div>
-                <span className="text-retro-textMuted text-xs font-retro tracking-wide">RENTAL DETAILS</span>
+                <span className="text-retro-textMuted text-xs font-retro tracking-wide">{t.workstation.rental_details}</span>
               </div>
             </div>
           </div>
-          
+
           {/* 装饰性分割线 */}
           <div className="w-16 h-2 bg-gradient-to-r from-retro-green via-retro-cyan to-retro-blue rounded-full shadow-lg"></div>
         </div>
@@ -244,8 +249,8 @@ const WorkstationInfoModal = memo(({
               <div className="absolute inset-0 border-2 border-retro-green/20 rounded-xl "></div>
             </div>
             <div className="text-center space-y-2">
-              <div className="text-white font-bold font-pixel text-sm tracking-wide">LOADING</div>
-              <div className="text-retro-textMuted text-xs font-retro">Fetching workstation data...</div>
+              <div className="text-white font-bold font-pixel text-sm tracking-wide">{t.common.loading.toUpperCase()}</div>
+              <div className="text-retro-textMuted text-xs font-retro">{t.workstation.loading_data}</div>
             </div>
           </div>
         )}
@@ -274,7 +279,7 @@ const WorkstationInfoModal = memo(({
           <div className="relative space-y-5 max-h-[60vh] overflow-y-auto pr-2 scrollbar-hide">
             {/* 背景装饰 */}
             <div className="absolute inset-0 bg-gradient-to-br from-retro-green/2 via-retro-cyan/4 to-retro-blue/2 rounded-xl opacity-60 pointer-events-none"></div>
-            
+
             {/* 用户信息 - 像素艺术卡片 */}
             {userInfo && (
               <div className="relative group">
@@ -284,13 +289,13 @@ const WorkstationInfoModal = memo(({
                     <div className="w-6 h-6 bg-gradient-to-br from-retro-purple/30 to-retro-pink/30 rounded-lg flex items-center justify-center shadow-lg">
                       <span className="text-sm">👤</span>
                     </div>
-                    <h3 className="text-white font-bold text-sm font-pixel tracking-wide">BOUND USER</h3>
+                    <h3 className="text-white font-bold text-sm font-pixel tracking-wide">{t.workstation.bound_user}</h3>
                   </div>
                   <div className="flex items-center space-x-4">
                     {userInfo.avatar ? (
                       <div className="relative">
-                        <img 
-                          src={userInfo.avatar} 
+                        <img
+                          src={userInfo.avatar}
                           alt={userInfo.name}
                           className="w-12 h-12 rounded-xl object-cover flex-shrink-0 border-2 border-white/20 shadow-lg"
                         />
@@ -321,6 +326,59 @@ const WorkstationInfoModal = memo(({
               </div>
             )}
 
+            {/* 工位广告 - 像素艺术广告卡片 */}
+            {bindingInfo && (bindingInfo.adText || bindingInfo.adImage) && (
+              <div className="relative group">
+                <div className="absolute inset-0 bg-gradient-to-r from-retro-yellow/5 to-retro-orange/5 rounded-xl opacity-0 group-hover:opacity-100 "></div>
+                <div className="relative bg-gradient-to-br from-retro-bg-dark/50 to-retro-bg-darker/50 backdrop-blur-sm border-2 border-retro-border/50 rounded-xl p-4 shadow-lg hover:border-retro-yellow/40 ">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-6 h-6 bg-gradient-to-br from-retro-yellow/30 to-retro-orange/30 rounded-lg flex items-center justify-center shadow-lg">
+                      <span className="text-sm">📢</span>
+                    </div>
+                    <h3 className="text-white font-bold text-sm font-pixel tracking-wide">{t.workstation.ad}</h3>
+                  </div>
+
+                  {/* 广告图片 */}
+                  {bindingInfo.adImage && (
+                    <div className="relative mb-4 rounded-lg overflow-hidden border-2 border-retro-border/30 shadow-lg">
+                      <img
+                        src={bindingInfo.adImage}
+                        alt={t.workstation.ad}
+                        className="w-full h-auto object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement
+                          target.style.display = 'none'
+                        }}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-white/0 pointer-events-none"></div>
+                    </div>
+                  )}
+
+                  {/* 广告文案 */}
+                  {bindingInfo.adText && (
+                    <div className="bg-gradient-to-r from-retro-bg-darker/30 to-retro-bg-dark/30 rounded-lg p-3 border border-retro-border/30 mb-3">
+                      <p className="text-white text-sm font-retro leading-relaxed whitespace-pre-wrap break-words">
+                        {bindingInfo.adText}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* 更新时间 */}
+                  {bindingInfo.adUpdatedAt && (
+                    <div className="flex items-center justify-end gap-2 text-retro-textMuted text-xs font-retro">
+                      <span>⏰</span>
+                      <span>Update: {new Date(bindingInfo.adUpdatedAt).toLocaleString(locale, {
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* 工位基本信息 - 像素化信息卡片 */}
             <div className="relative group">
               <div className="absolute inset-0 bg-gradient-to-r from-retro-cyan/5 to-retro-blue/5 rounded-xl opacity-0 group-hover:opacity-100 "></div>
@@ -329,7 +387,7 @@ const WorkstationInfoModal = memo(({
                   <div className="w-6 h-6 bg-gradient-to-br from-retro-cyan/30 to-retro-blue/30 rounded-lg flex items-center justify-center shadow-lg">
                     <span className="text-sm">🏢</span>
                   </div>
-                  <h3 className="text-white font-bold text-sm font-pixel tracking-wide">WORKSTATION</h3>
+                  <h3 className="text-white font-bold text-sm font-pixel tracking-wide">{t.common.beta || 'WORKSTATION'}</h3>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -337,7 +395,7 @@ const WorkstationInfoModal = memo(({
                     <div className="text-white text-base font-bold font-retro">{workstationId}</div>
                   </div>
                   <div className="space-y-2">
-                    <div className="text-xs text-retro-textMuted font-pixel tracking-wide">RENTAL COST</div>
+                    <div className="text-xs text-retro-textMuted font-pixel tracking-wide">{t.workstation.cost}</div>
                     <div className="flex items-center gap-2">
                       <div className="w-4 h-4 bg-gradient-to-br from-retro-yellow/30 to-retro-orange/30 rounded flex items-center justify-center">
                         <span className="text-xs">💰</span>
@@ -357,22 +415,22 @@ const WorkstationInfoModal = memo(({
                   <div className="w-6 h-6 bg-gradient-to-br from-retro-green/30 to-retro-cyan/30 rounded-lg flex items-center justify-center shadow-lg">
                     <span className="text-sm">⏰</span>
                   </div>
-                  <h3 className="text-white font-bold text-sm font-pixel tracking-wide">RENTAL TIME</h3>
+                  <h3 className="text-white font-bold text-sm font-pixel tracking-wide">{t.workstation.rental_time}</h3>
                 </div>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between bg-gradient-to-r from-retro-bg-darker/30 to-retro-bg-dark/30 rounded-lg p-2 border border-retro-border/30">
-                    <span className="text-retro-textMuted text-xs font-pixel tracking-wide">START</span>
+                    <span className="text-retro-textMuted text-xs font-pixel tracking-wide">{t.workstation.start}</span>
                     <span className="text-white text-xs font-retro">{timeInfo.rentalStart}</span>
                   </div>
                   <div className="flex items-center justify-between bg-gradient-to-r from-retro-bg-darker/30 to-retro-bg-dark/30 rounded-lg p-2 border border-retro-border/30">
-                    <span className="text-retro-textMuted text-xs font-pixel tracking-wide">EXPIRES</span>
+                    <span className="text-retro-textMuted text-xs font-pixel tracking-wide">{t.workstation.expires}</span>
                     <span className={`text-xs font-bold font-retro ${timeInfo.isExpired ? 'text-retro-red' : 'text-retro-green'}`}>
                       {timeInfo.rentalEnd}
                     </span>
                   </div>
                   <div className="flex items-center justify-between bg-gradient-to-r from-retro-bg-darker/30 to-retro-bg-dark/30 rounded-lg p-2 border border-retro-border/30">
-                    <span className="text-retro-textMuted text-xs font-pixel tracking-wide">DURATION</span>
-                    <span className="text-white text-xs font-retro">{timeInfo.totalDays} DAYS</span>
+                    <span className="text-retro-textMuted text-xs font-pixel tracking-wide">{t.workstation.duration}</span>
+                    <span className="text-white text-xs font-retro">{timeInfo.totalDays} {t.workstation.days}</span>
                   </div>
                 </div>
               </div>
@@ -389,9 +447,9 @@ const WorkstationInfoModal = memo(({
                       <span className="text-xl">⚠️</span>
                     </div>
                     <div className="flex-1">
-                      <div className="text-retro-orange font-bold text-base font-pixel tracking-wide">租期即将到期！</div>
+                      <div className="text-retro-orange font-bold text-base font-pixel tracking-wide">{t.workstation.expiring_soon_title}</div>
                       <p className="text-retro-orange/90 text-sm font-retro mt-1">
-                        您的工位将在 <span className="font-bold text-retro-red">{timeInfo.daysRemaining}天</span> 后到期，请及时续租以免失去工位。
+                        {t.workstation.expiring_soon_msg.replace('{days}', timeInfo.daysRemaining.toString())}
                       </p>
                     </div>
                     <div className="w-6 h-6 bg-retro-red/30 rounded-full flex items-center justify-center">
@@ -410,48 +468,45 @@ const WorkstationInfoModal = memo(({
                   <div className="w-6 h-6 bg-gradient-to-br from-retro-blue/30 to-retro-purple/30 rounded-lg flex items-center justify-center shadow-lg">
                     <span className="text-sm">📈</span>
                   </div>
-                  <h3 className="text-white font-bold text-sm font-pixel tracking-wide">USAGE STATUS</h3>
+                  <h3 className="text-white font-bold text-sm font-pixel tracking-wide">{t.workstation.usage_status}</h3>
                 </div>
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-3">
                     <div className="bg-gradient-to-r from-retro-bg-darker/30 to-retro-bg-dark/30 rounded-lg p-3 border border-retro-border/30">
-                      <div className="text-xs text-retro-textMuted font-pixel tracking-wide mb-1">USED</div>
+                      <div className="text-xs text-retro-textMuted font-pixel tracking-wide mb-1">{t.workstation.used}</div>
                       <div className="text-retro-blue text-sm font-bold font-retro">{timeInfo.timeUsed}</div>
                     </div>
                     <div className="bg-gradient-to-r from-retro-bg-darker/30 to-retro-bg-dark/30 rounded-lg p-3 border border-retro-border/30">
-                      <div className="text-xs text-retro-textMuted font-pixel tracking-wide mb-1">REMAINING</div>
-                      <div className={`text-sm font-bold font-retro ${
-                        timeInfo.isExpired
+                      <div className="text-xs text-retro-textMuted font-pixel tracking-wide mb-1">{t.workstation.remaining}</div>
+                      <div className={`text-sm font-bold font-retro ${timeInfo.isExpired
                           ? 'text-retro-red'
                           : timeInfo.isExpiringSoon
                             ? 'text-retro-orange '
                             : 'text-retro-green'
-                      }`}>
+                        }`}>
                         {timeInfo.timeRemaining}
                       </div>
                       {timeInfo.isExpiringSoon && !timeInfo.isExpired && (
                         <div className="text-xs text-retro-orange font-pixel tracking-wide mt-1">
-                          即将到期！
+                          {t.workstation.expiring_soon}
                         </div>
                       )}
                     </div>
                   </div>
-                  
                   {/* 像素化进度条 */}
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
-                      <span className="text-xs text-retro-textMuted font-pixel tracking-wide">PROGRESS</span>
+                      <span className="text-xs text-retro-textMuted font-pixel tracking-wide">{t.workstation.progress}</span>
                       <span className="text-xs text-white font-bold font-pixel">{Math.round(timeInfo.usagePercentage)}%</span>
                     </div>
                     <div className="relative w-full bg-gradient-to-r from-retro-bg-darker to-retro-bg-dark rounded-full h-3 border border-retro-border/30 shadow-inner">
-                      <div 
-                        className={`h-full rounded-full  shadow-lg ${
-                          timeInfo.isExpired 
-                            ? 'bg-gradient-to-r from-retro-red to-retro-orange' 
+                      <div
+                        className={`h-full rounded-full  shadow-lg ${timeInfo.isExpired
+                            ? 'bg-gradient-to-r from-retro-red to-retro-orange'
                             : 'bg-gradient-to-r from-retro-green via-retro-cyan to-retro-blue'
-                        }`}
-                        style={{ 
-                          width: `${Math.min(100, timeInfo.usagePercentage)}%` 
+                          }`}
+                        style={{
+                          width: `${Math.min(100, timeInfo.usagePercentage)}%`
                         }}
                       >
                         <div className="absolute inset-0 bg-white/20 rounded-full "></div>
@@ -463,28 +518,25 @@ const WorkstationInfoModal = memo(({
             </div>
 
             {/* 状态指示器 - 像素化状态卡片 */}
-            <div className={`relative group bg-gradient-to-br backdrop-blur-sm rounded-xl p-4 border-2 shadow-lg  ${
-              timeInfo.isExpired
+            <div className={`relative group bg-gradient-to-br backdrop-blur-sm rounded-xl p-4 border-2 shadow-lg  ${timeInfo.isExpired
                 ? 'from-retro-red/15 to-retro-orange/15 border-retro-red/30 hover:border-retro-red/50'
                 : timeInfo.isExpiringSoon
                   ? 'from-retro-orange/15 to-retro-red/15 border-retro-orange/30 hover:border-retro-orange/50'
                   : 'from-retro-green/15 to-retro-cyan/15 border-retro-green/30 hover:border-retro-green/50'
-            }`}>
-              <div className={`absolute inset-0 rounded-xl opacity-50 ${
-                timeInfo.isExpired
+              }`}>
+              <div className={`absolute inset-0 rounded-xl opacity-50 ${timeInfo.isExpired
                   ? 'bg-retro-red/5'
                   : timeInfo.isExpiringSoon
                     ? 'bg-retro-orange/5'
                     : 'bg-retro-green/5'
-              }`}></div>
+                }`}></div>
               <div className="relative flex items-center justify-center gap-3">
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shadow-lg border border-white/20 ${
-                  timeInfo.isExpired
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shadow-lg border border-white/20 ${timeInfo.isExpired
                     ? 'bg-gradient-to-br from-retro-red/30 to-retro-orange/30'
                     : timeInfo.isExpiringSoon
                       ? 'bg-gradient-to-br from-retro-orange/30 to-retro-red/30'
                       : 'bg-gradient-to-br from-retro-green/30 to-retro-cyan/30'
-                } ${timeInfo.isExpiringSoon && !timeInfo.isExpired ? '' : ''}`}>
+                  } ${timeInfo.isExpiringSoon && !timeInfo.isExpired ? '' : ''}`}>
                   <span className="text-lg">
                     {timeInfo.isExpired
                       ? '🛑'
@@ -495,36 +547,34 @@ const WorkstationInfoModal = memo(({
                   </span>
                 </div>
                 <div className="text-center">
-                  <div className={`text-sm font-bold font-pixel tracking-wide ${
-                    timeInfo.isExpired
+                  <div className={`text-sm font-bold font-pixel tracking-wide ${timeInfo.isExpired
                       ? 'text-retro-red'
                       : timeInfo.isExpiringSoon
                         ? 'text-retro-orange'
                         : 'text-retro-green'
-                  }`}>
+                    }`}>
                     {timeInfo.isExpired
-                      ? 'EXPIRED'
+                      ? t.workstation.expired.toUpperCase()
                       : timeInfo.isExpiringSoon
-                        ? 'EXPIRING SOON'
-                        : 'ACTIVE'
+                        ? t.workstation.expiring_soon.toUpperCase()
+                        : t.workstation.active.toUpperCase()
                     }
                   </div>
                   <div className="text-xs text-retro-textMuted font-retro">
                     {timeInfo.isExpired
-                      ? 'Rental period ended'
+                      ? t.workstation.rental_ended
                       : timeInfo.isExpiringSoon
-                        ? `${timeInfo.daysRemaining}天后到期`
-                        : 'Rental in progress'
+                        ? t.workstation.expiring_soon_msg.replace('{days}', timeInfo.daysRemaining.toString())
+                        : t.workstation.rental_in_progress
                     }
                   </div>
                 </div>
-                <div className={`w-3 h-3 rounded-full shadow-lg ${
-                  timeInfo.isExpired
+                <div className={`w-3 h-3 rounded-full shadow-lg ${timeInfo.isExpired
                     ? 'bg-retro-red'
                     : timeInfo.isExpiringSoon
                       ? 'bg-retro-orange '
                       : 'bg-retro-green'
-                }`}></div>
+                  }`}></div>
               </div>
             </div>
           </div>
@@ -534,7 +584,7 @@ const WorkstationInfoModal = memo(({
         <div className="relative flex gap-3 mt-6 pt-6 border-t-2 border-retro-border/50">
           {/* 背景装饰 */}
           <div className="absolute inset-0 bg-gradient-to-r from-retro-green/3 via-retro-cyan/5 to-retro-blue/3 opacity-60 pointer-events-none rounded-xl"></div>
-          
+
           {/* 关闭按钮 */}
           <button
             onClick={(e) => {
@@ -547,13 +597,13 @@ const WorkstationInfoModal = memo(({
           >
             {/* 按钮光效 */}
             <div className="absolute inset-0 bg-gradient-to-r from-retro-cyan/5 to-retro-blue/5 opacity-0 group-hover:opacity-100 "></div>
-            
+
             {/* 按钮内容 */}
             <div className="relative flex items-center justify-center gap-2">
               <div className="w-5 h-5 bg-retro-cyan/20 rounded-lg flex items-center justify-center group-hover:bg-retro-cyan/30 ">
                 <span className="text-sm">✅</span>
               </div>
-              <span className="font-pixel text-sm tracking-wide">CLOSE</span>
+              <span className="font-pixel text-sm tracking-wide">{t.common.close.toUpperCase()}</span>
             </div>
           </button>
         </div>

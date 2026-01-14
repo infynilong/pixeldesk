@@ -13,6 +13,7 @@
     "test:coverage": "jest --coverage"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@prisma/client": "^6.13.0",
     "@types/redis": "^4.0.10",
     "@types/ws": "^8.18.1",
@@ -21,7 +22,9 @@
     "buffer": "^6.0.3",
     "cookie": "^1.0.2",
     "crypto-browserify": "^3.12.1",
+    "cuid": "^3.0.0",
     "events": "^3.3.0",
+    "framer-motion": "^12.23.26",
     "gray-matter": "^4.0.3",
     "jose": "^6.1.0",
     "jsonwebtoken": "^9.0.2",
@@ -56,7 +59,8 @@
     "@types/jest": "^29.5.8",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "24.2.1",
-    "@types/react": "19.1.9",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
     "autoprefixer": "^10.4.21",
     "babel-loader": "^10.0.0",
     "babel-plugin-module-resolver": "^5.0.2",

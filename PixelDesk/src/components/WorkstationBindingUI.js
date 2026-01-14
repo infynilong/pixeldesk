@@ -1,4 +1,5 @@
 import { Player } from '../entities/Player.js';
+import { t } from '../i18n/workstation.js';
 
 // ===== 性能优化配置 =====
 const PERFORMANCE_CONFIG = {
@@ -44,56 +45,69 @@ export class WorkstationBindingUI {
         const centerX = this.scene.cameras.main.width / 2;
         const centerY = this.scene.cameras.main.height / 2;
 
-        // 创建半透明背景
+        // 创建深色实心背景（不透明）
         const bg = this.scene.add.rectangle(
             centerX,
             centerY,
             this.scene.cameras.main.width,
             this.scene.cameras.main.height,
             0x000000,
-            0.6
+            1.0  // 完全不透明
         );
         bg.setScrollFactor(0);
-        bg.setDepth(999); // 背景在按钮下方
+        bg.setDepth(999);
 
-        // 创建绑定窗口
+        // 创建像素风格窗口背景（完全不透明）
         const windowBg = this.scene.add.rectangle(
             centerX,
             centerY,
-            400,
-            250,
-            0x2a2a2a,
-            0.95
+            450,
+            280,
+            0x1a1a2e,  // 深蓝黑色
+            1.0  // 完全不透明
         );
         windowBg.setScrollFactor(0);
-        windowBg.setStrokeStyle(2, 0x4a9eff);
-        windowBg.setDepth(999); // 窗口在按钮下方
+        windowBg.setStrokeStyle(3, 0x00ffff);  // 青色边框，更粗
+        windowBg.setDepth(999);
 
-        // 标题
+        // 添加装饰性像素风格边框
+        const innerBorder = this.scene.add.rectangle(
+            centerX,
+            centerY,
+            440,
+            270,
+            0x000000,
+            0
+        );
+        innerBorder.setScrollFactor(0);
+        innerBorder.setStrokeStyle(2, 0x4a9eff);
+        innerBorder.setDepth(1000);
+
+        // 标题 - 使用多语言
         const title = this.scene.add.text(
             centerX,
-            centerY - 80,
-            '工位绑定',
+            centerY - 100,
+            t('bindingTitle'),
             {
-                fontSize: '24px',
-                fill: '#ffffff',
-                fontFamily: 'Arial',
+                fontSize: '28px',
+                fill: '#00ffff',  // 青色
+                fontFamily: 'monospace',
                 fontStyle: 'bold'
             }
         );
         title.setOrigin(0.5);
         title.setScrollFactor(0);
-        title.setDepth(1001); // 文本在按钮上方
+        title.setDepth(1001);
 
-        // 工位信息
+        // 工位信息 - 使用多语言
         const infoText = this.scene.add.text(
             centerX,
             centerY - 40,
-            `工位ID: ${this.currentWorkstation.id}\n位置: (${Math.floor(this.currentWorkstation.position.x)}, ${Math.floor(this.currentWorkstation.position.y)})\n类型: ${this.currentWorkstation.type}`,
+            `${t('workstationId')}: ${this.currentWorkstation.id}\n${t('position')}: (${Math.floor(this.currentWorkstation.position.x)}, ${Math.floor(this.currentWorkstation.position.y)})\n${t('type')}: ${this.currentWorkstation.type}`,
             {
                 fontSize: '16px',
                 fill: '#cccccc',
-                fontFamily: 'Arial',
+                fontFamily: 'monospace',
                 align: 'center'
             }
         );
@@ -101,15 +115,15 @@ export class WorkstationBindingUI {
         infoText.setScrollFactor(0);
         infoText.setDepth(1001); // 文本在按钮上方
 
-        // 费用信息
+        // 费用信息 - 使用多语言
         const costText = this.scene.add.text(
             centerX,
             centerY + 20,
-            '绑定费用: 5积分 (30天)',
+            `${t('bindingFee')}: 5${t('points')} (${t('duration')})`,
             {
                 fontSize: '18px',
                 fill: '#ffd700',
-                fontFamily: 'Arial',
+                fontFamily: 'monospace',
                 fontStyle: 'bold'
             }
         );
@@ -117,15 +131,15 @@ export class WorkstationBindingUI {
         costText.setScrollFactor(0);
         costText.setDepth(1001); // 文本在按钮上方
 
-        // 用户积分
+        // 用户积分 - 使用多语言
         this.userPointsText = this.scene.add.text(
             centerX,
             centerY + 50,
-            `您的积分: ${this.currentuser.points}`,
+            `${t('yourPoints')}: ${this.currentuser.points}`,
             {
                 fontSize: '16px',
                 fill: '#4a9eff',
-                fontFamily: 'Arial'
+                fontFamily: 'monospace'
             }
         );
         this.userPointsText.setOrigin(0.5);
@@ -137,7 +151,7 @@ export class WorkstationBindingUI {
 
         // 存储窗口组件
         this.bindingWindow = this.scene.add.container(0, 0, [
-            bg, windowBg, title, infoText, costText, this.userPointsText, ...buttons
+            bg, windowBg, innerBorder, title, infoText, costText, this.userPointsText, ...buttons
         ]);
         this.bindingWindow.setScrollFactor(0);
         this.bindingWindow.setDepth(1000); // 容器深度
@@ -159,11 +173,11 @@ export class WorkstationBindingUI {
         const confirmText = this.scene.add.text(
             centerX - 80,
             centerY,
-            '确认绑定',
+            t('confirm'),
             {
                 fontSize: '16px',
                 fill: '#ffffff',
-                fontFamily: 'Arial'
+                fontFamily: 'monospace'
             }
         );
         confirmText.setOrigin(0.5);
@@ -185,11 +199,11 @@ export class WorkstationBindingUI {
         const cancelText = this.scene.add.text(
             centerX + 80,
             centerY,
-            '取消',
+            t('cancel'),
             {
                 fontSize: '16px',
                 fill: '#ffffff',
-                fontFamily: 'Arial'
+                fontFamily: 'monospace'
             }
         );
         cancelText.setOrigin(0.5);
@@ -229,14 +243,14 @@ export class WorkstationBindingUI {
 
                 // 更新UI显示
                 if (this.userPointsText) {
-                    this.userPointsText.setText(`您的积分: ${result.remainingPoints}`);
+                    this.userPointsText.setText(`${t('yourPoints')}: ${result.remainingPoints}`);
                 }
 
                 // 保存用户数据
                 localStorage.setItem('pixelDeskUser', JSON.stringify(this.currentuser));
 
                 // 显示成功消息
-                this.showMessage('绑定成功！', 0x4a9eff);
+                this.showMessage(t('success'), 0x4a9eff);
 
                 // 更新场景中的积分显示
                 window.dispatchEvent(new CustomEvent('user-points-updated', {
@@ -324,7 +338,7 @@ export class WorkstationBindingUI {
             }
         } catch (error) {
             console.error('绑定失败:', error);
-            this.showMessage('绑定失败，请重试', 0xff4444);
+            this.showMessage(t('failed'), 0xff4444);
         }
     }
 

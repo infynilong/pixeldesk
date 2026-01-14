@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect, ReactNode } from 'react'
+import { useTranslation } from '@/lib/hooks/useTranslation'
+import { useSocialNotifications } from '@/lib/hooks/useSocialNotifications'
 import { EventBus, CollisionEvent } from '@/lib/eventBus'
 import SocialFeedTab from './tabs/SocialFeedTab'
 import MyPostsTab from './tabs/MyPostsTab'
@@ -15,6 +17,8 @@ interface RightPanelProps {
   isTablet?: boolean
   isCollapsed?: boolean
   onCollapsedChange?: (collapsed: boolean) => void
+
+  onOpenPostcardRequest?: (request: any) => void
 }
 
 interface Tab {
@@ -32,12 +36,28 @@ export default function RightPanel({
   isMobile = false,
   isTablet = false,
   isCollapsed: externalIsCollapsed,
-  onCollapsedChange
+  onCollapsedChange,
+  onOpenPostcardRequest
 }: RightPanelProps) {
   const [activeTab, setActiveTab] = useState('social')
   const [currentInteractionPlayer, setCurrentInteractionPlayer] = useState<any>(null)
   const [internalIsCollapsed, setInternalIsCollapsed] = useState(false)
   const isCollapsed = externalIsCollapsed !== undefined ? externalIsCollapsed : internalIsCollapsed
+  const { t } = useTranslation()
+
+  // Notification State hoisted for badge and global polling
+  const [notificationFilter, setNotificationFilter] = useState<'all' | 'unread'>('all')
+  const notificationState = useSocialNotifications({
+    userId: currentUser?.id,
+    autoFetch: !!currentUser?.id,
+    refreshInterval: 30000, // Poll every 30s as requested
+    unreadOnly: notificationFilter === 'unread'
+  })
+
+  // Function to switch tabs programmatically
+  const handleSwitchTab = (tabId: string) => {
+    setActiveTab(tabId)
+  }
 
   const handleToggle = (collapsed: boolean) => {
     if (onCollapsedChange) {
@@ -92,7 +112,7 @@ export default function RightPanel({
   const tabs: Tab[] = [
     {
       id: 'social',
-      label: '动态',
+      label: t.nav.posts,
       icon: (
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a2 2 0 01-2-2v-6a2 2 0 012-2h2V4a2 2 0 012-2h4a2 2 0 012 2v4z" />
@@ -108,7 +128,7 @@ export default function RightPanel({
     },
     {
       id: 'posts',
-      label: '我的',
+      label: t.nav.mine,
       icon: (
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
@@ -124,7 +144,7 @@ export default function RightPanel({
     },
     {
       id: 'inbox',
-      label: '消息',
+      label: t.nav.inbox,
       icon: (
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
@@ -136,13 +156,19 @@ export default function RightPanel({
           isMobile={isMobile}
           isTablet={isTablet}
           onPostClick={onPostClick}
+          onOpenPostcardRequest={onOpenPostcardRequest}
+          onSwitchTab={handleSwitchTab}
+          notificationState={notificationState}
+          filter={notificationFilter}
+          onFilterChange={setNotificationFilter}
         />
       ),
-      badge: 0 // 可以后续添加未读消息数量
+      badge: notificationState.unreadCount
     },
+
     {
       id: 'interaction',
-      label: '互动',
+      label: t.nav.interaction,
       icon: (
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
@@ -166,7 +192,7 @@ export default function RightPanel({
         <button
           onClick={() => handleToggle(false)}
           className="absolute top-1/2 -left-4 -translate-y-1/2 w-8 h-8 flex items-center justify-center bg-gray-900/80 hover:bg-gray-800 border border-gray-700 rounded-full text-gray-400 hover:text-white transition-all shadow-lg backdrop-blur-sm opacity-50 hover:opacity-100"
-          title="展开面板"
+          title={t.leftPanel.expand}
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -182,7 +208,7 @@ export default function RightPanel({
       <button
         onClick={() => handleToggle(true)}
         className="absolute top-1/2 -left-4 -translate-y-1/2 z-50 w-8 h-8 flex items-center justify-center bg-gray-900/80 hover:bg-gray-800 border border-gray-700 rounded-full text-gray-400 hover:text-white transition-all shadow-lg backdrop-blur-sm opacity-50 hover:opacity-100"
-        title="收起面板"
+        title={t.leftPanel.collapse}
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -238,11 +264,11 @@ export default function RightPanel({
             <div className="flex items-center space-x-2">
               <div className="w-2 h-2 bg-emerald-400 rounded-full  shadow-sm shadow-emerald-400/50"></div>
               <span className="text-gray-400 font-mono">
-                {tabs.find(tab => tab.id === activeTab)?.label.toUpperCase()} MODULE
+                {(tabs.find(tab => tab.id === activeTab)?.label || '').toUpperCase()} {t.common.module.toUpperCase()}
               </span>
             </div>
             <span className="text-gray-500 font-mono">
-              {currentUser ? `${currentUser.name}` : 'GUEST'}
+              {currentUser ? `${currentUser.name}` : t.common.guest.toUpperCase()}
             </span>
           </div>
         </div>

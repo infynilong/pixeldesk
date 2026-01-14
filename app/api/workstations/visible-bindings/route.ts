@@ -6,22 +6,22 @@ export async function POST(request: Request) {
   try {
     const body = await request.json()
     const { workstationIds, viewport } = body
-    
+
     // 输入验证
     if (!Array.isArray(workstationIds)) {
-      return NextResponse.json({ 
-        success: false, 
-        error: '无效的工位ID列表' 
+      return NextResponse.json({
+        success: false,
+        error: '无效的工位ID列表'
       }, { status: 400 })
     }
 
     // 限制查询数量，防止恶意请求
     const maxIds = 1000
     const limitedIds = workstationIds.slice(0, maxIds)
-    
+
     if (limitedIds.length === 0) {
-      return NextResponse.json({ 
-        success: true, 
+      return NextResponse.json({
+        success: true,
         data: [],
         stats: {
           requested: 0,
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
     const now = new Date()
 
     // 清理过期的工位绑定
-    await prisma.userWorkstation.deleteMany({
+    await prisma.user_workstations.deleteMany({
       where: {
         workstationId: {
           in: limitedIds
@@ -50,7 +50,7 @@ export async function POST(request: Request) {
     })
 
     // 查询有效的绑定
-    const visibleBindings = await prisma.userWorkstation.findMany({
+    const visibleBindings = await prisma.user_workstations.findMany({
       where: {
         workstationId: {
           in: limitedIds
@@ -61,12 +61,24 @@ export async function POST(request: Request) {
         ]
       },
       include: {
-        user: {
+        users: {
           select: {
             id: true,
             name: true,
             avatar: true,
-            points: true
+            points: true,
+            // 获取最新的一条状态历史作为当前状态
+            status_history: {
+              orderBy: {
+                timestamp: 'desc'
+              },
+              take: 1
+            },
+            players: {
+              select: {
+                characterSprite: true
+              }
+            }
           }
         }
       },
@@ -76,20 +88,35 @@ export async function POST(request: Request) {
     })
 
     // 计算剩余天数并转换avatar为URL
-    const bindingsWithDays = visibleBindings.map(binding => ({
-      ...binding,
-      user: binding.user ? {
-        ...binding.user,
-        avatar: getCharacterImageUrl(binding.user.avatar),
-        characterKey: binding.user.avatar
-      } : null,
-      remainingDays: binding.expiresAt
-        ? Math.max(0, Math.ceil((binding.expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
-        : 30, // 默认值，兼容旧数据
-      isExpiringSoon: binding.expiresAt
-        ? (binding.expiresAt.getTime() - now.getTime()) <= (24 * 60 * 60 * 1000) // 1天内过期
-        : false
-    }))
+    const bindingsWithDays = visibleBindings.map(binding => {
+      const userObj: any = binding.users;
+      let currentStatus = null;
+      if (userObj && userObj.status_history && userObj.status_history.length > 0) {
+        currentStatus = userObj.status_history[0];
+      }
+
+      const user = userObj ? {
+        ...userObj,
+        avatar: getCharacterImageUrl(userObj.avatar),
+        characterKey: userObj.avatar,
+        current_status: currentStatus
+      } : null;
+
+      // 清空原始数据中的复杂关联
+      if (user) delete user.status_history;
+
+      return {
+        ...binding,
+        users: user,
+        user: user, // 保持向后兼容（有些地方可能用了singular user）
+        remainingDays: binding.expiresAt
+          ? Math.max(0, Math.ceil((binding.expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
+          : 30, // 默认值，兼容旧数据
+        isExpiringSoon: binding.expiresAt
+          ? (binding.expiresAt.getTime() - now.getTime()) <= (24 * 60 * 60 * 1000) // 1天内过期
+          : false
+      }
+    })
 
     const queryTime = Date.now() - startTime
 
@@ -113,8 +140,8 @@ export async function POST(request: Request) {
 
   } catch (error) {
     console.error('[API] 获取可视工位绑定失败:', error)
-    return NextResponse.json({ 
-      success: false, 
+    return NextResponse.json({
+      success: false,
       error: '服务器内部错误',
       timestamp: Date.now()
     }, { status: 500 })
@@ -123,7 +150,7 @@ export async function POST(request: Request) {
 
 // 健康检查端点
 export async function GET() {
-  return NextResponse.json({ 
+  return NextResponse.json({
     status: 'healthy',
     service: 'visible-workstation-bindings',
     timestamp: Date.now()

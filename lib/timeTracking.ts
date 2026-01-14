@@ -51,25 +51,27 @@ export class TimeTrackingManager {
         const ongoingSession = await this.getOngoingWorkSession(userId)
         if (!ongoingSession) {
           // 创建新的工作会话
-          await this.prisma.workSession.create({
+          await this.prisma.work_sessions.create({
             data: {
               userId,
               workstationId: workstationId || null,
-              startTime: new Date()
+              startTime: new Date(),
+              updatedAt: new Date()
             }
           })
         }
       }
 
       // 创建新的时间记录
-      const record = await this.prisma.timeTracking.create({
+      const record = await this.prisma.time_tracking.create({
         data: {
           userId,
           activityType,
           startTime: new Date(),
           date: new Date(),
           workstationId: workstationId || null,
-          notes: notes || null
+          notes: notes || null,
+          updatedAt: new Date()
         }
       })
 
@@ -94,11 +96,12 @@ export class TimeTrackingManager {
       const endTime = new Date()
       const duration = Math.round((endTime.getTime() - ongoingActivity.startTime.getTime()) / (1000 * 60)) // 分钟
 
-      const updatedRecord = await this.prisma.timeTracking.update({
+      const updatedRecord = await this.prisma.time_tracking.update({
         where: { id: ongoingActivity.id },
         data: {
           endTime,
-          duration
+          duration,
+          updatedAt: new Date()
         }
       })
 
@@ -128,11 +131,12 @@ export class TimeTrackingManager {
       const endTime = new Date()
       const totalMinutes = Math.round((endTime.getTime() - ongoingSession.startTime.getTime()) / (1000 * 60))
 
-      const updatedSession = await this.prisma.workSession.update({
+      const updatedSession = await this.prisma.work_sessions.update({
         where: { id: ongoingSession.id },
         data: {
           endTime,
-          totalMinutes
+          totalMinutes,
+          updatedAt: new Date()
         }
       })
 
@@ -152,12 +156,8 @@ export class TimeTrackingManager {
       const cached = await redis.getJSON(`current_activity:${userId}`)
       if (cached) return cached
 
-      // 调试：检查 prisma 客户端
-      console.log('Prisma client in getOngoingActivity:', this.prisma)
-      console.log('TimeTracking model available:', this.prisma.timeTracking)
-
       // 从数据库获取
-      const activity = await this.prisma.timeTracking.findFirst({
+      const activity = await this.prisma.time_tracking.findFirst({
         where: {
           userId,
           endTime: null
@@ -182,7 +182,7 @@ export class TimeTrackingManager {
    */
   async getOngoingWorkSession(userId: string): Promise<WorkSessionRecord | null> {
     try {
-      const session = await this.prisma.workSession.findFirst({
+      const session = await this.prisma.work_sessions.findFirst({
         where: {
           userId,
           endTime: null
@@ -207,7 +207,7 @@ export class TimeTrackingManager {
       const tomorrow = new Date(today)
       tomorrow.setDate(tomorrow.getDate() + 1)
 
-      const activities = await this.prisma.timeTracking.findMany({
+      const activities = await this.prisma.time_tracking.findMany({
         where: {
           userId,
           startTime: {
@@ -243,7 +243,7 @@ export class TimeTrackingManager {
    */
   async getWorkSessions(userId: string, limit: number = 30) {
     try {
-      const sessions = await this.prisma.workSession.findMany({
+      const sessions = await this.prisma.work_sessions.findMany({
         where: { userId },
         orderBy: { startTime: 'desc' },
         take: limit
@@ -264,7 +264,7 @@ export class TimeTrackingManager {
       const startDate = new Date()
       startDate.setDate(startDate.getDate() - days)
 
-      const activities = await this.prisma.timeTracking.findMany({
+      const activities = await this.prisma.time_tracking.findMany({
         where: {
           userId,
           startTime: { gte: startDate },
@@ -303,7 +303,7 @@ export class TimeTrackingManager {
    */
   async forceEndAllActivities(userId: string): Promise<number> {
     try {
-      const ongoingActivities = await this.prisma.timeTracking.findMany({
+      const ongoingActivities = await this.prisma.time_tracking.findMany({
         where: {
           userId,
           endTime: null
@@ -317,7 +317,7 @@ export class TimeTrackingManager {
       }
 
       // 也结束未完成的工作会话
-      const ongoingSessions = await this.prisma.workSession.findMany({
+      const ongoingSessions = await this.prisma.work_sessions.findMany({
         where: {
           userId,
           endTime: null

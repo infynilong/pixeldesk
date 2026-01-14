@@ -18,15 +18,22 @@ export async function GET(
     }
 
     // 获取用户基本信息
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: userId },
       select: {
         id: true,
         name: true,
         avatar: true,
+        customAvatar: true,
         email: true,
         createdAt: true,
         points: true,
+        user_workstations: {
+          select: {
+            workstationId: true
+          },
+          take: 1
+        },
         _count: {
           select: {
             posts: {
@@ -35,7 +42,7 @@ export async function GET(
                 isPublic: true
               }
             },
-            postLikes: true
+            post_likes: true
           }
         }
       }
@@ -49,7 +56,7 @@ export async function GET(
     }
 
     // 获取用户的帖子（非博客）
-    const posts = await prisma.post.findMany({
+    const posts = await prisma.posts.findMany({
       where: {
         authorId: userId,
         type: {
@@ -61,14 +68,21 @@ export async function GET(
       orderBy: { createdAt: 'desc' },
       take: 10,
       include: {
-        author: {
+        users: {
           select: {
             id: true,
             name: true,
-            avatar: true
+            avatar: true,
+            customAvatar: true,
+            user_workstations: {
+              select: {
+                workstationId: true
+              },
+              take: 1
+            }
           }
         },
-        likes: currentUserId ? {
+        post_likes: currentUserId ? {
           where: {
             userId: currentUserId
           },
@@ -80,7 +94,7 @@ export async function GET(
     })
 
     // 获取用户的博客
-    const blogs = await prisma.post.findMany({
+    const blogs = await prisma.posts.findMany({
       where: {
         authorId: userId,
         type: 'MARKDOWN',
@@ -90,14 +104,21 @@ export async function GET(
       orderBy: { createdAt: 'desc' },
       take: 6,
       include: {
-        author: {
+        users: {
           select: {
             id: true,
             name: true,
-            avatar: true
+            avatar: true,
+            customAvatar: true,
+            user_workstations: {
+              select: {
+                workstationId: true
+              },
+              take: 1
+            }
           }
         },
-        likes: currentUserId ? {
+        post_likes: currentUserId ? {
           where: {
             userId: currentUserId
           },
@@ -109,7 +130,7 @@ export async function GET(
     })
 
     // 获取博客总数
-    const totalBlogs = await prisma.post.count({
+    const totalBlogs = await prisma.posts.count({
       where: {
         authorId: userId,
         type: 'MARKDOWN',
@@ -118,26 +139,40 @@ export async function GET(
       }
     })
 
-    // 处理点赞状态
-    const postsWithLikeStatus = posts.map(post => ({
+    // 处理点赞状态并转换数据结构
+    const postsWithLikeStatus = posts.map((post: any) => ({
       ...post,
-      isLiked: currentUserId ? (post.likes && post.likes.length > 0) : false,
-      likes: undefined
+      author: {
+        ...post.users,
+        workstationId: post.users?.user_workstations?.[0]?.workstationId || null,
+        user_workstations: undefined
+      },
+      users: undefined,
+      isLiked: currentUserId ? (post.post_likes && post.post_likes.length > 0) : false,
+      post_likes: undefined
     }))
 
-    const blogsWithLikeStatus = blogs.map(blog => ({
+    const blogsWithLikeStatus = blogs.map((blog: any) => ({
       ...blog,
-      isLiked: currentUserId ? (blog.likes && blog.likes.length > 0) : false,
-      likes: undefined
+      author: {
+        ...blog.users,
+        workstationId: blog.users?.user_workstations?.[0]?.workstationId || null,
+        user_workstations: undefined
+      },
+      users: undefined,
+      isLiked: currentUserId ? (blog.post_likes && blog.post_likes.length > 0) : false,
+      post_likes: undefined
     }))
 
     return NextResponse.json({
       success: true,
       data: {
-        user: {
+        users: {
           ...user,
+          workstationId: user.user_workstations?.[0]?.workstationId || null,
+          user_workstations: undefined,
           postsCount: user._count.posts,
-          likesCount: user._count.postLikes,
+          likesCount: user._count.post_likes,
           _count: undefined
         },
         posts: postsWithLikeStatus,

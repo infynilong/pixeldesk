@@ -71,7 +71,7 @@ export class DataMigration {
       // 迁移用户数据
       for (const user of data.users) {
         try {
-          await prisma.user.upsert({
+          await prisma.users.upsert({
             where: { id: user.id },
             update: {
               name: user.name,
@@ -85,7 +85,8 @@ export class DataMigration {
               name: user.name,
               email: user.email,
               avatar: user.avatar,
-              points: user.points || 0
+              points: user.points || 0,
+              updatedAt: new Date()
             }
           })
           results.users.success++
@@ -98,7 +99,7 @@ export class DataMigration {
       // 迁移工位数据
       for (const ws of data.workstations) {
         try {
-          await prisma.workstation.upsert({
+          await prisma.workstations.upsert({
             where: { id: ws.id },
             update: {
               name: ws.name,
@@ -122,7 +123,7 @@ export class DataMigration {
       // 迁移状态历史
       for (const status of data.statusHistory) {
         try {
-          await prisma.statusHistory.create({
+          await prisma.status_history.create({
             data: {
               id: status.id,
               userId: status.userId,
@@ -143,7 +144,7 @@ export class DataMigration {
       // 迁移用户工位绑定
       for (const binding of data.userWorkstations) {
         try {
-          await prisma.userWorkstation.create({
+          await prisma.user_workstations.create({
             data: {
               userId: binding.userId,
               workstationId: binding.workstationId,
@@ -170,7 +171,7 @@ export class DataMigration {
    */
   static async executeMigration() {
     console.log('Starting data migration...')
-    
+
     // 读取本地数据
     const localData = this.readFromLocalStorage()
     console.log('Found local data:', {
@@ -182,9 +183,9 @@ export class DataMigration {
 
     // 迁移到数据库
     const results = await this.migrateToDatabase(localData)
-    
+
     console.log('Migration completed:', results)
-    
+
     // 迁移完成后，可选择是否清除本地数据
     if (results.users.success > 0 || results.statusHistory.success > 0) {
       console.log('Migration successful! Consider backing up and clearing localStorage data.')
@@ -218,5 +219,5 @@ export class DataMigration {
 // 如果直接运行此文件，执行迁移
 if (typeof window !== 'undefined') {
   // 在浏览器环境中提供手动迁移功能
-  ;(window as any).DataMigration = DataMigration
+  ; (window as any).DataMigration = DataMigration
 }

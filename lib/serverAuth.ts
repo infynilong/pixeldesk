@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { verifyToken } from './auth'
-import prisma from './prisma'
+import prisma from './db'
 
 export interface AuthenticatedUser {
   id: string
@@ -9,6 +9,7 @@ export interface AuthenticatedUser {
   avatar?: string
   points?: number
   emailVerified?: boolean
+  inviteCode?: string
 }
 
 export interface AuthResult {
@@ -36,7 +37,7 @@ export async function verifyAuthFromRequest(request: NextRequest): Promise<AuthR
     }
 
     // Check if session is still active in database
-    const activeSession = await prisma.userSession.findFirst({
+    const activeSession = await prisma.user_sessions.findFirst({
       where: {
         userId: payload.userId,
         token: token,
@@ -50,7 +51,7 @@ export async function verifyAuthFromRequest(request: NextRequest): Promise<AuthR
     }
 
     // Get user information
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: {
         id: payload.userId,
         isActive: true
@@ -68,7 +69,8 @@ export async function verifyAuthFromRequest(request: NextRequest): Promise<AuthR
       email: user.email!,
       avatar: user.avatar || undefined,
       points: user.points,
-      emailVerified: user.emailVerified
+      emailVerified: user.emailVerified,
+      inviteCode: user.inviteCode || undefined
     }
 
     return { success: true, user: userData }
@@ -98,7 +100,7 @@ export async function getBasicUserFromRequest(request: NextRequest): Promise<Aut
     }
 
     // Get user information directly without session validation
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: {
         id: payload.userId,
         isActive: true
@@ -116,12 +118,13 @@ export async function getBasicUserFromRequest(request: NextRequest): Promise<Aut
       email: user.email!,
       avatar: user.avatar || undefined,
       points: user.points,
-      emailVerified: user.emailVerified
+      emailVerified: user.emailVerified,
+      inviteCode: user.inviteCode || undefined
     }
 
     return { success: true, user: userData }
   } catch (error) {
-    console.error('Basic user verification failed:', error)
+    // console.error('Basic user verification failed:', error) // Removed as per instruction
     return { success: false, error: 'User verification failed' }
   }
 }
@@ -144,14 +147,14 @@ export function withAuth<T extends any[]>(
 ) {
   return async (request: NextRequest, ...args: T): Promise<Response> => {
     const authResult = await verifyAuthFromRequest(request)
-    
+
     if (!authResult.success || !authResult.user) {
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: authResult.error || 'Authentication required' 
+        JSON.stringify({
+          success: false,
+          error: authResult.error || 'Authentication required'
         }),
-        { 
+        {
           status: 401,
           headers: { 'Content-Type': 'application/json' }
         }
@@ -167,7 +170,7 @@ export function withAuth<T extends any[]>(
  */
 export async function cleanupExpiredSessions(userId: string): Promise<void> {
   try {
-    await prisma.userSession.updateMany({
+    await prisma.user_sessions.updateMany({
       where: {
         userId: userId,
         expiresAt: { lt: new Date() }
@@ -184,7 +187,7 @@ export async function cleanupExpiredSessions(userId: string): Promise<void> {
  */
 export async function invalidateAllUserSessions(userId: string): Promise<void> {
   try {
-    await prisma.userSession.updateMany({
+    await prisma.user_sessions.updateMany({
       where: {
         userId: userId,
         isActive: true

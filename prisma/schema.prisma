@@ -7,44 +7,388 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id                       String                    @id @default(cuid())
-  points                   Int                       @default(50)  // 唯一的积分字段，用于所有积分操作
-  createdAt                DateTime                  @default(now())
-  updatedAt                DateTime                  @updatedAt
-  avatar                   String?                   // 角色key（如 'hangli'），API层转换为URL
-  customAvatar             String?                   // 用户自定义上传的头像URL（优先级高于avatar）
-  email                    String?                   @unique
-  name                     String
-  emailVerified            Boolean                   @default(false)
-  isActive                 Boolean                   @default(true)
-  lastLogin                DateTime?
-  password                 String?
-  conversationParticipants ConversationParticipant[]
-  sentMessages             Message[]
-  relatedNotifications     Notification[]            @relation("NotificationRelatedUser")
-  notifications            Notification[]
-  player                   Player?
-  postLikes                PostLike[]
-  postReplies              PostReply[]
-  posts                    Post[]
-  pointsHistory            PointsHistory[]
-  statusHistory            StatusHistory[]
-  timeTracking             TimeTracking[]
-  onlineStatus             UserOnlineStatus?
-  sessions                 UserSession[]
-  workstations             UserWorkstation[]
-  workSessions             WorkSession[]
-  ownedCharacters          CharacterPurchase[]       // 拥有的角色形象
-  createdCharacters        Character[]               @relation("CreatedCharacters") // 创建的角色形象
+model admin_logs {
+  id         String   @id
+  adminId    String
+  action     String
+  resource   String
+  resourceId String?
+  details    Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+  admins     admins   @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([action])
+  @@index([adminId, createdAt])
+  @@index([resource, createdAt])
+}
+
+model admins {
+  id          String       @id
+  username    String       @unique
+  email       String       @unique
+  password    String
+  role        AdminRole    @default(ADMIN)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime
+  lastLoginAt DateTime?
+  isActive    Boolean      @default(true)
+  admin_logs  admin_logs[]
 
   @@index([email])
   @@index([isActive])
-  @@index([lastLogin])
-  @@map("users")
+  @@index([username])
 }
 
-model StatusHistory {
+model ai_chat_history {
+  id        String   @id
+  userId    String
+  npcId     String
+  role      String
+  content   String
+  createdAt DateTime @default(now())
+  chatType  String   @default("npc")
+
+  @@index([userId, npcId, createdAt])
+  @@index([userId, chatType, createdAt])
+}
+
+model ai_global_config {
+  id          String   @id
+  provider    String   @default("gemini")
+  apiKey      String?
+  modelName   String?
+  baseUrl     String?
+  temperature Float    @default(0.7)
+  maxTokens   Int      @default(1000)
+  isActive    Boolean  @default(true)
+  updatedAt   DateTime
+  dailyLimit  Int      @default(20)
+}
+
+model ai_npcs {
+  id          String   @id
+  name        String
+  sprite      String
+  x           Int
+  y           Int
+  personality String
+  greeting    String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime
+  knowledge   String?
+  role        String?
+  isFixed     Boolean  @default(false)
+}
+
+model front_desk {
+  id           String   @id
+  name         String
+  sprite       String
+  x            Int
+  y            Int
+  serviceScope String
+  workingHours String?
+  greeting     String
+  systemPrompt String
+  isActive     Boolean  @default(true)
+  isFixed      Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime
+  modelId      String?
+}
+
+model ai_usage {
+  id               String   @id
+  userId           String
+  count            Int      @default(0)
+  date             String
+  updatedAt        DateTime
+  completionTokens Int      @default(0)
+  promptTokens     Int      @default(0)
+  totalTokens      Int      @default(0)
+  users            users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+}
+
+model character_logs {
+  id          String     @id
+  characterId String
+  adminId     String
+  action      String
+  changes     Json
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime   @default(now())
+  characters  characters @relation(fields: [characterId], references: [id], onDelete: Cascade)
+
+  @@index([adminId])
+  @@index([characterId, createdAt])
+}
+
+model character_purchases {
+  id          String     @id
+  userId      String
+  characterId String
+  price       Int
+  purchasedAt DateTime   @default(now())
+  characters  characters @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  users       users      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, characterId])
+  @@index([characterId])
+  @@index([purchasedAt])
+  @@index([userId])
+}
+
+model characters {
+  id                  String                @id
+  name                String                @unique
+  displayName         String
+  description         String?
+  imageUrl            String
+  frameWidth          Int                   @default(48)
+  frameHeight         Int                   @default(48)
+  totalFrames         Int                   @default(8)
+  isCompactFormat     Boolean               @default(false)
+  price               Int                   @default(0)
+  isDefault           Boolean               @default(false)
+  isActive            Boolean               @default(true)
+  sortOrder           Int                   @default(0)
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime
+  creatorId           String?
+  isUserGenerated     Boolean               @default(false)
+  salesCount          Int                   @default(0)
+  character_logs      character_logs[]
+  character_purchases character_purchases[]
+  users               users?                @relation(fields: [creatorId], references: [id])
+
+  @@index([createdAt])
+  @@index([creatorId])
+  @@index([isActive, sortOrder])
+  @@index([isDefault])
+  @@index([isUserGenerated])
+  @@index([price])
+}
+
+model conversation_participants {
+  id             String        @id
+  conversationId String
+  userId         String
+  joinedAt       DateTime      @default(now())
+  lastReadAt     DateTime      @default(now())
+  isActive       Boolean       @default(true)
+  conversations  conversations @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  users          users         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+}
+
+model conversations {
+  id                        String                      @id
+  type                      String                      @default("private")
+  name                      String?
+  createdAt                 DateTime                    @default(now())
+  updatedAt                 DateTime
+  conversation_participants conversation_participants[]
+  messages                  messages[]
+}
+
+model library_books {
+  id          String   @id
+  title       String
+  author      String
+  description String?
+  coverUrl    String?
+  content     String?
+  bookcaseId  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime
+
+  @@index([bookcaseId])
+}
+
+model messages {
+  id             String        @id
+  conversationId String
+  senderId       String
+  content        String
+  type           String        @default("text")
+  status         String        @default("sent")
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime
+  conversations  conversations @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  users          users         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+}
+
+model notifications {
+  id                                       String           @id
+  userId                                   String
+  type                                     NotificationType
+  title                                    String
+  message                                  String
+  isRead                                   Boolean          @default(false)
+  relatedPostId                            String?
+  relatedReplyId                           String?
+  relatedUserId                            String?
+  createdAt                                DateTime         @default(now())
+  updatedAt                                DateTime
+  posts                                    posts?           @relation(fields: [relatedPostId], references: [id], onDelete: Cascade)
+  users_notifications_relatedUserIdTousers users?           @relation("notifications_relatedUserIdTousers", fields: [relatedUserId], references: [id], onDelete: Cascade)
+  users_notifications_userIdTousers        users            @relation("notifications_userIdTousers", fields: [userId], references: [id], onDelete: Cascade)
+  postcard_exchanges                       postcard_exchanges? @relation(fields: [relatedExchangeId], references: [id], onDelete: Cascade)
+  relatedExchangeId                        String?
+
+  @@index([userId, createdAt])
+  @@index([userId, isRead])
+}
+
+model players {
+  id              String   @id
+  userId          String   @unique
+  playerName      String
+  characterSprite String
+  currentX        Int      @default(400)
+  currentY        Int      @default(300)
+  currentScene    String   @default("Start")
+  lastActiveAt    DateTime @default(now())
+  playerState     Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime
+  totalPlayTime   Int      @default(0)
+  users           users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([characterSprite])
+  @@index([createdAt])
+  @@index([lastActiveAt])
+  @@index([userId])
+}
+
+model points_config {
+  id          String         @id
+  key         String         @unique
+  value       Int
+  description String
+  category    PointsCategory
+  isActive    Boolean        @default(true)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime
+
+  @@index([category])
+  @@index([key])
+}
+
+model points_history {
+  id        String   @id
+  userId    String
+  amount    Int
+  reason    String
+  type      String
+  balance   Int
+  createdAt DateTime @default(now())
+  users     users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
+  @@index([userId])
+}
+
+model post_likes {
+  id      String   @id
+  postId  String
+  userId  String
+  likedAt DateTime @default(now())
+  posts   posts    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  users   users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([postId])
+  @@index([userId])
+}
+
+model post_replies {
+  id        String   @id
+  postId    String
+  authorId  String
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+  users     users    @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  posts     posts    @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([authorId])
+  @@index([postId, createdAt])
+}
+
+model posts {
+  id                   String                 @id
+  authorId             String
+  nodeId               String?
+  node                 post_nodes?            @relation(fields: [nodeId], references: [id])
+  title                String?
+  content              String
+  type                 PostType               @default(TEXT)
+  imageUrl             String?
+  isPublic             Boolean                @default(true)
+  likeCount            Int                    @default(0)
+  replyCount           Int                    @default(0)
+  viewCount            Int                    @default(0)
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime
+  coverImage           String?
+  isDraft              Boolean                @default(false)
+  publishedAt          DateTime?
+  readTime             Int                    @default(1)
+  summary              String?
+  tags                 String[]               @default([])
+  wordCount            Int                    @default(0)
+  imageUrls            String[]               @default([])
+  aiReviewResult       String?
+  aiReviewedAt         DateTime?
+  isActive             Boolean                @default(true)
+  moderationStatus     String                 @default("pending")
+  reviewNotes          String?
+  reviewedAt           DateTime?
+  reviewedBy           String?
+  promotionCount       Int                    @default(0)
+  billboard_promotions billboard_promotions[]
+  notifications        notifications[]
+  post_likes           post_likes[]
+  post_replies         post_replies[]
+  users                users                  @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([authorId])
+  @@index([nodeId])
+  @@index([createdAt])
+  @@index([isDraft])
+  @@index([likeCount])
+  @@index([publishedAt])
+  @@index([moderationStatus])
+  @@index([isActive])
+}
+
+model billboard_promotions {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  amount    Int
+  duration  Int
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  posts     posts    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  users     users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+  @@index([postId])
+  @@index([userId])
+}
+
+model status_history {
   id        Int      @id @default(autoincrement())
   userId    String
   emoji     String?
@@ -52,54 +396,19 @@ model StatusHistory {
   status    String
   timestamp DateTime @default(now())
   type      String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("status_history")
+  users     users    @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-model Workstation {
-  id         Int      @id @default(autoincrement())
-  name       String
-  xPosition  Int
-  yPosition  Int
-  isOccupied Boolean  @default(false)
-  createdAt  DateTime @default(now())
-
-  @@map("workstations")
+model system_config {
+  id          String   @id
+  key         String   @unique
+  value       String
+  description String?
+  category    String   @default("general")
+  updatedAt   DateTime
 }
 
-model UserWorkstation {
-  id            Int       @id @default(autoincrement())
-  userId        String
-  workstationId Int
-  boundAt       DateTime  @default(now())
-  expiresAt     DateTime?
-  cost          Int       @default(0)
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, workstationId])
-  @@index([workstationId])
-  @@index([boundAt])
-  @@index([expiresAt])
-  @@index([userId, boundAt])
-  @@map("user_workstations")
-}
-
-model WorkSession {
-  id            Int       @id @default(autoincrement())
-  userId        String
-  workstationId String?
-  startTime     DateTime  @default(now())
-  endTime       DateTime?
-  totalMinutes  Int?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("work_sessions")
-}
-
-model TimeTracking {
+model time_tracking {
   id            Int       @id @default(autoincrement())
   userId        String
   activityType  String
@@ -110,178 +419,39 @@ model TimeTracking {
   workstationId String?
   notes         String?
   createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  updatedAt     DateTime
+  users         users     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId, date])
   @@index([userId, activityType])
-  @@map("time_tracking")
+  @@index([userId, date])
 }
 
-model Conversation {
-  id           String                    @id @default(cuid())
-  type         String                    @default("private")
-  name         String?
-  createdAt    DateTime                  @default(now())
-  updatedAt    DateTime                  @updatedAt
-  participants ConversationParticipant[]
-  messages     Message[]
+model player_steps {
+  id        Int      @id @default(autoincrement())
+  userId    String
+  steps     Int      @default(0)
+  distance  Float    @default(0) // 移动距离（像素）
+  date      String   // 格式：YYYY-MM-DD
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  users     users    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@map("conversations")
+  @@unique([userId, date])
+  @@index([date, steps(sort: Desc)])
 }
 
-model ConversationParticipant {
-  id             String       @id @default(cuid())
-  conversationId String
-  userId         String
-  joinedAt       DateTime     @default(now())
-  lastReadAt     DateTime     @default(now())
-  isActive       Boolean      @default(true)
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([conversationId, userId])
-  @@map("conversation_participants")
-}
-
-model Message {
-  id             String       @id @default(cuid())
-  conversationId String
-  senderId       String
-  content        String
-  type           String       @default("text")
-  status         String       @default("sent")
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
-
-  @@index([conversationId, createdAt])
-  @@map("messages")
-}
-
-model UserOnlineStatus {
-  id        String   @id @default(cuid())
+model user_online_status {
+  id        String   @id
   userId    String   @unique
   isOnline  Boolean  @default(false)
   lastSeen  DateTime @default(now())
   socketId  String?
-  updatedAt DateTime @updatedAt
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("user_online_status")
+  updatedAt DateTime
+  users     users    @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-model Post {
-  id            String         @id @default(cuid())
-  authorId      String
-  title         String?
-  content       String
-  type          PostType       @default(TEXT)
-  imageUrl      String?
-  isPublic      Boolean        @default(true)
-  likeCount     Int            @default(0)
-  replyCount    Int            @default(0)
-  viewCount     Int            @default(0)
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-
-  // 博客相关字段
-  summary       String?                      // 摘要（前200字或自定义）
-  wordCount     Int            @default(0)  // 字数统计
-  readTime      Int            @default(1)  // 预估阅读时间（分钟）
-  tags          String[]       @default([]) // 标签
-  coverImage    String?                      // 封面图片
-  isDraft       Boolean        @default(false) // 是否草稿
-  publishedAt   DateTime?                    // 发布时间
-
-  notifications Notification[]
-  likes         PostLike[]
-  replies       PostReply[]
-  author        User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
-
-  @@index([createdAt])
-  @@index([authorId])
-  @@index([likeCount])
-  @@index([isDraft])
-  @@index([publishedAt])
-  @@map("posts")
-}
-
-model PostReply {
-  id        String   @id @default(cuid())
-  postId    String
-  authorId  String
-  content   String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
-
-  @@index([postId, createdAt])
-  @@index([authorId])
-  @@map("post_replies")
-}
-
-model PostLike {
-  id      String   @id @default(cuid())
-  postId  String
-  userId  String
-  likedAt DateTime @default(now())
-  post    Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
-  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([postId, userId])
-  @@index([postId])
-  @@index([userId])
-  @@map("post_likes")
-}
-
-model Notification {
-  id             String           @id @default(cuid())
-  userId         String
-  type           NotificationType
-  title          String
-  message        String
-  isRead         Boolean          @default(false)
-  relatedPostId  String?
-  relatedReplyId String?
-  relatedUserId  String?
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
-  relatedPost    Post?            @relation(fields: [relatedPostId], references: [id], onDelete: Cascade)
-  relatedUser    User?            @relation("NotificationRelatedUser", fields: [relatedUserId], references: [id], onDelete: Cascade)
-  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId, isRead])
-  @@index([userId, createdAt])
-  @@map("notifications")
-}
-
-model Player {
-  id              String   @id @default(cuid())
-  userId          String   @unique
-  playerName      String
-  characterSprite String   // 当前使用的角色形象名称
-  currentX        Int      @default(400)
-  currentY        Int      @default(300)
-  currentScene    String   @default("Start")
-  lastActiveAt    DateTime @default(now())
-  playerState     Json?
-  totalPlayTime   Int      @default(0) // 总游戏时长（分钟）
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([lastActiveAt])
-  @@index([characterSprite])
-  @@index([createdAt])
-  @@map("players")
-}
-
-model UserSession {
-  id        String   @id @default(cuid())
+model user_sessions {
+  id        String   @id
   userId    String
   token     String   @unique
   device    String?
@@ -290,13 +460,206 @@ model UserSession {
   isActive  Boolean  @default(true)
   expiresAt DateTime
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  updatedAt DateTime
+  users     users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+  @@index([token])
+  @@index([userId])
+}
+
+model user_workstations {
+  id                      Int       @id @default(autoincrement())
+  userId                  String
+  workstationId           Int
+  boundAt                 DateTime  @default(now())
+  cost                    Int       @default(0)
+  expiresAt               DateTime?
+  adImage                 String?
+  adText                  String?
+  adUpdatedAt             DateTime?
+  adUrl                   String?
+  lastInactivityWarningAt DateTime?
+  users                   users     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, workstationId])
+  @@index([boundAt])
+  @@index([expiresAt])
+  @@index([userId, boundAt])
+  @@index([workstationId])
+}
+
+model users {
+  id                                               String                      @id
+  points                                           Int                         @default(100)
+  createdAt                                        DateTime                    @default(now())
+  updatedAt                                        DateTime
+  avatar                                           String?
+  email                                            String?                     @unique
+  name                                             String
+  emailVerified                                    Boolean                     @default(false)
+  isActive                                         Boolean                     @default(true)
+  lastLogin                                        DateTime?
+  password                                         String?
+  customAvatar                                     String?
+  inviteCode                                       String?                     @unique
+  ai_usage                                         ai_usage[]
+  billboard_promotions                             billboard_promotions[]
+  books                                            books[]
+  character_purchases                              character_purchases[]
+  characters                                       characters[]
+  conversation_participants                        conversation_participants[]
+  messages                                         messages[]
+  notifications_notifications_relatedUserIdTousers notifications[]             @relation("notifications_relatedUserIdTousers")
+  notifications_notifications_userIdTousers        notifications[]             @relation("notifications_userIdTousers")
+  players                                          players?
+  points_history                                   points_history[]
+  post_likes                                       post_likes[]
+  post_replies                                     post_replies[]
+  posts                                            posts[]
+  player_steps                                     player_steps[]
+  status_history                                   status_history[]
+  time_tracking                                   time_tracking[]
+  user_online_status                               user_online_status?
+  user_sessions                                    user_sessions[]
+  user_workstations                                user_workstations[]
+  work_sessions                                    work_sessions[]
+  postcard_templates           postcard_templates[]
+  user_postcards               user_postcards?
+  sent_postcard_exchanges      postcard_exchanges[]        @relation("sent_exchanges")
+  received_postcard_exchanges  postcard_exchanges[]        @relation("received_exchanges")
+  user_postcard_collection     user_postcard_collection[]
+  user_postcard_owned_items    user_postcard_collection[] @relation("collection_owner")
+
+  @@index([email])
+  @@index([isActive])
+  @@index([lastLogin])
+}
+
+model work_sessions {
+  id            Int       @id @default(autoincrement())
+  userId        String
+  workstationId String?
+  startTime     DateTime  @default(now())
+  endTime       DateTime?
+  totalMinutes  Int?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime
+  users         users     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model workstation_config {
+  id                     String   @id
+  totalWorkstations      Int      @default(1000)
+  bindingCost            Int      @default(10)
+  renewalCost            Int      @default(5)
+  unbindingRefund        Int      @default(5)
+  teleportCost           Int      @default(2)
+  defaultDuration        Int      @default(24)
+  maxBindingsPerUser     Int      @default(1)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime
+  updatedBy              String?
+  billboardPromotionCost Int      @default(50)
+  postcardTemplateReward Int      @default(50)
+}
+
+model workstations {
+  id         Int      @id @default(autoincrement())
+  name       String
+  xPosition  Int
+  yPosition  Int
+  isOccupied Boolean  @default(false)
+  createdAt  DateTime @default(now())
+}
+
+model brand_config {
+  id        String   @id
+  key       String
+  locale    String   @default("zh-CN")
+  value     String
+  type      String   @default("text")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([key, locale])
+  @@index([key])
+  @@index([locale])
+}
+
+model books {
+  id          String          @id @default(cuid())
+  userId      String
+  title       String
+  description String?
+  coverUrl    String?
+  status      BookStatus      @default(DRAFT)
+  category    String?
+  viewCount   Int             @default(0)
+  likeCount   Int             @default(0)
+  reviewNote  String?
+  reviewedAt  DateTime?
+  reviewedBy  String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  publishedAt DateTime?
+  bookcaseId  String?
+  chapters    book_chapters[]
+  user        users           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
-  @@index([token])
-  @@index([expiresAt])
-  @@map("user_sessions")
+  @@index([status])
+  @@index([publishedAt])
+  @@index([viewCount])
+}
+
+model post_nodes {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  icon        String?
+  color       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  posts       posts[]
+}
+
+model book_chapters {
+  id        String      @id @default(cuid())
+  bookId    String
+  title     String
+  content   String?
+  linkUrl   String?
+  postId    String?
+  type      ChapterType @default(TEXT)
+  order     Int         @default(0)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  book      books       @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@index([bookId])
+  @@index([order])
+}
+
+enum AdminRole {
+  SUPER_ADMIN
+  ADMIN
+  VIEWER
+}
+
+enum NotificationType {
+  POST_REPLY
+  POST_LIKE
+  SYSTEM
+  POSTCARD_EXCHANGE_REQUEST
+  POSTCARD_EXCHANGE_ACCEPT
+  POSTCARD_EXCHANGE_REJECT
+}
+
+enum PointsCategory {
+  REWARD
+  COST
 }
 
 enum PostType {
@@ -306,177 +669,87 @@ enum PostType {
   MARKDOWN
 }
 
-enum NotificationType {
-  POST_REPLY
-  POST_LIKE
-  SYSTEM
+enum BookStatus {
+  DRAFT
+  PENDING
+  PUBLISHED
+  REJECTED
+  ARCHIVED
 }
 
-// 积分配置表 - 用于管理各种积分奖励和消耗规则
-model PointsConfig {
-  id          String   @id @default(cuid())
-  key         String   @unique  // 配置键，如 'reply_post_reward', 'create_blog_reward', 'bind_workstation_cost'
-  value       Int                // 积分数值
-  description String             // 配置说明
-  category    PointsCategory     // 分类：奖励或消耗
-  isActive    Boolean  @default(true)  // 是否启用
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([key])
-  @@index([category])
-  @@map("points_config")
+enum ChapterType {
+  TEXT
+  LINK
+  POST
 }
 
-enum PointsCategory {
-  REWARD    // 积分奖励
-  COST      // 积分消耗
-}
+model postcard_templates {
+  id              String   @id @default(cuid())
+  creatorId       String?
+  name            String?
+  description     String?
+  price           Int      @default(0)
+  salesCount      Int      @default(0)
+  config          Json?    // Stores layout config, default fonts, colors, etc.
+  bgUrl           String?  // official template background if any
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  creator         users?   @relation(fields: [creatorId], references: [id])
+  
+  user_postcards           user_postcards[]
+  user_postcard_collection user_postcard_collection[]
 
-// ==================== 后台管理系统相关模型 ====================
-
-// 管理员表
-model Admin {
-  id          String    @id @default(cuid())
-  username    String    @unique
-  email       String    @unique
-  password    String    // bcrypt 加密
-  role        AdminRole @default(ADMIN)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  lastLoginAt DateTime?
-  isActive    Boolean   @default(true)
-  logs        AdminLog[]
-
-  @@index([email])
-  @@index([username])
-  @@index([isActive])
-  @@map("admins")
-}
-
-enum AdminRole {
-  SUPER_ADMIN // 超级管理员，所有权限
-  ADMIN       // 普通管理员，大部分权限
-  VIEWER      // 只读权限
-}
-
-// 管理员操作日志
-model AdminLog {
-  id         String   @id @default(cuid())
-  adminId    String
-  action     String   // 'CREATE', 'UPDATE', 'DELETE'
-  resource   String   // 'Player', 'Character', 'WorkstationConfig'
-  resourceId String?
-  details    Json?    // 详细信息
-  ipAddress  String?
-  userAgent  String?
-  createdAt  DateTime @default(now())
-  admin      Admin    @relation(fields: [adminId], references: [id], onDelete: Cascade)
-
-  @@index([adminId, createdAt])
-  @@index([resource, createdAt])
-  @@index([action])
-  @@map("admin_logs")
-}
-
-// 角色形象表
-model Character {
-  id              String                @id @default(cuid())
-  name            String                @unique // 例如 'hangli', 'Premade_Character_48x48_01'
-  displayName     String                // 显示名称，例如 '寒黎', '角色01'
-  description     String?               // 描述
-  imageUrl        String                // 图片存储路径
-  frameWidth      Int                   @default(48)
-  frameHeight     Int                   @default(48)
-  totalFrames     Int                   @default(8)
-  isCompactFormat Boolean               @default(false) // 是否为紧凑格式（2行4列）
-  price           Int                   @default(0) // 积分价格，0表示免费
-  isDefault       Boolean               @default(false) // 是否为默认角色
-  isActive        Boolean               @default(true) // 是否启用
-  isUserGenerated Boolean               @default(false) // 是否为用户上传
-  creatorId       String?               // 创建者ID（用户上传的角色）
-  salesCount      Int                   @default(0) // 销售数量
-  sortOrder       Int                   @default(0) // 排序顺序
-  createdAt       DateTime              @default(now())
-  updatedAt       DateTime              @updatedAt
-
-  // 关联关系
-  creator         User?                 @relation("CreatedCharacters", fields: [creatorId], references: [id], onDelete: SetNull)
-  purchases       CharacterPurchase[]
-  logs            CharacterLog[]
-
-  @@index([isActive, sortOrder])
-  @@index([price])
-  @@index([createdAt])
-  @@index([isDefault])
-  @@index([isUserGenerated])
   @@index([creatorId])
-  @@map("characters")
+  @@index([price])
+  @@index([isActive])
 }
 
-// 角色形象购买记录（为形象商店准备）
-model CharacterPurchase {
-  id          String    @id @default(cuid())
-  userId      String
-  characterId String
-  price       Int       // 购买时的价格
-  purchasedAt DateTime  @default(now())
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, characterId]) // 同一角色只能购买一次
-  @@index([userId])
-  @@index([characterId])
-  @@index([purchasedAt])
-  @@map("character_purchases")
-}
-
-// 角色形象修改日志
-model CharacterLog {
-  id          String   @id @default(cuid())
-  characterId String
-  adminId     String   // 修改者（管理员ID）
-  action      String   // 'UPDATE'
-  changes     Json     // 修改内容，如 { "price": { "from": 100, "to": 200 } }
-  ipAddress   String?
-  userAgent   String?
-  createdAt   DateTime @default(now())
-  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
-
-  @@index([characterId, createdAt])
-  @@index([adminId])
-  @@map("character_logs")
-}
-
-// 工位配置表
-model WorkstationConfig {
-  id                 String   @id @default(cuid())
-  totalWorkstations  Int      @default(1000) // 总工位数
-  bindingCost        Int      @default(10) // 绑定工位消耗积分
-  renewalCost        Int      @default(5) // 续期工位消耗积分
-  unbindingRefund    Int      @default(5) // 解绑退还积分
-  teleportCost       Int      @default(2) // 传送消耗积分
-  defaultDuration    Int      @default(24) // 默认绑定时长（小时）
-  maxBindingsPerUser Int      @default(1) // 每个用户最多绑定工位数
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-  updatedBy          String?  // 更新者ID（管理员）
-
-  @@map("workstation_config")
-}
-
-// 积分历史记录
-model PointsHistory {
-  id          String   @id @default(cuid())
-  userId      String
-  amount      Int      // 变动金额 (+2, -50)
-  reason      String   // 原因 ("发布帖子", "绑定工位")
-  type        String   // "EARN" (赚取), "SPEND" (消费)
-  balance     Int      // 变动后的余额
-  createdAt   DateTime @default(now())
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+model user_postcards {
+  id         String   @id @default(cuid())
+  userId     String   @unique
+  name       String?  // The name written on the card
+  content    String?  // The message on the back
+  logoUrl    String?
+  bgUrl      String?
+  templateId String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  user       users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  template   postcard_templates? @relation(fields: [templateId], references: [id])
 
   @@index([userId])
-  @@index([createdAt])
-  @@map("points_history")
+}
+
+model postcard_exchanges {
+  id         String   @id @default(cuid())
+  senderId   String
+  receiverId String
+  status     String   @default("PENDING") // PENDING, ACCEPTED, REJECTED
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  sender     users    @relation("sent_exchanges", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver   users    @relation("received_exchanges", fields: [receiverId], references: [id], onDelete: Cascade)
+  notifications notifications[]
+
+  @@index([senderId, receiverId])
+  @@index([status])
+}
+
+model user_postcard_collection {
+  id              String   @id @default(cuid())
+  userId          String
+  postcardOwnerId String
+  name            String?  // Snapshot of card name
+  content         String?  // Snapshot of card message
+  logoUrl         String?
+  bgUrl           String?
+  templateId      String?
+  receivedAt      DateTime @default(now())
+  user            users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  owner           users    @relation("collection_owner", fields: [postcardOwnerId], references: [id], onDelete: Cascade)
+  template        postcard_templates? @relation(fields: [templateId], references: [id])
+
+  @@index([userId])
+  @@index([postcardOwnerId])
 }

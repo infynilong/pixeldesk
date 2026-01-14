@@ -11,7 +11,7 @@ async function main() {
   console.log('🔧 开始修复角色格式配置...')
 
   // 更新所有角色为紧凑格式
-  const result = await prisma.character.updateMany({
+  const result = await prisma.characters.updateMany({
     where: {
       // 更新所有角色
     },
@@ -20,13 +20,14 @@ async function main() {
       totalFrames: 8,
       frameWidth: 48,
       frameHeight: 48,
+      updatedAt: new Date(),
     },
   })
 
   console.log(`✅ 已更新 ${result.count} 个角色配置`)
 
   // 验证更新结果
-  const characters = await prisma.character.findMany({
+  const characters = await prisma.characters.findMany({
     select: {
       name: true,
       isCompactFormat: true,

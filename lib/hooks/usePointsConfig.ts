@@ -1,12 +1,11 @@
 /**
  * 积分配置 Hook
  * 用于在应用中获取和管理积分配置
+ *
+ * ✨ 优化版本：使用全局 ConfigStore，避免重复 API 调用
  */
 import { useState, useEffect } from 'react'
-
-interface PointsConfigMap {
-  [key: string]: number
-}
+import { configStore, type PointsConfigMap } from '../stores/ConfigStore'
 
 interface UsePointsConfigReturn {
   config: PointsConfigMap
@@ -28,45 +27,45 @@ export function usePointsConfig(): UsePointsConfigReturn {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const loadConfig = async () => {
-    setIsLoading(true)
-    setError(null)
-
-    try {
-      const response = await fetch('/api/points-config')
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-
-      const data = await response.json()
-
-      if (data.success && data.data) {
-        setConfig(data.data)
-        console.log('✅ 积分配置已加载:', data.data)
-      } else {
-        throw new Error(data.error || 'Failed to load points config')
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
-      console.error('❌ 加载积分配置失败:', errorMessage)
-      setError(errorMessage)
-
-      // 使用默认配置
-      setConfig({
-        reply_post_reward: 1,
-        create_blog_reward: 5,
-        create_post_reward: 2,
-        bind_workstation_cost: 10,
-        teleport_workstation_cost: 3
-      })
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
   useEffect(() => {
+    let isMounted = true
+
+    // 从全局存储加载配置（只会调用一次 API）
+    const loadConfig = async () => {
+      try {
+        setIsLoading(true)
+        setError(null)
+
+        const configData = await configStore.getPointsConfig()
+
+        if (isMounted) {
+          setConfig(configData)
+          setIsLoading(false)
+        }
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+        console.error('❌ 加载积分配置失败:', errorMessage)
+
+        if (isMounted) {
+          setError(errorMessage)
+          setIsLoading(false)
+        }
+      }
+    }
+
     loadConfig()
+
+    // 订阅配置更新
+    const unsubscribe = configStore.subscribePointsConfig((newConfig) => {
+      if (isMounted) {
+        setConfig(newConfig)
+      }
+    })
+
+    return () => {
+      isMounted = false
+      unsubscribe()
+    }
   }, [])
 
   const getConfig = (key: string): number => {
@@ -74,7 +73,17 @@ export function usePointsConfig(): UsePointsConfigReturn {
   }
 
   const refresh = async () => {
-    await loadConfig()
+    try {
+      setIsLoading(true)
+      setError(null)
+      const configData = await configStore.refreshPointsConfig()
+      setConfig(configData)
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+      setError(errorMessage)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return {
@@ -94,19 +103,9 @@ export function usePointsConfig(): UsePointsConfigReturn {
  */
 export async function fetchPointsConfig(key: string): Promise<number> {
   try {
-    const response = await fetch(`/api/points-config?key=${key}`)
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
-    }
-
-    const data = await response.json()
-
-    if (data.success && data.data) {
-      return data.data.value
-    }
-
-    throw new Error(data.error || 'Failed to load config')
+    // 使用全局存储，避免重复 API 调用
+    const config = await configStore.getPointsConfig()
+    return config[key] || 0
   } catch (error) {
     console.error(`获取积分配置失败 (${key}):`, error)
 
@@ -122,3 +121,6 @@ export async function fetchPointsConfig(key: string): Promise<number> {
     return defaults[key] || 0
   }
 }
+
+// 导出类型
+export type { PointsConfigMap }

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import prisma from '@/lib/prisma'
+import prisma from '@/lib/db'
 
 /**
  * 公开的角色列表 API
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
 
     // 查询数据
     const [characters, total] = await Promise.all([
-      prisma.character.findMany({
+      prisma.characters.findMany({
         where,
         orderBy: { sortOrder: 'asc' },
         skip: (page - 1) * pageSize,
@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
           sortOrder: true,
         },
       }),
-      prisma.character.count({ where }),
+      prisma.characters.count({ where }),
     ])
 
     return NextResponse.json({

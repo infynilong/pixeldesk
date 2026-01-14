@@ -6,6 +6,7 @@ export interface SocialUser {
   isOnline?: boolean
   lastSeen?: string | null
   points?: number
+  workstationId?: number | null
 }
 
 export interface Post {
@@ -14,12 +15,15 @@ export interface Post {
   content: string
   type: 'TEXT' | 'IMAGE' | 'MIXED' | 'MARKDOWN'
   imageUrl?: string | null
+  imageUrls?: string[]
   isPublic: boolean
   likeCount: number
   replyCount: number
   viewCount: number
+  promotionCount: number
   createdAt: string
   updatedAt: string
+  nodeId?: string | null
   author: SocialUser
   isLiked?: boolean
   replies?: PostReply[]
@@ -58,6 +62,8 @@ export interface CreatePostData {
   content: string
   type?: 'TEXT' | 'IMAGE' | 'MIXED' | 'MARKDOWN'
   imageUrl?: string
+  imageUrls?: string[]
+  nodeId?: string
   // 博客相关字段
   summary?: string
   wordCount?: number

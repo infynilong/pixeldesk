@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import prisma from '@/lib/prisma'
+import prisma from '@/lib/db'
 import { verifyToken } from '@/lib/auth'
 import { writeFile, mkdir } from 'fs/promises'
 import { join } from 'path'
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 验证会话是否仍然活跃
-    const activeSession = await prisma.userSession.findFirst({
+    const activeSession = await prisma.user_sessions.findFirst({
       where: {
         userId: payload.userId,
         token: token,
@@ -133,8 +133,9 @@ export async function POST(request: NextRequest) {
     const characterName = `user_${payload.userId}_${timestamp}`
 
     // 创建角色记录
-    const character = await prisma.character.create({
+    const character = await prisma.characters.create({
       data: {
+        id: crypto.randomUUID(),
         name: characterName,
         displayName: displayName.trim(),
         description: description?.trim() || null,
@@ -149,7 +150,8 @@ export async function POST(request: NextRequest) {
         isUserGenerated: true,
         creatorId: payload.userId,
         salesCount: 0,
-        sortOrder: 999 // 用户生成的角色排在后面
+        sortOrder: 999, // 用户生成的角色排在后面
+        updatedAt: new Date()
       }
     })
 

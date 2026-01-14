@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs'
-import prisma from '@/lib/prisma'
-import { Admin, AdminRole } from '@prisma/client'
+import { prisma } from '@/lib/db'
+import { admins, AdminRole } from '@prisma/client'
 
 /**
  * 验证管理员密码
@@ -8,8 +8,8 @@ import { Admin, AdminRole } from '@prisma/client'
 export async function verifyAdminPassword(
   username: string,
   password: string
-): Promise<Admin | null> {
-  const admin = await prisma.admin.findUnique({
+): Promise<admins | null> {
+  const admin = await prisma.admins.findUnique({
     where: { username },
   })
 
@@ -23,7 +23,7 @@ export async function verifyAdminPassword(
   }
 
   // 更新最后登录时间
-  await prisma.admin.update({
+  await prisma.admins.update({
     where: { id: admin.id },
     data: { lastLoginAt: new Date() },
   })
@@ -39,15 +39,17 @@ export async function createAdmin(data: {
   email: string
   password: string
   role?: AdminRole
-}): Promise<Admin> {
+}): Promise<admins> {
   const hashedPassword = await bcrypt.hash(data.password, 10)
 
-  return prisma.admin.create({
+  return prisma.admins.create({
     data: {
+      id: crypto.randomUUID(),
       username: data.username,
       email: data.email,
       password: hashedPassword,
       role: data.role || 'ADMIN',
+      updatedAt: new Date()
     },
   })
 }
@@ -58,10 +60,10 @@ export async function createAdmin(data: {
 export async function changeAdminPassword(
   adminId: string,
   newPassword: string
-): Promise<Admin> {
+): Promise<admins> {
   const hashedPassword = await bcrypt.hash(newPassword, 10)
 
-  return prisma.admin.update({
+  return prisma.admins.update({
     where: { id: adminId },
     data: { password: hashedPassword },
   })
@@ -71,7 +73,7 @@ export async function changeAdminPassword(
  * 获取管理员信息（不包含密码）
  */
 export async function getAdminById(id: string) {
-  return prisma.admin.findUnique({
+  return prisma.admins.findUnique({
     where: { id },
     select: {
       id: true,

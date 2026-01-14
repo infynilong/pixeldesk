@@ -6,8 +6,8 @@ import { Player } from '../entities/Player.js';
 
 // ===== 性能优化配置 =====
 const PERFORMANCE_CONFIG = {
-    // 禁用控制台日志以大幅减少CPU消耗
-    ENABLE_DEBUG_LOGGING: false,
+    // 临时启用日志用于调试工位角色显示问题
+    ENABLE_DEBUG_LOGGING: true,
     // 关键错误和警告仍然显示
     ENABLE_ERROR_LOGGING: true
 }
@@ -45,6 +45,13 @@ export class WorkstationManager {
             minMoveDistance: 50,       // 最小移动距离才触发更新
             debounceDelay: 500         // 防抖延迟(毫秒)
         };
+
+        // 轮询配置
+        this.pollingTimer = null;
+        this.pollingInterval = 30000; // 默认30秒轮询一次，平衡实时性与性能
+
+        // 并发控制
+        this.syncPromise = null;
     }
 
     // 通用的场景有效性检查方法
@@ -63,8 +70,8 @@ export class WorkstationManager {
 
     // ===== 工位创建和管理 =====
     createWorkstation(tiledObject, sprite) {
-        // 检测工位方向
-        const direction = this.detectWorkstationDirection(tiledObject.name || tiledObject.type || '');
+        // 检测工位方向 (传入对象和精灵以进行多维度判断)
+        const direction = this.detectWorkstationDirection(tiledObject, sprite);
 
         const workstation = {
             id: tiledObject.id,
@@ -99,23 +106,28 @@ export class WorkstationManager {
         return metadata;
     }
 
-    detectWorkstationDirection(name) {
-        // 根据名称检测工位方向
-        if (!name) return 'single'; // 默认为单人桌
-
+    detectWorkstationDirection(tiledObject, sprite) {
+        // 1. 优先从 Tiled 对象的名称或类型检测
+        const name = tiledObject.name || tiledObject.type || '';
         const lowerName = name.toLowerCase();
 
-        if (lowerName.includes('_right')) {
-            return 'right';
-        } else if (lowerName.includes('_left')) {
-            return 'left';
-        } else if (lowerName.includes('single_desk') || lowerName === 'single_desk') {
-            return 'single';
-        } else if (lowerName.includes('center')) {
-            return 'center';
+        if (lowerName.includes('_right')) return 'right';
+        if (lowerName.includes('_left')) return 'left';
+        if (lowerName.includes('_up')) return 'up';
+        if (lowerName.includes('center')) return 'center';
+        if (lowerName.includes('single')) return 'single';
+
+        // 2. 其次从贴图 Key 检测 (更可靠的后备方案)
+        if (sprite && sprite.texture) {
+            const textureKey = sprite.texture.key.toLowerCase();
+            if (textureKey.includes('_right')) return 'right';
+            if (textureKey.includes('_left')) return 'left';
+            if (textureKey.includes('_up')) return 'up';
         }
 
-        // 默认根据宽度判断
+        // 3. 默认根据宽度推断：宽度大于高度通常是并排桌子
+        if (tiledObject.width > tiledObject.height * 1.5) return 'center';
+
         return 'single';
     }
 
@@ -143,6 +155,17 @@ export class WorkstationManager {
         if (workstation) {
             debugLog(`Clicked workstation ${workstationId}:`, workstation);
             debugLog(`User bound: ${this.getUserByWorkstation(workstationId) || 'None'}`);
+
+            // 检查是否是书架
+            if (workstation.sprite && workstation.sprite.texture.key.includes("bookcase")) {
+                debugLog(`📚 点击书架 ${workstationId}，触发图书馆弹窗`);
+                window.dispatchEvent(new CustomEvent('open-library', {
+                    detail: {
+                        bookcaseId: workstationId
+                    }
+                }));
+                return; // 书架不执行后续工位逻辑
+            }
 
             this.highlightWorkstation(workstationId);
 
@@ -176,10 +199,20 @@ export class WorkstationManager {
 
     onWorkstationHover(workstationId) {
         this.scene.events.emit('workstation-hover', { workstationId });
+
+        // Mobile Controls: Show Action Button
+        if (this.scene.mobileControls) {
+            this.scene.mobileControls.showActionButton();
+        }
     }
 
     onWorkstationOut(workstationId) {
         this.scene.events.emit('workstation-out', { workstationId });
+
+        // Mobile Controls: Hide Action Button
+        if (this.scene.mobileControls) {
+            this.scene.mobileControls.hideActionButton();
+        }
     }
 
     highlightWorkstation(workstationId, duration = null) {
@@ -418,11 +451,26 @@ export class WorkstationManager {
     }
 
     getWorkstationByUser(userId) {
-        for (const [workstationId, boundUserId] of this.userBindings) {
-            if (boundUserId === userId) {
-                return this.workstations.get(workstationId);
+        if (!userId) return null;
+
+        for (const [wsId, boundUserId] of this.userBindings) {
+            if (String(boundUserId) === String(userId)) {
+                // 🔧 修复类型转换：尝试字符串和数字两种 key
+                const ws = this.workstations.get(wsId) ||
+                    this.workstations.get(Number(wsId)) ||
+                    this.workstations.get(String(wsId));
+
+                if (ws) return ws;
             }
         }
+
+        // 如果上面没找到，遍历所有工位对象看看
+        for (const workstation of this.workstations.values()) {
+            if (String(workstation.userId) === String(userId)) {
+                return workstation;
+            }
+        }
+
         return null;
     }
 
@@ -563,27 +611,40 @@ export class WorkstationManager {
     }
 
     async syncWorkstationBindings() {
-        // 完全禁用缓存系统，每次都重新获取最新数据
-        debugLog('🔄 使用无缓存的工位同步方法');
-
-        try {
-            // 每次都重新获取所有绑定数据，不使用任何缓存
-            const allBindings = await this.loadAllWorkstationBindings();
-            debugLog(`📦 收到 ${allBindings.length} 个工位绑定:`, allBindings.map(b => ({
-                workstationId: b.workstationId,
-                userId: b.userId,
-                userName: b.user?.name
-            })));
-
-            // 直接应用绑定，完全不使用缓存
-            this.applyBindingsDirectly(allBindings);
-
-            debugLog('✅ 工位同步完成（无缓存）');
-            return;
-        } catch (error) {
-            console.error('❌ 工位同步失败:', error);
-            throw error;
+        // 如果正在同步，返回现有的 Promise，避免并发重复请求
+        if (this.syncPromise) {
+            // debugLog('⏳ [WorkstationManager] 正在同步中，复用现有的请求');
+            return this.syncPromise;
         }
+
+        // 创建新的同步 Promise
+        this.syncPromise = (async () => {
+            // 完全禁用缓存系统，每次都重新获取最新数据
+            debugLog('🔄 使用无缓存的工位同步方法');
+
+            try {
+                // 每次都重新获取所有绑定数据，不使用任何缓存
+                const allBindings = await this.loadAllWorkstationBindings();
+                debugLog(`📦 收到 ${allBindings.length} 个工位绑定:`, allBindings.map(b => ({
+                    workstationId: b.workstationId,
+                    userId: b.userId,
+                    userName: b.user?.name
+                })));
+
+                // 直接应用绑定，完全不使用缓存
+                this.applyBindingsDirectly(allBindings);
+
+                debugLog('✅ 工位同步完成（无缓存）');
+                return true;
+            } catch (error) {
+                console.error('❌ 工位同步失败:', error);
+                throw error;
+            } finally {
+                this.syncPromise = null;
+            }
+        })();
+
+        return this.syncPromise;
     }
 
     // 直接应用绑定数据，不使用缓存
@@ -593,27 +654,35 @@ export class WorkstationManager {
         // 创建绑定映射表
         const bindingsMap = new Map();
         bindings.forEach(binding => {
-            bindingsMap.set(parseInt(binding.workstationId), binding);
+            // 同时保存字符串和数字形式的 key，确保兼容性
+            bindingsMap.set(String(binding.workstationId), binding);
+            bindingsMap.set(Number(binding.workstationId), binding);
         });
 
-        // 清理所有工位的绑定状态
+        // 清理所有已有的用户绑定映射并重新填充
+        this.userBindings.clear();
         this.workstations.forEach((workstation, workstationId) => {
-            const binding = bindingsMap.get(workstationId);
+            // 🔧 修复：使用多种 key 类型尝试获取
+            const binding = bindingsMap.get(workstationId) ||
+                bindingsMap.get(String(workstationId)) ||
+                bindingsMap.get(Number(workstationId));
 
             if (binding) {
-                debugLog(`✅ [applyBindingsDirectly] 应用工位 ${workstationId} 绑定:`, {
-                    userId: binding.userId,
-                    userName: binding.user?.name
-                });
-
+                console.log(`✅ [Sync] 映射用户 ${binding.userId} -> 工位 ${workstationId}`);
                 // 应用绑定状态
                 workstation.isOccupied = true;
                 workstation.userId = binding.userId;
+
+                // 将绑定存入映射表以便后续查询
+                this.userBindings.set(String(workstationId), String(binding.userId));
                 workstation.userInfo = {
-                    name: binding.user?.name,
-                    avatar: binding.user?.avatar,
-                    points: binding.user?.points,
-                    characterSprite: binding.user?.player?.characterSprite // 添加角色精灵字段
+                    name: binding.users?.name || binding.user?.name,
+                    avatar: binding.users?.avatar || binding.user?.avatar,
+                    points: binding.users?.points || binding.user?.points,
+                    // 修复：API返回的players是对象(不是数组),直接访问characterSprite
+                    characterSprite: binding.users?.players?.characterSprite || binding.user?.player?.characterSprite || binding.user?.avatar,
+                    // 传递用户当前状态
+                    currentStatus: binding.users?.current_status || binding.user?.current_status || binding.users?.currentStatus || binding.user?.currentStatus
                 };
                 workstation.boundAt = binding.boundAt;
 
@@ -631,8 +700,8 @@ export class WorkstationManager {
                 // 添加用户工位高亮
                 this.addUserWorkstationHighlight(workstation);
 
-                // 添加角色显示
-                this.addCharacterToWorkstation(workstation, binding.userId, workstation.userInfo);
+                // 添加角色显示和状态图标（统一由 updateWorkstationStatusIcon 处理逻辑）
+                this.updateWorkstationStatusIcon(workstation, workstation.userInfo?.currentStatus);
             } else {
                 // 确保工位显示为未绑定状态
                 if (workstation.isOccupied) {
@@ -667,7 +736,56 @@ export class WorkstationManager {
         // 触发刷新完成事件
         this.scene.events.emit('workstation-status-refreshed');
 
+        // 如果轮询未启动，则在手动刷新后启动它
+        if (!this.pollingTimer) {
+            this.startStatusPolling();
+        }
+
         return { success: true, message: '工位状态已刷新' };
+    }
+
+    // ===== 轮询同步逻辑 (定时检查 B 用户动作) =====
+
+    /**
+     * 启动状态轮询
+     * @param {number} interval 轮询间隔(ms)
+     */
+    startStatusPolling(interval = 30000) {
+        if (this.pollingTimer) this.stopStatusPolling();
+
+        this.pollingInterval = interval;
+
+        // 首次尝试同步
+        this.syncWorkstationBindings().catch(err => debugWarn('初始同步失败:', err));
+
+        this.pollingTimer = setInterval(() => {
+            // 性能规划：
+            // 1. 检查页面可见性 (Page Visibility API) - 最小化后台请求
+            // 2. 检查场景有效性 - 避免在场景销毁后继续请求
+            if (document.visibilityState === 'visible' && this.isSceneValid()) {
+                debugLog('🕒 定时轮询：同步远程工位数据...');
+                this.syncWorkstationBindings().catch(err => {
+                    debugWarn('轮询同步失败:', err);
+                    // 如果连续失败多次，可以考虑增加间隔（退避策略）
+                });
+            } else if (document.visibilityState !== 'visible') {
+                // 如果用户切到其他标签页，可以暂时跳过，或者在这里降低频率
+                // debugLog('💤 页面不可见，跳过此轮同步以节省资源');
+            }
+        }, this.pollingInterval);
+
+        debugLog(`🚀 工位状态轮询已启动，频率: ${this.pollingInterval / 1000}s/次`);
+    }
+
+    /**
+     * 停止状态轮询
+     */
+    stopStatusPolling() {
+        if (this.pollingTimer) {
+            clearInterval(this.pollingTimer);
+            this.pollingTimer = null;
+            debugLog('🛑 工位状态轮询已停止');
+        }
     }
 
     // 完全删除localStorage缓存功能，避免缓存导致的数据不一致问题
@@ -955,12 +1073,20 @@ export class WorkstationManager {
             isCurrentUser: currentUser && workstation.userId === currentUser.id
         });
 
+        // 🟢 新增：检查用户状态是否为"下班"
+        // 优先检查：如果是下班状态，不显示角色，而是显示"Closed"标识
+        // 这必须在检查"当前用户"之前执行，确保用户自己登录后也能看到自己的打烊牌子
+        if (userInfo && userInfo.currentStatus && userInfo.currentStatus.type === 'off_work') {
+            debugLog(`👤 [addCharacterToWorkstation] 用户 ${userId} 处于下班状态，不显示角色，显示 Closed 标识`);
+            this.addClosedSign(workstation);
+            return;
+        }
+
         // 如果是当前用户的工位，不显示角色（因为玩家自己已经在屏幕上显示了）
         if (currentUser && workstation.userId === currentUser.id) {
             debugLog(`👤 [addCharacterToWorkstation] 工位 ${workstation.id} 是当前用户 ${currentUser.id} 的工位，不显示角色（避免视觉重复）`);
             return;
         }
-
 
         // 根据工位方向计算角色位置
         const { x: charX, y: charY, direction: characterDirection } = this.calculateCharacterPosition(workstation);
@@ -1008,15 +1134,30 @@ export class WorkstationManager {
                 return;
             }
 
-            // 如果图片还没加载，先加载
+            // 如果图片还没加载，使用按需加载逻辑
             if (!this.scene.textures.exists(characterKey)) {
-                debugLog(`📥 [addCharacterToWorkstation] 加载角色纹理: ${characterKey}`);
-                this.scene.load.image(characterKey, `/assets/characters/${characterKey}.png`);
-                this.scene.load.once(`complete`, () => {
-                    debugLog(`✅ [addCharacterToWorkstation] 纹理加载完成: ${characterKey}`);
-                    this.createCharacterSprite(workstation, charX, charY, characterKey, userId, characterDirection);
-                });
-                this.scene.load.start();
+                debugLog(`📥 [addCharacterToWorkstation] 开始按需加载角色纹理: ${characterKey}`);
+
+                // 优先使用 Start.js 提供的按需加载方法
+                if (typeof this.scene.ensureCharacterTexture === 'function') {
+                    this.scene.ensureCharacterTexture(characterKey).then(success => {
+                        if (success && this.isSceneValid()) {
+                            this.createCharacterSprite(workstation, charX, charY, characterKey, userId, characterDirection);
+                        } else if (this.isSceneValid()) {
+                            debugWarn(`⚠️ [addCharacterToWorkstation] 按需加载失败，使用默认角色: ${characterKey}`);
+                            this.createCharacterSprite(workstation, charX, charY, 'Premade_Character_48x48_01', userId, characterDirection);
+                        }
+                    });
+                } else {
+                    // 回退方案：传统加载
+                    this.scene.load.spritesheet(characterKey, `/assets/characters/${characterKey}.png`, {
+                        frameWidth: 48, frameHeight: 48
+                    });
+                    this.scene.load.once(`filecomplete-spritesheet-${characterKey}`, () => {
+                        if (this.isSceneValid()) this.createCharacterSprite(workstation, charX, charY, characterKey, userId, characterDirection);
+                    });
+                    this.scene.load.start();
+                }
             } else {
                 debugLog(`✅ [addCharacterToWorkstation] 纹理已存在: ${characterKey}`);
                 this.createCharacterSprite(workstation, charX, charY, characterKey, userId, characterDirection);
@@ -1049,16 +1190,20 @@ export class WorkstationManager {
         }
 
         // 创建真正的Player实例（其他玩家）
+        const currentStatus = workstation.userInfo?.currentStatus || {
+            type: 'working',
+            status: '工作中',
+            emoji: '💼',
+            message: '正在工作中...',
+            timestamp: new Date().toISOString()
+        };
+
+        // 创建主玩家的playerData
         const playerData = {
             id: userId,
             name: workstation.userInfo?.name || workstation.userInfo?.username || `玩家${userId.slice(-4)}`,
-            currentStatus: {
-                type: 'working',
-                status: '工作中',
-                emoji: '💼',
-                message: '正在工作中...',
-                timestamp: new Date().toISOString()
-            }
+            isWorkstationPlayer: true,
+            currentStatus: currentStatus
         };
 
         debugLog(`👤 [createCharacterSprite] 创建Player实例，数据:`, playerData);
@@ -1088,6 +1233,16 @@ export class WorkstationManager {
             if (typeof character.setDirectionFrame === 'function') {
                 character.setDirectionFrame(characterDirection);
                 debugLog(`🧭 [createCharacterSprite] 角色朝向设置完成: ${characterDirection}`);
+
+                // 验证设置是否生效
+                debugLog(`🔍 [createCharacterSprite] 验证帧设置:`, {
+                    targetDirection: characterDirection,
+                    currentDirection: character.currentDirection,
+                    headFrame: character.headSprite?.frame?.name,
+                    bodyFrame: character.bodySprite?.frame?.name,
+                    headTexture: character.headSprite?.texture?.key,
+                    bodyTexture: character.bodySprite?.texture?.key
+                });
             } else {
                 debugWarn(`⚠️ [createCharacterSprite] character.setDirectionFrame 不是一个函数`);
             }
@@ -1100,55 +1255,22 @@ export class WorkstationManager {
             character.setDepth(1000); // 在工位上方
             debugLog(`🔍 [createCharacterSprite] 角色深度设置完成: 1000`);
 
-            // 添加点击事件
-            try {
-                character.setInteractive(new Phaser.Geom.Rectangle(-20, -30, 40, 60), Phaser.Geom.Rectangle.Contains);
-                character.on('pointerdown', () => {
-                    this.onCharacterClick(userId, workstation);
-                });
-                debugLog(`🔧 [createCharacterSprite] 角色交互设置完成`);
-            } catch (interactiveError) {
-                debugWarn(`⚠️ [createCharacterSprite] 设置交互失败:`, interactiveError);
-            }
-
-            // 添加悬停效果
-            try {
-                character.on('pointerover', () => {
-                    character.setScale(0.88); // 稍微放大
-                    if (this.scene && this.scene.input) {
-                        this.scene.input.setDefaultCursor('pointer');
-                    }
-                });
-
-                character.on('pointerout', () => {
-                    character.setScale(0.8); // 恢复原大小
-                    if (this.scene && this.scene.input) {
-                        this.scene.input.setDefaultCursor('default');
-                    }
-                });
-                debugLog(`🔧 [createCharacterSprite] 角色悬停效果设置完成`);
-            } catch (hoverError) {
-                debugWarn(`⚠️ [createCharacterSprite] 设置悬停效果失败:`, hoverError);
-            }
+            // 设置可交互
+            character.setInteractive(new Phaser.Geom.Rectangle(-20, -30, 40, 60), Phaser.Geom.Rectangle.Contains);
+            character.on('pointerdown', () => {
+                this.onCharacterClick(userId, workstation);
+            });
 
             // 添加到场景
-            try {
-                this.scene.add.existing(character);
-                debugLog(`🎬 [createCharacterSprite] 角色已添加到场景`);
+            this.scene.add.existing(character);
 
-                // 验证角色是否正确添加到场景
-                const sceneChildren = this.scene.children.list;
-                const isInScene = sceneChildren.includes(character);
-                debugLog(`🔍 [createCharacterSprite] 角色在场景中验证:`, {
-                    isInScene,
-                    sceneChildrenCount: sceneChildren.length,
-                    characterInList: isInScene,
-                    characterPosition: { x: character.x, y: character.y },
-                    characterVisible: character.visible
-                });
-            } catch (addError) {
-                console.error(`❌ [createCharacterSprite] 添加角色到场景失败:`, addError);
-                return; // 如果添加失败，直接返回
+            // 加入物理组（关键：用于碰撞检测）
+            if (this.scene.otherPlayersGroup) {
+                this.scene.otherPlayersGroup.add(character);
+                // 确保碰撞器已创建
+                if (typeof this.scene.ensurePlayerCharacterOverlap === 'function') {
+                    this.scene.ensurePlayerCharacterOverlap();
+                }
             }
 
             // 保存引用
@@ -1156,24 +1278,10 @@ export class WorkstationManager {
             workstation.characterKey = characterKey;
             workstation.characterDirection = characterDirection;
 
-            debugLog(`✅ [createCharacterSprite] 工位 ${workstation.id} 角色创建完成:`, {
-                characterKey,
-                position: { x, y },
-                direction: characterDirection,
-                workstationHasCharacterSprite: !!workstation.characterSprite,
-                characterSpriteId: workstation.characterSprite?.playerData?.id,
-                finalCharacterVisible: character.visible,
-                finalCharacterActive: character.active
-            });
+            debugLog(`✅ [createCharacterSprite] 工位 ${workstation.id} 角色创建完成`);
 
         } catch (error) {
-            console.error(`❌ [createCharacterSprite] 工位 ${workstation.id} 角色创建失败:`, {
-                error: error.message,
-                stack: error.stack,
-                characterKey,
-                position: { x, y },
-                playerData
-            });
+            console.error(`❌ [createCharacterSprite] 工位 ${workstation.id} 角色创建失败:`, error);
         }
     }
 
@@ -1209,22 +1317,7 @@ export class WorkstationManager {
         }
     }
 
-    // 根据工位方向获取角色朝向（角色应该面向工位）
-    getCharacterDirectionFromWorkstation(workstation) {
-        switch (workstation.direction) {
-            case 'right':
-                return 'left';  // 右侧工位，角色面向左（面向工位）
-            case 'left':
-                return 'right'; // 左侧工位，角色面向右（面向工位）
-            case 'center':
-                return 'down';  // 中间工位，角色面向下（面向工位）
-            case 'single':
-            default:
-                return 'down';  // 单人桌，角色面向下（面向工位）
-        }
-    }
-
-    // 根据工位方向计算角色位置（复制Start.js的逻辑）
+    // 根据工位方向计算角色位置
     calculateCharacterPosition(workstation) {
         const position = workstation.position;
         const size = workstation.size;
@@ -1235,20 +1328,27 @@ export class WorkstationManager {
         let characterX = position.x;
         let characterY = position.y;
         let characterDirection = 'down';
-
+        console.log('calculateCharacterPosition', workstation, direction)
         switch (direction) {
+            case 'left':
+                // 左侧朝向的桌子 -> 角色站在左边，面向右边
+                characterX = position.x - offsetX;
+                characterY = position.y - offsetY;
+                characterDirection = 'right';
+                break;
+
             case 'right':
-                // 右侧工位，角色放在工位右侧，面向左
+                // 右侧朝向的桌子 -> 角色站在右边，面向左边
                 characterX = position.x + size.width + offsetX;
                 characterY = position.y - offsetY;
                 characterDirection = 'left';
                 break;
 
-            case 'left':
-                // 左侧工位，角色放在工位左侧，面向右
-                characterX = position.x - offsetX;
-                characterY = position.y - offsetY;
-                characterDirection = 'right';
+            case 'up':
+                // 桌子在后，椅子在前 -> 角色站在桌子下方，面向桌子 (up)
+                characterX = position.x + (size.width / 2);
+                characterY = position.y + size.height - 45; // 向上偏移，使其坐入椅子中
+                characterDirection = 'up';
                 break;
 
             case 'single':
@@ -1288,30 +1388,11 @@ export class WorkstationManager {
         return { x: characterX, y: characterY, direction: characterDirection };
     }
 
-    // 设置角色方向帧（复制Player类的逻辑）
-    setCharacterDirectionFrame(headSprite, bodySprite, direction) {
-        switch (direction) {
-            case 'up':
-                headSprite.setFrame(1);
-                bodySprite.setFrame(57);
-                break;
-            case 'left':
-                headSprite.setFrame(2);
-                bodySprite.setFrame(58);
-                break;
-            case 'down':
-                headSprite.setFrame(3);
-                bodySprite.setFrame(59);
-                break;
-            case 'right':
-                headSprite.setFrame(0);
-                bodySprite.setFrame(56);
-                break;
-        }
-    }
-
     // ===== 交互图标管理 =====
     addInteractionIcon(workstation) {
+        // 用户要求去掉这个图标，直接返回
+        return;
+
         if (workstation.interactionIcon) {
             return; // 已有交互图标
         }
@@ -1384,6 +1465,255 @@ export class WorkstationManager {
             workstation.occupiedIcon.destroy();
             workstation.occupiedIcon = null;
         }
+        // 同时清理状态图标
+        this.removeStatusIcon(workstation);
+    }
+
+    // 🏷️ 新增：为工位添加/更新旋转的状态图标
+    updateWorkstationStatusIcon(workstation, statusData) {
+        if (!workstation || !workstation.sprite || !this.isSceneValid()) return;
+
+        console.log(`🏷️ [WorkstationManager] 更新工位 ${workstation.id} 的状态图标:`, statusData?.type);
+
+        // 如果已经有状态图标，先移除
+        this.removeStatusIcon(workstation);
+
+        // 🟢 修改：处理"下班" (off_work) 状态
+        if (statusData && statusData.type === 'off_work') {
+            console.log(`🏠 [WorkstationManager] 工位 ${workstation.id} 设置为下班状态`);
+            // 移除角色（如果存在）
+            this.removeCharacterFromWorkstation(workstation);
+            // 显示下班标识
+            this.addClosedSign(workstation);
+            // 移除普通状态图标
+            this.removeStatusIcon(workstation);
+            return;
+        } else {
+            // 如果不是下班状态，移除下班标识
+            this.removeClosedSign(workstation);
+            console.log(`💼 [WorkstationManager] 工位 ${workstation.id} 设置为活跃状态:`, statusData?.type || 'working');
+
+            // 确保角色显示（如果应该显示但没显示）
+            if (workstation.userId) {
+                // 注意：这里需要userInfo，我们假设workstation上的userInfo是最新的或者statusData包含足够信息
+                const userInfo = workstation.userInfo || {};
+                // 合并此状态更新
+                userInfo.currentStatus = statusData;
+                workstation.userInfo = userInfo; // 确保写回
+
+                if (!workstation.characterSprite) {
+                    console.log(`👤 [WorkstationManager] 工位 ${workstation.id} 尝试恢复角色显示`);
+                    this.addCharacterToWorkstation(workstation, workstation.userId, userInfo);
+                }
+            }
+        }
+
+        // 如果没有状态数据，则不创建图标
+        if (!statusData) return;
+
+        const emoji = statusData.emoji || '💼';
+
+        // 计算图标位置（桌面正上方）
+        const iconX = workstation.position.x + workstation.size.width / 2;
+        const iconY = workstation.position.y - 35; // 稍高一点
+
+        // 创建状态容器
+        const container = this.scene.add.container(iconX, iconY);
+        container.setDepth(2000);
+
+        // 1. 创建阴影（增加深度）
+        const shadow = this.scene.add.ellipse(0, 30, 20, 8, 0x000000, 0.3);
+
+        // 2. 创建发光光环 (Glow Aura)
+        const aura = this.scene.add.graphics();
+        aura.lineStyle(2, 0x00FFFF, 0.6);
+        aura.strokeCircle(0, 0, 22);
+
+        // 为光环增加点缀
+        for (let i = 0; i < 4; i++) {
+            const dot = this.scene.add.circle(Math.cos(i * Math.PI / 2) * 22, Math.sin(i * Math.PI / 2) * 22, 2, 0x00FFFF, 0.8);
+            container.add(dot);
+            // 点缀旋转动画
+            this.scene.tweens.add({
+                targets: dot,
+                alpha: 0.2,
+                duration: 800,
+                yoyo: true,
+                repeat: -1,
+                delay: i * 200
+            });
+        }
+
+        // 3. 创建磨砂玻璃底座
+        const base = this.scene.add.circle(0, 0, 18, 0xffffff, 0.15);
+        base.setStrokeStyle(1.5, 0xffffff, 0.3);
+
+        // 4. Emoji 文本
+        const text = this.scene.add.text(0, 0, emoji, {
+            fontSize: '26px',
+            fontFamily: 'Arial'
+        });
+        text.setOrigin(0.5, 0.5);
+
+        container.add([shadow, aura, base, text]);
+        workstation.statusIcon = container;
+
+        // --- 豪华动画组合 ---
+
+        // A. 悬浮动画 (Floating)
+        this.scene.tweens.add({
+            targets: container,
+            y: iconY - 12,
+            duration: 2000,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+
+        // B. 阴影同步缩放
+        this.scene.tweens.add({
+            targets: shadow,
+            scaleX: 0.7,
+            scaleY: 0.7,
+            alpha: 0.1,
+            duration: 2000,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+
+        // C. 光环持续旋转 (Rotation)
+        this.scene.tweens.add({
+            targets: aura,
+            angle: 360,
+            duration: 5000,
+            repeat: -1
+        });
+
+        // D. 整体轻微晃动
+        this.scene.tweens.add({
+            targets: container,
+            angle: 8,
+            duration: 2500,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+
+        // E. 底座脉冲发光
+        this.scene.tweens.add({
+            targets: base,
+            scale: 1.1,
+            alpha: 0.25,
+            duration: 1200,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Cubic.easeInOut'
+        });
+    }
+
+    removeStatusIcon(workstation) {
+        if (workstation.statusIcon) {
+            workstation.statusIcon.destroy();
+            workstation.statusIcon = null;
+        }
+    }
+
+    // ===== Closed 标识管理 =====
+    addClosedSign(workstation) {
+        if (workstation.closedSign) return; // 已有标识
+
+        if (!this.isSceneValid()) return;
+
+        // 计算显示位置（桌面正中心上方）
+        const iconX = workstation.position.x + workstation.size.width / 2;
+        const iconY = workstation.position.y - 45; // 提高一点，避免遮挡
+
+        // 创建容器
+        const container = this.scene.add.container(iconX, iconY);
+        container.setDepth(2000); // 确保在最上层
+
+        // 1. 绘制挂绳 (Graphics)
+        const ropes = this.scene.add.graphics();
+        ropes.lineStyle(2, 0x8B4513, 1); // 深褐色绳子
+        // 左绳
+        ropes.beginPath();
+        ropes.moveTo(-15, 0);
+        ropes.lineTo(0, -15);
+        ropes.strokePath();
+        // 右绳
+        ropes.beginPath();
+        ropes.moveTo(15, 0);
+        ropes.lineTo(0, -15);
+        ropes.strokePath();
+
+        // 挂点（钉子）
+        const nail = this.scene.add.circle(0, -15, 3, 0x555555);
+
+        // 2. 绘制木牌背景 (Graphics)
+        const board = this.scene.add.graphics();
+
+        // 木板主体 (深色木纹)
+        board.fillStyle(0x8B4513, 1); // SaddleBrown
+        board.fillRoundedRect(-25, 0, 50, 30, 4);
+
+        // 木板边框 (更深色)
+        board.lineStyle(2, 0x5D4037, 1);
+        board.strokeRoundedRect(-25, 0, 50, 30, 4);
+
+        // 木板纹理 (简单的线条)
+        board.lineStyle(1, 0xA0522D, 0.5); // Sienna
+        board.beginPath();
+        board.moveTo(-20, 10);
+        board.lineTo(20, 10);
+        board.moveTo(-15, 20);
+        board.lineTo(25, 20);
+        board.strokePath();
+
+        // 3. 绘制文字
+        const text = this.scene.add.text(0, 15, '打烊', {
+            fontSize: '16px',
+            fontFamily: '"Press Start 2P", monospace', // 尝试使用像素字体
+            fill: '#FFF8DC', // Cornsilk
+            stroke: '#000000',
+            strokeThickness: 3,
+            align: 'center'
+        });
+        text.setOrigin(0.5, 0.5);
+
+        // 将所有元素添加到容器
+        container.add([ropes, nail, board, text]);
+
+        workstation.closedSign = container;
+
+        // 4. 添加悬浮动画
+        this.scene.tweens.add({
+            targets: container,
+            y: iconY - 5,
+            duration: 2000,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+
+        // 5. 添加轻微摇晃动画 (像是风吹过)
+        this.scene.tweens.add({
+            targets: container,
+            angle: 2,
+            duration: 3000,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut',
+            delay: Math.random() * 1000 // 随机延迟，让多个牌子不同步
+        });
+    }
+
+    removeClosedSign(workstation) {
+        if (workstation.closedSign) {
+            this.scene.tweens.killTweensOf(workstation.closedSign);
+            workstation.closedSign.destroy();
+            workstation.closedSign = null;
+        }
     }
 
     // ===== 快速回到工位功能 =====
@@ -1419,16 +1749,23 @@ export class WorkstationManager {
         // 计算传送位置（工位前方）
         const teleportPosition = this.calculateTeleportPosition(workstation);
 
-        // 从配置获取传送所需积分
+        // 从全局配置获取传送所需积分（优先使用预加载的配置，避免API调用）
         let teleportCost = 3; // 默认值
         try {
-            console.log('🟢 [teleportToWorkstation] 获取传送积分配置...');
-            const configResponse = await fetch('/api/points-config?key=teleport_workstation_cost');
-            if (configResponse.ok) {
-                const configData = await configResponse.json();
-                if (configData.success && configData.data) {
-                    teleportCost = configData.data.value;
-                    console.log('🟢 [teleportToWorkstation] 传送费用:', teleportCost);
+            // 优先从全局预加载的配置中获取
+            if (typeof window !== 'undefined' && window.pointsConfig) {
+                teleportCost = window.pointsConfig.teleport_workstation_cost || 3;
+                console.log('🟢 [teleportToWorkstation] 从缓存获取传送费用:', teleportCost);
+            } else {
+                // 如果没有预加载，才调用 API
+                console.log('🟢 [teleportToWorkstation] 获取传送积分配置...');
+                const configResponse = await fetch('/api/points-config?key=teleport_workstation_cost');
+                if (configResponse.ok) {
+                    const configData = await configResponse.json();
+                    if (configData.success && configData.data) {
+                        teleportCost = configData.data.value;
+                        console.log('🟢 [teleportToWorkstation] 传送费用:', teleportCost);
+                    }
                 }
             }
         } catch (error) {
@@ -1651,22 +1988,30 @@ export class WorkstationManager {
     applyBindingToWorkstation(workstation, binding) {
         debugLog(`🎯 [applyBindingToWorkstation] 开始应用工位 ${workstation.id} 的绑定:`, {
             userId: binding.userId,
-            userName: binding.user?.name,
+            userName: binding.users?.name || binding.user?.name,
             remainingDays: binding.remainingDays,
             isExpiringSoon: binding.isExpiringSoon,
             workstationSprite: !!workstation.sprite,
             currentlyOccupied: workstation.isOccupied,
-            hasCharacterSprite: !!workstation.characterSprite
+            hasCharacterSprite: !!workstation.characterSprite,
+            // 调试：显示API返回的数据结构
+            apiDataStructure: {
+                hasUsers: !!binding.users,
+                hasUser: !!binding.user,
+                usersPlayers: binding.users?.players,
+                characterSpriteFromAPI: binding.users?.players?.characterSprite
+            }
         });
 
         // 应用绑定状态（不调用完整的绑定方法，避免API调用）
         workstation.isOccupied = true;
         workstation.userId = binding.userId;
         workstation.userInfo = {
-            name: binding.user?.name,
-            avatar: binding.user?.avatar,
-            points: binding.user?.points,
-            characterSprite: binding.user?.player?.characterSprite // 添加角色精灵字段
+            name: binding.users?.name || binding.user?.name,
+            avatar: binding.users?.avatar || binding.user?.avatar,
+            points: binding.users?.points || binding.user?.points,
+            // 修复：API返回的players是对象(不是数组),直接访问characterSprite
+            characterSprite: binding.users?.players?.characterSprite || binding.user?.player?.characterSprite || binding.user?.avatar
         };
         workstation.boundAt = binding.boundAt;
         workstation.expiresAt = binding.expiresAt;
@@ -1731,6 +2076,8 @@ export class WorkstationManager {
     invalidateWorkstationBinding() { /* 已禁用 */ }
 
     destroy() {
+        // 停止轮询
+        this.stopStatusPolling();
         // 清理视口优化相关资源
         this.disableViewportOptimization();
         // 清理所有事件监听器和交互图标
