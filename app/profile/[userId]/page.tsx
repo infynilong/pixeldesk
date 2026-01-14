@@ -24,29 +24,7 @@ interface UserProfile {
   workstationId?: number | null
 }
 
-interface Post {
-  id: string
-  title: string | null
-  content: string
-  type: 'TEXT' | 'IMAGE' | 'MIXED' | 'MARKDOWN'
-  createdAt: string
-  updatedAt: string
-  isPublic: boolean
-  likeCount: number
-  replyCount: number
-  viewCount: number
-  isLiked: boolean
-  tags?: string[]
-  summary?: string | null
-  coverImage?: string | null
-  readTime?: number
-  author: {
-    id: string
-    name: string
-    avatar: string | null
-  }
-  promotionCount: number
-}
+import { Post } from '@/types/social'
 
 interface WorkstationAd {
   workstationId: number

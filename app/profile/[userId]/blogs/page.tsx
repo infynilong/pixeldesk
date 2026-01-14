@@ -7,37 +7,7 @@ import PostListItem from '@/components/PostListItem'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import UserAvatar from '@/components/UserAvatar'
 
-interface Post {
-  id: string
-  title: string | null
-  content: string
-  type: 'TEXT' | 'IMAGE' | 'MIXED' | 'MARKDOWN'
-  createdAt: string
-  updatedAt: string
-  isPublic: boolean
-  likeCount: number
-  replyCount: number
-  viewCount: number
-  isLiked: boolean
-  tags?: string[]
-  summary?: string | null
-  coverImage?: string | null
-  readTime?: number
-  author: {
-    id: string
-    name: string
-    avatar: string | null
-  }
-}
-
-interface Pagination {
-  page: number
-  limit: number
-  totalCount: number
-  totalPages: number
-  hasNextPage: boolean
-  hasPrevPage: boolean
-}
+import { Post, PostsPagination as Pagination } from '@/types/social'
 
 export default function UserBlogsPage() {
   const params = useParams()
@@ -241,11 +211,10 @@ export default function UserBlogsPage() {
                           key={pageNum}
                           onClick={() => handlePageChange(pageNum)}
                           disabled={isLoading}
-                          className={`cursor-pointer w-10 h-10 rounded-lg font-medium transition-all ${
-                            currentPage === pageNum
-                              ? 'bg-gradient-to-r from-cyan-600 to-teal-600 text-white'
-                              : 'bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700'
-                          }`}
+                          className={`cursor-pointer w-10 h-10 rounded-lg font-medium transition-all ${currentPage === pageNum
+                            ? 'bg-gradient-to-r from-cyan-600 to-teal-600 text-white'
+                            : 'bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700'
+                            }`}
                         >
                           {pageNum}
                         </button>

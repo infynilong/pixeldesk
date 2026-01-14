@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  # 1. Next.js 应用
+  app:
+    build: .
+    restart: always
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - NEXTAUTH_URL=https://pixel.infyniclick.com
+    depends_on:
+      - db
+      - redis
+
+  # 2. 数据库
+  db:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      - POSTGRES_DB=pixeldesk
+      - POSTGRES_USER=pixel_user
+      - POSTGRES_PASSWORD=${PG_PASSWORD}
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+
+  # 3. 缓存
+  redis:
+    image: redis:7-alpine
+    restart: always
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - ./data/redis:/data
+
+  # 4. 反向代理 (Nginx)
+  nginx:
+    image: nginx:alpine
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+      - /etc/letsencrypt:/etc/nginx/ssl  # 重要：将宿主机的证书映射到容器内
+    depends_on:
+      - app
+
+volumes:
+  pgdata:
+  redisdata:
