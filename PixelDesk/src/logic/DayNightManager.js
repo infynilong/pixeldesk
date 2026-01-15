@@ -14,7 +14,7 @@ export class DayNightManager {
 
         // 默认配置：20:00-6:00 为夜晚
         this.config = {
-            nightStart: config.nightStart || 20,  // 夜晚开始时间（小时）
+            nightStart: config.nightStart || 18,  // 夜晚开始时间（小时）
             nightEnd: config.nightEnd || 6,       // 夜晚结束时间（小时）
             transitionDuration: config.transitionDuration || 2000, // 过渡动画时长（毫秒）
             checkInterval: config.checkInterval || 60000, // 检查间隔（毫秒），默认1分钟
