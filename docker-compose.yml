@@ -11,6 +11,9 @@ services:
       - JWT_SECRET=${JWT_SECRET}
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
       - NEXTAUTH_URL=https://pixel.infyniclick.com
+      - ADMIN_USERNAME=${ADMIN_USERNAME}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - ADMIN_EMAIL=${ADMIN_EMAIL}
     depends_on:
       - db
       - redis
