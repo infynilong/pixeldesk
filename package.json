@@ -14,7 +14,7 @@
     "prisma": "prisma"
   },
   "prisma": {
-    "seed": "ts-node --compiler-options '{\"module\":\"commonjs\"}' prisma/seed-admin.ts"
+    "seed": "ts-node -O \"{\\\"module\\\":\\\"commonjs\\\"}\" prisma/seed-admin.ts"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
