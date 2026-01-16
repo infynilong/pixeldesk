@@ -86,7 +86,15 @@ export default function PostDetailClient({ initialPost, billboardPromotionCost }
 
   const [isPromoting, setIsPromoting] = useState(false)
   const [showPromoteModal, setShowPromoteModal] = useState(false)
+  const [searchInput, setSearchInput] = useState('')
   const { t } = useTranslation()
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (searchInput.trim()) {
+      router.push(`/posts/search?q=${encodeURIComponent(searchInput.trim())}`)
+    }
+  }
 
   // 处理点赞
   const handleLike = async () => {
@@ -268,12 +276,35 @@ export default function PostDetailClient({ initialPost, billboardPromotionCost }
       {/* 导航栏 */}
       <nav className={`sticky top-0 z-50 backdrop-blur-md border-b transition-colors duration-500 ${theme === 'dark' ? 'bg-gray-900/80 border-gray-800' : 'bg-white/80 border-gray-200'}`}>
         <div className="max-w-7xl mx-auto px-4 py-2">
-          <div className="flex items-center justify-between">
-            <button onClick={() => router.push('/')} className="flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer">
+          <div className="flex items-center justify-between gap-4">
+            <button onClick={() => router.push('/')} className="flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer shrink-0">
               {isBrandLoading ? <div className="w-8 h-8 bg-gray-700 rounded-lg animate-pulse"></div> : <img src={brandConfig.app_logo} alt={brandConfig.app_name} className="w-8 h-8 rounded-lg object-cover" />}
-              <span className={`font-bold text-base transition-colors ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>{isBrandLoading ? '加载中...' : brandConfig.app_name}</span>
+              <span className={`font-bold text-base transition-colors hidden md:block ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>{isBrandLoading ? '加载中...' : brandConfig.app_name}</span>
             </button>
-            <div className="flex items-center space-x-2">
+
+            {/* Header Search Bar */}
+            <form onSubmit={handleSearch} className="flex-1 max-w-xl relative group">
+              <input
+                type="text"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                placeholder={t.social.blog_search_placeholder}
+                className={`w-full h-9 pl-10 pr-4 rounded-xl border transition-all text-xs outline-none ${theme === 'dark'
+                  ? 'bg-gray-800/50 border-gray-700 text-white focus:bg-gray-800 focus:border-cyan-500/50'
+                  : 'bg-slate-100 border-slate-200 text-slate-900 focus:bg-white focus:border-cyan-300'
+                  }`}
+              />
+              <svg
+                className={`absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 transition-colors ${theme === 'dark' ? 'text-gray-500 group-focus-within:text-cyan-400' : 'text-slate-400 group-focus-within:text-cyan-500'}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </form>
+
+            <div className="flex items-center space-x-2 shrink-0">
               <button
                 onClick={toggleTheme}
                 className={`p-1.5 rounded-lg border transition-all ${theme === 'dark'

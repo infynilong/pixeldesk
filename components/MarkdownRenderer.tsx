@@ -2,6 +2,7 @@
 
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import remarkBreaks from 'remark-breaks'
 import rehypeHighlight from 'rehype-highlight'
 import rehypeRaw from 'rehype-raw'
 // Don't import CSS here if it conflicts, but usually github-dark is okay as a baseline
@@ -17,7 +18,7 @@ export default function MarkdownRenderer({ content, className = '' }: MarkdownRe
   return (
     <div className={`markdown-content max-w-none ${className}`}>
       <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
+        remarkPlugins={[remarkGfm, remarkBreaks]}
         rehypePlugins={[rehypeHighlight, rehypeRaw]}
         components={{
           // 自定义组件样式

@@ -65,11 +65,13 @@ export async function POST(request: NextRequest) {
         const bytes = await file.arrayBuffer()
         const buffer = Buffer.from(bytes)
 
-        // 生成唯一文件名
+        // 生成唯一文件名: 用户ID-时间戳-随机数.后缀
         const timestamp = Date.now()
-        const random = Math.floor(Math.random() * 1000)
-        const ext = file.name.split('.').pop() || 'png'
-        const fileName = `${timestamp}-${random}.${ext}`
+        const random = Math.floor(Math.random() * 100000)
+        const ext = file.name.split('.').pop()?.toLowerCase() || 'png'
+        // 只允许基本的后缀名
+        const safeExt = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext) ? ext : 'png'
+        const fileName = `${userId}-${timestamp}-${random}.${safeExt}`
 
         // 确保目录存在
         const uploadDir = join(process.cwd(), 'public', 'uploads', 'assets', folder)

@@ -120,8 +120,55 @@ export default function BlogEditor({ blog, userId, onSaved, onPublished }: BlogE
 
   // 生成摘要
   const generateSummary = (text: string): string => {
-    const plainText = text.replace(/[#*`_\[\]()]/g, '').trim()
-    return plainText.length > 200 ? plainText.substring(0, 200) + '...' : plainText
+    if (!text) return ''
+
+    // 1. 移除图片 ![alt](url)
+    let plainText = text.replace(/!\[.*?\]\(.*?\)/g, '')
+
+    // 2. 移除链接 [text](url) -> text
+    plainText = plainText.replace(/\[(.*?)\]\(.*?\)/g, '$1')
+
+    // 3. 移除标题标记 #
+    plainText = plainText.replace(/#{1,6}\s/g, '')
+
+    // 4. 移除列表标记 * - + 1.
+    plainText = plainText.replace(/^[\s]*[-*+]\s+/gm, '')
+    plainText = plainText.replace(/^[\s]*\d+\.\s+/gm, '')
+
+    // 5. 移除粗体、斜体、删除线、行内代码、引用
+    plainText = plainText.replace(/[*_~`>]/g, '')
+
+    // 6. 移除 HTML 标签
+    plainText = plainText.replace(/<[^>]*>?/gm, '')
+
+    // 7. 处理换行符和多余空格
+    plainText = plainText.replace(/\s+/g, ' ').trim()
+
+    return plainText.length > 150 ? plainText.substring(0, 150) + '...' : plainText
+  }
+
+  // 删除文章
+  const handleDelete = async () => {
+    if (!blog?.id) return
+
+    const confirmation = confirm(t.editor.confirm_delete)
+    if (!confirmation) return
+
+    try {
+      const response = await fetch(`/api/posts/${blog.id}?userId=${userId}`, {
+        method: 'DELETE'
+      })
+
+      if (response.ok) {
+        localStorage.removeItem(`blog_draft_${userId}`)
+        router.push('/posts')
+      } else {
+        const data = await response.json()
+        throw new Error(data.error || '删除失败')
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '删除失败')
+    }
   }
 
   // 保存草稿或更新
@@ -148,7 +195,9 @@ export default function BlogEditor({ blog, userId, onSaved, onPublished }: BlogE
             readTime: calculateReadTime(content),
             tags,
             coverImage: coverImage || null,
-            imageUrls
+            imageUrls,
+            type: 'MARKDOWN',
+            isDraft: true
           })
         })
 
@@ -187,6 +236,8 @@ export default function BlogEditor({ blog, userId, onSaved, onPublished }: BlogE
           setHasUnsavedChanges(false)
           setLastSaved(new Date())
           onSaved?.()
+          // ⚠️ 关键：创建成功后跳转到编辑页，防止重复创建
+          router.push(`/posts/${data.data.id}/edit`)
         } else {
           throw new Error(data.error || '保存失败')
         }
@@ -228,6 +279,7 @@ export default function BlogEditor({ blog, userId, onSaved, onPublished }: BlogE
             tags,
             coverImage: coverImage || null,
             imageUrls,
+            type: 'MARKDOWN',
             isDraft: false,
             publishedAt: blog.isDraft ? new Date().toISOString() : undefined
           })
@@ -277,6 +329,8 @@ export default function BlogEditor({ blog, userId, onSaved, onPublished }: BlogE
           localStorage.removeItem(`blog_draft_${userId}`)
           setHasUnsavedChanges(false)
           onPublished?.(data.data.id)
+          // ⚠️ 关键：创建成功后跳转到编辑页，防止未来重复创建
+          router.push(`/posts/${data.data.id}/edit`)
         } else {
           throw new Error(data.error || '发布失败')
         }
@@ -325,19 +379,28 @@ export default function BlogEditor({ blog, userId, onSaved, onPublished }: BlogE
 
       {renderPortal(
         <div className="flex items-center gap-2">
+          {isEditMode && (
+            <button
+              onClick={handleDelete}
+              disabled={isSavingDraft || isPublishing}
+              className="px-3 py-1.5 bg-red-900/20 hover:bg-red-900/40 text-red-400 hover:text-red-300 rounded-md text-[11px] font-bold transition-all border border-red-500/20 mr-2"
+            >
+              {t.common.delete}
+            </button>
+          )}
           <button
             onClick={handleSaveDraft}
-            disabled={isSavingDraft || isPublishing || !hasUnsavedChanges}
+            disabled={isSavingDraft || isPublishing || (!hasUnsavedChanges && blog?.isDraft)}
             className="px-3 py-1.5 bg-gray-800/50 hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed text-white rounded-md text-[11px] font-bold transition-all border border-white/5"
           >
-            {isSavingDraft ? '正在保存...' : '保存草稿'}
+            {isSavingDraft ? '正在保存...' : (blog?.isDraft === false ? t.editor.unpublish_post : t.common.draft)}
           </button>
           <button
             onClick={handlePublish}
             disabled={isPublishing || isSavingDraft}
             className="px-4 py-1.5 bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 disabled:opacity-30 disabled:cursor-not-allowed text-white font-bold rounded-md text-[11px] transition-all shadow-lg shadow-cyan-500/10"
           >
-            {isPublishing ? '发布中...' : blog?.isDraft === false ? '更新发布' : '立即发布'}
+            {isPublishing ? '发布中...' : (blog?.isDraft === false ? '更新发布' : '立即发布')}
           </button>
         </div>,
         'editor-actions-portal'
@@ -390,6 +453,11 @@ export default function BlogEditor({ blog, userId, onSaved, onPublished }: BlogE
           <ClassicMarkdownEditor
             value={content}
             onChange={setContent}
+            onImageUpload={(url) => {
+              if (!imageUrls.includes(url)) {
+                setImageUrls(prev => [...prev, url])
+              }
+            }}
             height={650}
             placeholder="# 开始创作...\n\n支持 Markdown 语法"
           />

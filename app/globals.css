@@ -49,10 +49,8 @@
 
 /* 全局样式 */
 html {
-  height: 100%;
-  overflow: hidden;
-  position: fixed;
-  width: 100%;
+  min-height: 100%;
+  overflow-y: auto;
 }
 
 body {
@@ -63,12 +61,10 @@ body {
   color: var(--retro-text);
   line-height: 1.4;
   transition: background-color 0.3s ease, color 0.3s ease;
-  height: 100%;
-  overflow: hidden;
-  position: fixed;
-  width: 100%;
-  overscroll-behavior: none;
-  touch-action: manipulation;
+  min-height: 100%;
+  overflow-x: hidden;
+  overscroll-behavior: auto;
+  touch-action: auto;
 }
 
 /* 浅色主题样式覆盖 */
@@ -806,12 +802,10 @@ canvas {
 /*   }
 /* }
 
-.animate-pixel-glow {
-  
-}
+/* .animate-pixel-glow placeholder */
 
 /* 像素化悬停效果 */
-.pixel-hover {}
+/* .pixel-hover placeholder */
 
 .pixel-hover:hover {
   transform: translateY(-2px) scale(1.02);
@@ -907,7 +901,7 @@ canvas {
 }
 
 /* Responsive layout transitions */
-.layout-transition {}
+/* .layout-transition placeholder */
 
 /* Responsive game area adjustments */
 @media (max-width: 640px) {

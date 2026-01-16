@@ -105,27 +105,6 @@ export default function EditBlogPage() {
     )
   }
 
-  // 加载中或重定向错误
-  if (isLoading || error) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 flex flex-col items-center justify-center p-4">
-        {error ? (
-          <div className="bg-red-900/20 border border-red-800/50 rounded-xl p-8 max-w-md text-center shadow-2xl animate-shake">
-            <div className="w-16 h-16 bg-red-600/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-500/30">
-              <svg className="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <p className="text-red-200 font-bold mb-4">{error}</p>
-            <button onClick={() => router.push('/')} className="text-sm text-gray-400 hover:text-white underline">返回首页</button>
-          </div>
-        ) : (
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500"></div>
-        )}
-      </div>
-    )
-  }
-
   // 构建 SocialUser 对象
   const socialUser: SocialUser = {
     id: user.id,
@@ -161,6 +140,11 @@ export default function EditBlogPage() {
 
               {/* Portal for Editor Title */}
               <div id="editor-title-portal" className="flex items-center"></div>
+
+              <div className="h-6 w-px bg-gray-800 hidden lg:block"></div>
+
+              {/* Portal for Blog Stats */}
+              <div id="editor-stats-portal" className="hidden lg:flex items-center"></div>
             </div>
 
             {/* 右侧 - 按钮组合 + 用户信息 */}
@@ -205,9 +189,31 @@ export default function EditBlogPage() {
           onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
         />
 
-        {/* 右侧 - 博客编辑器 */}
+        {/* 右侧 - 博客编辑器或加载状态 */}
         <div className="flex-1 overflow-hidden">
-          {selectedBlog && (
+          {isLoading ? (
+            <div className="h-full flex flex-col items-center justify-center p-4">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500 mb-4"></div>
+              <p className="text-gray-500 text-sm font-pixel animate-pulse">正在获取文章内容...</p>
+            </div>
+          ) : error ? (
+            <div className="h-full flex flex-col items-center justify-center p-4">
+              <div className="bg-red-900/20 border border-red-800/50 rounded-xl p-8 max-w-md text-center shadow-2xl">
+                <div className="w-16 h-16 bg-red-600/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-500/30">
+                  <svg className="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <p className="text-red-200 font-bold mb-4">{error}</p>
+                <button
+                  onClick={() => router.push('/')}
+                  className="text-sm text-gray-400 hover:text-white underline cursor-pointer"
+                >
+                  返回首页
+                </button>
+              </div>
+            </div>
+          ) : selectedBlog && (
             <BlogEditor
               key={selectedBlog.id}
               blog={selectedBlog}

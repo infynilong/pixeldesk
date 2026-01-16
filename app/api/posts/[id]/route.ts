@@ -165,7 +165,7 @@ export async function PUT(
       data: {
         title: updateData.title,
         content: updateData.content,
-        type: updateData.type || 'TEXT',
+        type: updateData.type,
         imageUrl: updateData.imageUrl,
         imageUrls: updateData.imageUrls,
         summary: updateData.summary,
@@ -266,7 +266,7 @@ export async function PATCH(
       data: {
         title: updateData.title,
         content: updateData.content,
-        type: updateData.type || 'TEXT',
+        type: updateData.type,
         imageUrl: updateData.imageUrl,
         imageUrls: updateData.imageUrls,
         summary: updateData.summary,

@@ -187,6 +187,21 @@ export default function LayoutManager({
   const [layoutConfig] = useState<LayoutConfig>(DEFAULT_LAYOUT_CONFIG)
   const [activeTab, setActiveTab] = useState<'world' | 'workspace' | 'social'>('world')
 
+  // 锁定/解锁页面滚动 (保护工作区布局)
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    document.body.style.position = 'fixed'
+    document.body.style.width = '100%'
+    document.body.style.height = '100%'
+
+    return () => {
+      document.body.style.overflow = ''
+      document.body.style.position = ''
+      document.body.style.width = ''
+      document.body.style.height = ''
+    }
+  }, [])
+
   useEffect(() => {
     console.log('📱 [LayoutManager] State Update:', {
       deviceType: screenSize.deviceType,

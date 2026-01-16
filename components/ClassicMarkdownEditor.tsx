@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import remarkBreaks from 'remark-breaks'
 import rehypeRaw from 'rehype-raw'
 import rehypeHighlight from 'rehype-highlight'
 
@@ -11,6 +12,7 @@ import { useTranslation } from '@/lib/hooks/useTranslation'
 interface ClassicMarkdownEditorProps {
     value: string
     onChange: (value: string) => void
+    onImageUpload?: (url: string) => void
     placeholder?: string
     height?: number
 }
@@ -18,6 +20,7 @@ interface ClassicMarkdownEditorProps {
 export default function ClassicMarkdownEditor({
     value,
     onChange,
+    onImageUpload,
     placeholder = "开始创作...",
     height = 500
 }: ClassicMarkdownEditorProps) {
@@ -79,6 +82,7 @@ export default function ClassicMarkdownEditor({
 
             if (data.success) {
                 insertText(`\n![${file.name}](${data.url})\n`, '')
+                onImageUpload?.(data.url)
             } else {
                 setUploadError(data.error || (t.common.upload as any).err_failed)
             }
@@ -238,9 +242,16 @@ export default function ClassicMarkdownEditor({
                 {/* 预览 */}
                 {(viewMode === 'preview' || viewMode === 'split') && (
                     <div className="flex-1 bg-black/20 p-8 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 preview-container">
-                        <div className="prose prose-invert prose-sm max-w-none prose-pre:bg-white/5 prose-pre:border prose-pre:border-white/10 prose-img:rounded-xl">
+                        <div className="prose prose-invert prose-sm max-w-none 
+                            [&_p]:my-6 [&_p]:leading-7 
+                            [&_h1]:mt-8 [&_h1]:mb-4 
+                            [&_h2]:mt-6 [&_h2]:mb-4 
+                            [&_h3]:mt-6 [&_h3]:mb-2 
+                            [&_ul]:my-4 [&_ol]:my-4 [&_li]:my-1 
+                            [&_img]:rounded-xl [&_img]:my-4
+                            prose-pre:bg-white/5 prose-pre:border prose-pre:border-white/10">
                             <ReactMarkdown
-                                remarkPlugins={[remarkGfm]}
+                                remarkPlugins={[remarkGfm, remarkBreaks]}
                                 rehypePlugins={[rehypeRaw, rehypeHighlight]}
                             >
                                 {value || '*预览区域*'}

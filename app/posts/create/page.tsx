@@ -116,6 +116,11 @@ export default function BlogManagementPage() {
 
               {/* Portal for Editor Title */}
               <div id="editor-title-portal" className="flex items-center"></div>
+
+              <div className="h-6 w-px bg-gray-800 hidden lg:block"></div>
+
+              {/* Portal for Blog Stats */}
+              <div id="editor-stats-portal" className="hidden lg:flex items-center"></div>
             </div>
 
             {/* 右侧 - 按钮组合 + 用户信息 */}

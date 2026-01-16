@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { SocialUser, Post } from '@/types/social'
 import BlogUserProfile from './BlogUserProfile'
 
@@ -32,6 +33,18 @@ export default function BlogSidebar({
     hasNextPage: false,
     hasPrevPage: false
   })
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  const renderPortal = (content: React.ReactNode, id: string) => {
+    if (!mounted) return null
+    const el = document.getElementById(id)
+    if (!el) return null
+    return createPortal(content, el)
+  }
 
   // 加载博客列表
   const loadBlogs = async () => {
@@ -219,10 +232,26 @@ export default function BlogSidebar({
         </div>
       </div>
 
-      {/* 用户信息 */}
-      <div className="flex-shrink-0 border-b border-gray-800">
-        <BlogUserProfile user={user} stats={stats} />
-      </div>
+      {/* 顶部统计 - 通过 Portal 渲染 */}
+      {renderPortal(
+        <div className="flex items-center gap-4 px-4 py-1.5 bg-gray-800/40 rounded-full border border-white/5 backdrop-blur-sm">
+          <div className="flex flex-col items-center">
+            <span className="text-[9px] text-gray-500 font-bold uppercase tracking-tighter leading-none mb-1">全部总计</span>
+            <span className="text-xs font-black text-white leading-none">{stats.total}</span>
+          </div>
+          <div className="w-px h-4 bg-gray-700/50"></div>
+          <div className="flex flex-col items-center">
+            <span className="text-[9px] text-emerald-500/70 font-bold uppercase tracking-tighter leading-none mb-1">已发布</span>
+            <span className="text-xs font-black text-emerald-400 leading-none">{stats.published}</span>
+          </div>
+          <div className="w-px h-4 bg-gray-700/50"></div>
+          <div className="flex flex-col items-center">
+            <span className="text-[9px] text-amber-500/70 font-bold uppercase tracking-tighter leading-none mb-1">草稿</span>
+            <span className="text-xs font-black text-amber-400 leading-none">{stats.draft}</span>
+          </div>
+        </div>,
+        'editor-stats-portal'
+      )}
 
       {/* 博客列表 */}
       <div className="flex-1 overflow-y-auto">
@@ -260,22 +289,36 @@ export default function BlogSidebar({
                   : 'hover:bg-gray-800/50'
                   }`}
               >
-                <div className="flex items-start justify-between gap-2 mb-2">
-                  <h3 className="font-medium text-white text-sm line-clamp-1 flex-1">
-                    {blog.title || '无标题'}
-                  </h3>
-                  {blog.isDraft && (
-                    <span className="flex-shrink-0 px-2 py-0.5 bg-amber-500/20 text-amber-400 text-xs rounded">
-                      草稿
-                    </span>
+                <div className="flex gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2 mb-1.5">
+                      <h3 className="font-bold text-white text-sm line-clamp-1 flex-1">
+                        {blog.title || '无标题'}
+                      </h3>
+                      {blog.isDraft && (
+                        <span className="flex-shrink-0 px-1.5 py-0.5 bg-amber-500/10 text-amber-400 text-[10px] font-bold rounded border border-amber-500/20">
+                          草稿
+                        </span>
+                      )}
+                    </div>
+
+                    {blog.summary && (
+                      <p className="text-[11px] text-gray-500 line-clamp-2 mb-2 leading-relaxed">
+                        {blog.summary}
+                      </p>
+                    )}
+                  </div>
+
+                  {(blog.coverImage || (blog.imageUrls && blog.imageUrls.length > 0)) && (
+                    <div className="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border border-white/5 bg-gray-900">
+                      <img
+                        src={blog.coverImage || blog.imageUrls?.[0]}
+                        alt=""
+                        className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
+                      />
+                    </div>
                   )}
                 </div>
-
-                {blog.summary && (
-                  <p className="text-xs text-gray-400 line-clamp-2 mb-2">
-                    {blog.summary}
-                  </p>
-                )}
 
                 <div className="flex items-center justify-between text-xs text-gray-500">
                   <span>{formatDate(blog.updatedAt)}</span>
