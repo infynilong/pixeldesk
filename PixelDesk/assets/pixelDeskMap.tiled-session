@@ -1,8 +1,8 @@
 {
     "activeFile": "/Users/jiangyilong/project/PixelDesk/public/assets/officemap.json",
     "expandedProjectPaths": [
-        ".",
-        "templates"
+        "templates",
+        "."
     ],
     "file.lastUsedOpenFilter": "全部文件 (*)",
     "fileStates": {
@@ -42,11 +42,11 @@
             "expandedGroupLayers": [
                 11
             ],
-            "scale": 0.5,
-            "selectedLayer": 8,
+            "scale": 0.0553,
+            "selectedLayer": 13,
             "viewCenter": {
-                "x": 5063,
-                "y": -2546
+                "x": 12106.690777576852,
+                "y": -3453.8878842676313
             }
         },
         "/Users/jiangyilong/project/PixelDesk/public/assets/officemap.json#announcement_board_wire": {
@@ -91,7 +91,8 @@
             "scaleInDock": 0.25
         },
         "/Users/jiangyilong/project/PixelDesk/public/assets/officemap.json#pixel_cafe_building_512": {
-            "scaleInDock": 1
+            "scaleInDock": 1,
+            "scaleInEditor": 1
         },
         "/Users/jiangyilong/project/PixelDesk/public/assets/officemap.json#road": {
             "scaleInDock": 1
@@ -99,6 +100,10 @@
         "/Users/jiangyilong/project/PixelDesk/public/assets/officemap.json#room_floor_tileset": {
             "dynamicWrapping": false,
             "scaleInDock": 1
+        },
+        "/Users/jiangyilong/project/PixelDesk/public/assets/officemap.json#wook_building_512": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
         },
         "/Users/jiangyilong/project/PixelDesk/public/assets/officemap.tmx": {
             "scale": 0.015625,
@@ -198,7 +203,7 @@
             "scaleInDock": 0.33
         }
     },
-    "last.imagePath": "/Users/jiangyilong/project/PixelDesk/public/assets/desk",
+    "last.imagePath": "/Users/jiangyilong/project/PixelDesk/public/assets/building",
     "openFiles": [
         "/Users/jiangyilong/project/PixelDesk/public/assets/officemap.json"
     ],
@@ -213,7 +218,7 @@
     ],
     "tileset.embedInMap": true,
     "tileset.tileSize": {
-        "height": 322,
-        "width": 322
+        "height": 320,
+        "width": 463
     }
 }

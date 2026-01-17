@@ -91,19 +91,20 @@ export class DayNightManager {
         console.log('🌙 [DayNightManager] 进入夜晚模式')
         this.isNight = true
 
-        // 对 background 和 tree 层应用夜晚滤镜
-        const layersToProcess = ['background', 'tree']
+        // 对 background, tree 和 building 层应用夜晚滤镜
+        const layersToProcess = ['background', 'tree', 'building']
 
         layersToProcess.forEach(layerName => {
             if (this.layers[layerName]) {
+                const target = this.layers[layerName];
                 this.scene.tweens.add({
-                    targets: this.layers[layerName],
-                    alpha: this.config.nightAlpha,
+                    targets: target,
+                    alpha: target.type === 'TilemapLayer' ? this.config.nightAlpha : 1.0, // 瓦片层调整透明度，精灵层通常只调色
                     duration: this.config.transitionDuration,
                     ease: 'Sine.easeInOut',
                     onStart: () => {
                         // 设置夜晚色调
-                        this.layers[layerName].setTint(this.config.nightTint)
+                        if (target.setTint) target.setTint(this.config.nightTint)
                     }
                 })
                 console.log(`🌙 [DayNightManager] 对 ${layerName} 层应用夜晚效果`)
@@ -128,8 +129,8 @@ export class DayNightManager {
         console.log('☀️ [DayNightManager] 进入白天模式')
         this.isNight = false
 
-        // 恢复 background 和 tree 层到白天状态
-        const layersToProcess = ['background', 'tree']
+        // 恢复 background, tree 和 building 层到白天状态
+        const layersToProcess = ['background', 'tree', 'building']
 
         layersToProcess.forEach(layerName => {
             if (this.layers[layerName]) {
@@ -140,7 +141,9 @@ export class DayNightManager {
                     ease: 'Sine.easeInOut',
                     onStart: () => {
                         // 清除色调
-                        this.layers[layerName].clearTint()
+                        if (this.layers[layerName].clearTint) {
+                            this.layers[layerName].clearTint()
+                        }
                     }
                 })
                 console.log(`☀️ [DayNightManager] 恢复 ${layerName} 层到白天状态`)

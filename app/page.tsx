@@ -136,6 +136,10 @@ const WelcomeModal = dynamic(() => import('@/components/WelcomeModal'), {
   ssr: false
 })
 
+const BuildingRenovationModal = dynamic(() => import('@/components/BuildingRenovationModal'), {
+  ssr: false
+})
+
 export default function Home() {
   // 认证相关状态
   const { user, isLoading, playerExists, setPlayerExists } = useUser()
@@ -258,6 +262,12 @@ export default function Home() {
 
   // 工位状态更新弹窗状态
   const [showStatusPopup, setShowStatusPopup] = useState(false)
+
+  // 建筑装修提示弹窗状态
+  const [buildingRenovationModal, setBuildingRenovationModal] = useState({
+    isOpen: false,
+    name: ''
+  })
 
   // 排行榜弹窗状态
 
@@ -766,6 +776,16 @@ export default function Home() {
     window.addEventListener('my-workstation-collision-start', handleMyWorkstationCollision)
     window.addEventListener('my-workstation-collision-end', handleMyWorkstationCollisionEnd)
 
+    // 监听建筑装修提示事件
+    const handleBuildingRenovation = (e: any) => {
+      console.log('🏰 [Home] 收到建筑装修提示事件:', e.detail)
+      setBuildingRenovationModal({
+        isOpen: true,
+        name: e.detail.name || '建筑'
+      })
+    }
+    window.addEventListener('building-under-renovation', handleBuildingRenovation)
+
     return () => {
       window.removeEventListener('open-ai-chat', handleOpenAiChat as EventListener)
       window.removeEventListener('show-auth-modal', handleShowAuthModal as EventListener)
@@ -773,6 +793,7 @@ export default function Home() {
       window.removeEventListener('front-desk-collision-start', handleFrontDeskCollision as EventListener)
       window.removeEventListener('my-workstation-collision-start', handleMyWorkstationCollision)
       window.removeEventListener('my-workstation-collision-end', handleMyWorkstationCollisionEnd)
+      window.removeEventListener('building-under-renovation', handleBuildingRenovation)
     }
   }, [])
 
@@ -1363,6 +1384,13 @@ export default function Home() {
           setAuthModalMode('login')
           setShowAuthModal(true)
         }}
+      />
+
+      {/* 建筑装修提示弹窗 */}
+      <BuildingRenovationModal
+        isOpen={buildingRenovationModal.isOpen}
+        buildingName={buildingRenovationModal.name}
+        onClose={() => setBuildingRenovationModal({ ...buildingRenovationModal, isOpen: false })}
       />
     </div>
   )

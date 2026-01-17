@@ -70,6 +70,7 @@ export class Start extends Phaser.Scene {
     this.playerDeskCollider = null // 玩家与工位group的碰撞器
     this.otherPlayersGroup = null  // 其他玩家的物理group
     this.playerCharacterCollider = null // 玩家与角色group的碰撞器
+    this.buildingGroup = null // 🏰 建筑对象组 (用于昼夜系统统一调色)
 
     // 动态资源注册表 (按需加载)
     this.dynamicAssetRegistry = {
@@ -89,6 +90,7 @@ export class Start extends Phaser.Scene {
       "Bathroom_matong": "/assets/bathroom/Bathroom_matong.png",
       "Shadowless_glass_2": "/assets/bathroom/Shadowless_glass_2.webp",
       "Shadowless_glass": "/assets/bathroom/Shadowless_glass.png",
+      "Shadowless": "/assets/bathroom/Shadowless.webp",
 
       // 沙发
       "sofa-left-1": "/assets/sofa/sofa-left-1.png",
@@ -122,6 +124,7 @@ export class Start extends Phaser.Scene {
       "wall_decoration_4": "/assets/desk/Classroom_and_Library_Singles_48x48_39.png",
       "wall_decoration_5": "/assets/desk/Classroom_and_Library_Singles_48x48_36.png",
       "pixel_cafe_building": "/assets/building/pixel_cafe_building_512.png",
+      "wook_building": "/assets/building/wook_building_512.png",
       "cofe_desk_up": "/assets/desk/cofe_desk_up.png"
     };
 
@@ -535,6 +538,10 @@ export class Start extends Phaser.Scene {
       debugLog('✅ 玩家物理组已准备就绪')
 
       const map = this.createTilemap()
+
+      // 🏰 初始化建筑对象组（用于昼夜系统）
+      this.buildingGroup = this.add.group();
+
       this.mapLayers = this.createTilesetLayers(map)
       this.renderObjectLayer(map, "desk_objs")
 
@@ -1429,12 +1436,18 @@ export class Start extends Phaser.Scene {
 
     // 🏰 如果是建筑对象 (例如咖啡厅) - 优先判断 Type (Class)
     const isBuilding = obj.type === "building" || obj.name?.includes("building") ||
-      [5578, 5582].includes(obj.gid);
+      [5578, 5582, 5583].includes(obj.gid);
 
     if (isBuilding) {
       if (sprite) {
+        sprite.isBuilding = true; // 🏷️ 标记为建筑，用于碰撞回调识别
         console.log(`🏰 [Start] 为建筑添加物理碰撞 at (${obj.x}, ${obj.y}), Type: ${obj.type}`);
         this.addDeskCollision(sprite, obj);
+
+        // 🏰 将建筑加入统一管理组，以便昼夜系统应用滤镜
+        if (this.buildingGroup) {
+          this.buildingGroup.add(sprite);
+        }
       }
     }
 
@@ -1583,8 +1596,17 @@ export class Start extends Phaser.Scene {
         if (tsName.includes("announcement")) return "announcement_board_wire";
         if (tsName.includes("display")) return "front_wide_display";
         if (tsName.includes("cafe_building")) return "pixel_cafe_building";
+        if (tsName.includes("wook_building")) return "wook_building";
         if (tsName.includes("cofe_desk")) return "cofe_desk_up";
         if (tsName.includes("tall_bookcase")) return "bookcase_tall";
+        if (tsName.includes("hospital")) return "wall_decoration_1"; // 医院系列映射到装饰图
+        if (tsName.includes("bathroom")) {
+          if (gid % 5 === 0) return "Bathroom_matong";
+          if (gid % 5 === 1) return "Shadowless_washhand";
+          if (gid % 5 === 2 || gid % 5 === 4) return "Shadowless_glass_2";
+          if (gid % 5 === 3) return "Shadowless_glass";
+          return "Shadowless";
+        }
         // 可以根据需要添加更多 Tileset 映射
       }
     }
@@ -1606,7 +1628,11 @@ export class Start extends Phaser.Scene {
     if (gid === 58) return "door_mat"
     if (gid === 5569 || gid === 5576 || gid === 5580) return "announcement_board_wire"
     if (gid === 5570 || gid === 5577 || gid === 5581) return "front_wide_display"
-    if (gid === 5578 || gid === 5582) return "pixel_cafe_building"
+    if (gid === 5582) return "pixel_cafe_building"
+    if (gid === 5583) return "wook_building"
+    if (gid === 3815) return "Bathroom_matong"
+    if (gid === 3817) return "Shadowless_washhand"
+    if (gid === 3819) return "Shadowless_glass_2"
     if (gid === 118) return "cofe_desk_up"
     return null
   }
@@ -1847,6 +1873,21 @@ export class Start extends Phaser.Scene {
           }));
 
           console.log(`🏢 [碰撞触发] 显示前台交互提示: ${deskSprite.deskName} (${deskSprite.serviceScope})`);
+        }
+        // 🏰 检查是否是建筑
+        else if (deskSprite.isBuilding) {
+          // 防抖，防止频繁触发
+          if (this.lastBuildingTriggerTime && Date.now() - this.lastBuildingTriggerTime < 2000) {
+            return;
+          }
+          this.lastBuildingTriggerTime = Date.now();
+
+          console.log('🏰 [Start] 玩家撞到了建筑，触发提示');
+          window.dispatchEvent(new CustomEvent('building-under-renovation', {
+            detail: {
+              name: deskSprite.texture.key === 'wook_building' ? 'Wook Building' : 'Pixel Cafe'
+            }
+          }));
         }
       }
     )
@@ -3564,9 +3605,15 @@ export class Start extends Phaser.Scene {
       // TODO: 根据实际地图添加室内区域坐标
     ])
 
-    // 创建昼夜管理器（只对 background 图块层应用夜晚效果）
-    this.dayNightManager = new DayNightManager(this, this.mapLayers, {
-      nightStart: 18,  // 晚上8点开始
+    // 创建昼夜管理器（对 background, tree 图块层及 building 精灵层应用夜晚效果）
+    // 🔧 注入 pseudo-layer 'building'
+    const layersPlusBuildings = {
+      ...this.mapLayers,
+      building: this.buildingGroup
+    }
+
+    this.dayNightManager = new DayNightManager(this, layersPlusBuildings, {
+      nightStart: 18,  // 晚上6点开始
       nightEnd: 6,     // 早上6点结束
       transitionDuration: 2000, // 2秒过渡时间
       checkInterval: 60000, // 每分钟检查一次
