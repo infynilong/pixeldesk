@@ -86,8 +86,19 @@ pm2 restart all
     *   A: 对大批量数据使用 Prisma 事务时需注意超时设置，必要时分批次执行。
 *   **Q: Prisma 报错 ID 类型不兼容？**
     *   A: 如果 `Int` 转 `String` 在数据库层面受阻，可能需要先通过 SQL 手动 `ALTER TABLE ... TYPE text`。
+*   **Q: `migrate deploy` 提示 "No migration found"？**
+    *   A: `migrate deploy` 仅应用 `prisma/migrations` 文件夹下的**迁移文件夹**。如果您在本地使用的是 `db push` 而没有生成迁移文件，或者没有将迁移文件夹上传到服务器，就会提示此信息。
+    *   **解决方案 A (推荐)**：在本地运行 `npx prisma migrate dev --name change_workstation_id` 生成迁移，然后提交并推送代码。
+    *   **解决方案 B (快速同步)**：在服务器运行 `docker compose exec app npx prisma db push`。注意：这会直接强制数据库匹配 Schema，请确保已备份。
 *   **Q: Docker Build 报错 `permission denied` 访问 `data/postgres`？**
     *   A: 这是因为 Docker 尝试将数据库数据目录包含在构建上下文中。请确保根目录存在 `.dockerignore` 文件并包含 `data` 目录。我已经为您创建了该文件。
+*   **Q: Prisma 报错 `EACCES: permission denied` 或 `unlink ... node_modules`？**
+    *   A: 这是因为容器内 `node_modules` 的所有者为 root。我已经更新了 `Dockerfile`，请重新构建镜像：`docker compose up --build -d`。
+
+---
+
+> [!WARNING]
+> **重要发现**：目前的 `prisma/schema.prisma` 中 `workstations.id` 仍为 `Int` 类型，而 `user_workstations.workstationId` 为 `String`。如果您在此前的脚本迁移中已经将工位 ID 改为了 UUID (String)，请务必确认 `schema.prisma` 是否已同步修改为 `id String @id`。
 
 ---
 
