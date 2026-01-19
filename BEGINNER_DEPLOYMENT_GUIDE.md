@@ -131,6 +131,8 @@ docker compose exec app npx prisma db push
 ```bash
 # 此命令会创建默认管理员账户 (admin/pixel-dashboard123) 或根据 .env 配置创建
 docker compose exec app npm run prisma db seed
+docker compose exec app npx tsx prisma/seed-admin.ts
+
 ```
 > **安全警告**: 请务必在 `.env` 中配置 `ADMIN_PASSWORD` 以确保账户安全。如果未配置，将使用默认的不安全密码。
 

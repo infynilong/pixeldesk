@@ -40,7 +40,7 @@ export const LevelProgress: React.FC<{ userId?: string }> = ({ userId }) => {
             if (document.visibilityState === 'visible') {
                 fetchLevelData();
             }
-        }, 10000); // Poll every 10s when visible
+        }, 1800000); // Poll every 30m when visible - significantly reduced as per user feedback
 
         return () => clearInterval(interval);
     }, [userId]);

@@ -156,8 +156,8 @@ export async function POST(request: NextRequest) {
         userId: user.id,
         playerName: validatedData.playerName,
         characterSprite: validatedData.characterSprite,
-        currentX: 400,
-        currentY: 300,
+        currentX: 5880,
+        currentY: 237,
         currentScene: 'Start',
         updatedAt: new Date()
       },
@@ -330,7 +330,7 @@ export async function PUT(request: NextRequest) {
     // 奖励经验值 (Award Bits for Online Time)
     // 逻辑：每日登录奖励 (每24小时一次)
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000)
-    const recentOnlineReward = await prisma.bits_history.findFirst({
+    const recentOnlineReward = await (prisma as any).bits_history.findFirst({
       where: {
         userId: user.id,
         sourceType: 'online_time',

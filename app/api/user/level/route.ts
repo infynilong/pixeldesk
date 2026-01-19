@@ -15,7 +15,26 @@ export async function GET(request: Request) {
         const progress = await LevelingService.getUserLevelProgress(userId)
 
         if (!progress) {
-            return NextResponse.json({ error: 'User not found' }, { status: 404 })
+            // Handle guest or non-existent users by returning a default LV 0 state
+            return NextResponse.json({
+                success: true,
+                data: {
+                    current: {
+                        level: 0,
+                        bits: 0,
+                        name: '临时访客',
+                        config: {}
+                    },
+                    next: {
+                        level: 1,
+                        requiredBits: 10,
+                        requiredDays: 0,
+                        currentDays: 0,
+                        progress: 0,
+                        isDayLimited: false
+                    }
+                }
+            })
         }
 
         return NextResponse.json({ success: true, data: progress })

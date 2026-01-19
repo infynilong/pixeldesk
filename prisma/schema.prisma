@@ -254,8 +254,8 @@ model players {
   userId          String   @unique
   playerName      String
   characterSprite String
-  currentX        Int      @default(400)
-  currentY        Int      @default(300)
+  currentX        Int      @default(5880)
+  currentY        Int      @default(237)
   currentScene    String   @default("Start")
   lastActiveAt    DateTime @default(now())
   playerState     Json?
