@@ -1,7 +1,7 @@
 declare global {
   interface Window {
     setWorkstationBindingModal: (modalState: any) => void
-    showWorkstationInfo: (workstationId: number, userId: string) => void
+    showWorkstationInfo: (workstationId: string, userId: string) => void
     onPlayerCollision: (playerData: any) => void
     onWorkstationBinding: (workstationData: any, userData: any) => void
     onPlayerClick: (playerData: any) => void
@@ -11,4 +11,4 @@ declare global {
   }
 }
 
-export {}
+export { }
