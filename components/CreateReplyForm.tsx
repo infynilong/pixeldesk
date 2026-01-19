@@ -8,8 +8,10 @@ interface CreateReplyFormProps {
   onCancel: () => void
   isMobile?: boolean
   isSubmitting?: boolean
-  variant?: 'dark' | 'light' | 'chat' // 新增：支持不同主题变体
+  variant?: 'dark' | 'light' | 'chat'
   theme?: 'light' | 'dark'
+  replyToUser?: { id: string, name: string, replyId: string } | null // 新增：正在回复的用户信息
+  onClearReplyTo?: () => void // 新增：清除回复目标
 }
 
 export default function CreateReplyForm({
@@ -18,7 +20,9 @@ export default function CreateReplyForm({
   isMobile = false,
   isSubmitting = false,
   variant = 'dark',
-  theme = 'dark'
+  theme = 'dark',
+  replyToUser = null,
+  onClearReplyTo
 }: CreateReplyFormProps) {
   const [content, setContent] = useState('')
   const [error, setError] = useState('')
@@ -54,7 +58,8 @@ export default function CreateReplyForm({
 
     try {
       const replyData: CreateReplyData = {
-        content: content.trim()
+        content: content.trim(),
+        parentId: replyToUser?.replyId
       }
 
       const success = await onSubmit(replyData)
@@ -154,10 +159,30 @@ export default function CreateReplyForm({
   return (
     <div className={styles.container}>
       <form onSubmit={handleSubmit} className="space-y-4">
+        {/* 回复目标提示 */}
+        {replyToUser && (
+          <div className="flex items-center justify-between bg-blue-500/10 dark:bg-blue-400/10 border border-blue-500/20 dark:border-blue-400/20 rounded-lg px-3 py-1.5 ">
+            <div className="flex items-center gap-2 text-xs text-blue-600 dark:text-blue-400 font-medium">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+              </svg>
+              <span>正在回复 @{replyToUser.name}</span>
+            </div>
+            <button
+              type="button"
+              onClick={onClearReplyTo}
+              className="text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transform hover:scale-110 transition-all"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        )}
         {/* 内容输入 */}
         <div className="relative">
           <textarea
-            placeholder={variant === 'light' ? '写下你的回复...' : 'Write a reply...'}
+            placeholder={replyToUser ? `回复 @${replyToUser.name}...` : (variant === 'light' ? '写下你的回复...' : 'Write a reply...')}
             value={content}
             onChange={(e) => setContent(e.target.value)}
             onFocus={handleInputFocus}
@@ -182,18 +207,15 @@ export default function CreateReplyForm({
         <div className="flex items-center justify-end gap-3">
           <button
             type="button"
-            onClick={() => {
-              setContent('')
-              setError('')
-            }}
+            onClick={onCancel}
             disabled={finalIsSubmitting}
             className={styles.clearButton}
           >
             <div className="flex items-center gap-2">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
-              <span>清空</span>
+              <span>收起</span>
             </div>
           </button>
 

@@ -6,6 +6,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import UserAvatar from '../UserAvatar'
 import { getAssetUrl } from '@/lib/utils/assets'
+import { renderContentWithUrls } from '@/lib/utils/format'
+import ProBadge from '../social/ProBadge'
 
 interface BillboardPost {
     id: string
@@ -17,6 +19,7 @@ interface BillboardPost {
         name: string
         avatar: string
         customAvatar?: string
+        isAdmin?: boolean
     }
     promoters: string[]
     expiresAt: string
@@ -247,13 +250,16 @@ export default function BillboardUI() {
                                                                 </h3>
                                                                 <div className="flex-shrink-0 px-1 py-0.5 bg-yellow-400 text-[7px] font-black text-black border border-black uppercase">HOT</div>
                                                             </div>
-                                                            <p className="text-gray-600 text-[9px] md:text-[10px] line-clamp-2 leading-snug font-medium mb-3 italic">
-                                                                "{post.summary || t.billboard.pending_summary}"
-                                                            </p>
+                                                            <div className="text-gray-600 text-[9px] md:text-[10px] line-clamp-2 leading-snug font-medium mb-3 italic">
+                                                                "{renderContentWithUrls(post.summary || t.billboard.pending_summary, t.social.view_link)}"
+                                                            </div>
                                                             <div className="mt-auto pt-2 border-t border-dashed border-gray-300 flex items-center justify-between">
                                                                 <div className="flex items-center gap-1">
                                                                     <UserAvatar userId={post.author.id} userName={post.author.name} userAvatar={post.author.avatar} size="xs" showStatus={false} />
-                                                                    <span className="text-[8px] md:text-[9px] text-gray-800 font-bold truncate max-w-[60px]">{post.author.name}</span>
+                                                                    <div className="flex items-center gap-0.5">
+                                                                        <span className="text-[8px] md:text-[9px] text-gray-800 font-bold truncate max-w-[60px]">{post.author.name}</span>
+                                                                        {post.author.isAdmin && <ProBadge />}
+                                                                    </div>
                                                                 </div>
                                                                 <Link href={`/posts/${post.id}`} target="_blank" className="px-1.5 py-1 bg-gray-900 text-white text-[7.5px] font-black hover:bg-gray-800">READ ➡</Link>
                                                             </div>

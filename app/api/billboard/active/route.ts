@@ -31,7 +31,8 @@ export async function GET(request: NextRequest) {
                                 id: true,
                                 name: true,
                                 avatar: true,
-                                customAvatar: true
+                                customAvatar: true,
+                                isAdmin: true
                             }
                         }
                     }

@@ -123,6 +123,7 @@ export default function RightPanel({
           isActive={activeTab === 'social'}
           isMobile={isMobile}
           isTablet={isTablet}
+          onPostClick={onPostClick}
         />
       )
     },
@@ -139,6 +140,7 @@ export default function RightPanel({
           isActive={activeTab === 'posts'}
           isMobile={isMobile}
           isTablet={isTablet}
+          onPostClick={onPostClick}
         />
       )
     },

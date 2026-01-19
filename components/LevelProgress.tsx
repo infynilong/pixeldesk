@@ -32,6 +32,9 @@ export const LevelProgress: React.FC<{ userId?: string }> = ({ userId }) => {
 
     // Poll for level updates - Optimized for performance
     useEffect(() => {
+        // Reset level tracking when userId changes to prevent false positives (e.g. Guest -> User transition during load)
+        prevLevelRef.current = null;
+
         // Initial fetch
         fetchLevelData();
 
@@ -42,7 +45,17 @@ export const LevelProgress: React.FC<{ userId?: string }> = ({ userId }) => {
             }
         }, 1800000); // Poll every 30m when visible - significantly reduced as per user feedback
 
-        return () => clearInterval(interval);
+        // 监听手动刷新事件
+        const handleRefresh = () => {
+            console.log('🔄 [LevelProgress] 收到刷新请求，正在更新等级数据...')
+            fetchLevelData();
+        };
+        window.addEventListener('refresh-user-data', handleRefresh);
+
+        return () => {
+            clearInterval(interval);
+            window.removeEventListener('refresh-user-data', handleRefresh);
+        };
     }, [userId]);
 
     const fetchLevelData = async () => {

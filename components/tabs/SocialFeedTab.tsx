@@ -18,13 +18,15 @@ interface SocialFeedTabProps {
   isActive?: boolean
   isMobile?: boolean
   isTablet?: boolean
+  onPostClick?: (postId: string) => void
 }
 
 export default function SocialFeedTab({
   collisionPlayer,
   isActive = false,
   isMobile = false,
-  isTablet = false
+  isTablet = false,
+  onPostClick
 }: SocialFeedTabProps) {
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [showLoginPrompt, setShowLoginPrompt] = useState(false)
@@ -298,6 +300,7 @@ export default function SocialFeedTab({
                     onShowLoginPrompt={() => setShowLoginPrompt(true)}
                     currentPoints={user?.points || 0}
                     billboardPromotionCost={promotionCost}
+                    onPostClick={onPostClick}
                   />
                 </div>
               )}

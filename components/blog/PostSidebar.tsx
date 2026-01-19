@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { Post } from '@/types/social'
+import { useTranslation } from '@/lib/hooks/useTranslation'
+import { renderContentWithUrls } from '@/lib/utils/format'
 
 interface PostSidebarProps {
   currentPostId?: string
@@ -14,6 +16,7 @@ export default function PostSidebar({ currentPostId, currentUserId, theme = 'dar
   const [trendingPosts, setTrendingPosts] = useState<Post[]>([])
   const [latestPosts, setLatestPosts] = useState<Post[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const { t, locale } = useTranslation()
   const loadedRef = useRef<string | false>(false) // 防止重复加载
 
   useEffect(() => {
@@ -70,12 +73,12 @@ export default function PostSidebar({ currentPostId, currentUserId, theme = 'dar
     const now = new Date()
     const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000)
 
-    if (diffInSeconds < 60) return '刚刚'
-    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}分钟前`
-    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}小时前`
-    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}天前`
+    if (diffInSeconds < 60) return t.social.time_just_now || '刚刚'
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}${t.social.time_minutes_ago || '分钟前'}`
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}${t.social.time_hours_ago || '小时前'}`
+    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}${t.social.time_days_ago || '天前'}`
 
-    return date.toLocaleDateString('zh-CN')
+    return date.toLocaleDateString(locale === 'en' ? 'en-US' : 'zh-CN')
   }
 
   return (
@@ -116,7 +119,7 @@ export default function PostSidebar({ currentPostId, currentUserId, theme = 'dar
                   <div className="flex-1 min-w-0">
                     <h4 className={`text-sm font-medium transition-colors line-clamp-1 mb-1 ${theme === 'dark' ? 'text-gray-300 group-hover:text-white' : 'text-slate-600 group-hover:text-black'
                       }`}>
-                      {post.title || post.content.slice(0, 40)}
+                      {renderContentWithUrls(post.title || post.content.slice(0, 40), t.social.view_link)}
                     </h4>
                     <div className="flex items-center gap-3 text-[10px] font-mono text-gray-600">
                       <span className="flex items-center gap-1">
@@ -166,7 +169,7 @@ export default function PostSidebar({ currentPostId, currentUserId, theme = 'dar
                 >
                   <h4 className={`text-sm font-medium transition-colors line-clamp-1 mb-1 ${theme === 'dark' ? 'text-gray-300 group-hover:text-white' : 'text-slate-600 group-hover:text-black'
                     }`}>
-                    {post.title || post.content.slice(0, 40)}
+                    {renderContentWithUrls(post.title || post.content.slice(0, 40), t.social.view_link)}
                   </h4>
                   <div className="flex items-center gap-3 text-[10px] font-mono text-gray-600 uppercase">
                     <span>{formatTimeAgo(post.createdAt)}</span>

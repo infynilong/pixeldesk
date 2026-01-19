@@ -13,12 +13,14 @@ interface MyPostsTabProps {
   isActive?: boolean
   isMobile?: boolean
   isTablet?: boolean
+  onPostClick?: (postId: string) => void
 }
 
 export default function MyPostsTab({
   isActive = false,
   isMobile = false,
-  isTablet = false
+  isTablet = false,
+  onPostClick
 }: MyPostsTabProps) {
   // 获取当前用户信息
   const { currentUser, userId: currentUserId, isLoading: isUserLoading } = useCurrentUser()
@@ -216,6 +218,7 @@ export default function MyPostsTab({
                 onLike={() => handleLikePost(post.id)}
                 onReplyCountUpdate={handleReplyCountUpdate}
                 isMobile={isMobile}
+                onPostClick={onPostClick}
               />
             ))}
 

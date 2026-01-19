@@ -9,6 +9,7 @@ interface User {
     name: string
     email: string | null
     points: number
+    isAdmin: boolean
     isActive: boolean
     createdAt: string
     lastLogin: string | null
@@ -37,6 +38,12 @@ export default function UsersPage() {
     const [deletingId, setDeletingId] = useState<string | null>(null)
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
     const [isDeleting, setIsDeleting] = useState(false)
+
+    // Admin confirmation state
+    const [adminUpdateId, setAdminUpdateId] = useState<string | null>(null)
+    const [showAdminConfirm, setShowAdminConfirm] = useState(false)
+    const [targetAdminStatus, setTargetAdminStatus] = useState<boolean>(false)
+    const [isAdminUpdating, setIsAdminUpdating] = useState(false)
 
     useEffect(() => {
         fetchUsers()
@@ -106,6 +113,56 @@ export default function UsersPage() {
         } finally {
             setIsDeleting(false)
             setDeletingId(null)
+        }
+    }
+
+    const openAdminConfirm = (id: string, currentStatus: boolean) => {
+        setAdminUpdateId(id)
+        setTargetAdminStatus(!currentStatus)
+        setShowAdminConfirm(true)
+    }
+
+    const toggleIsAdmin = async () => {
+        if (!adminUpdateId) return
+        setIsAdminUpdating(true)
+        try {
+            const response = await fetch(`/api/pixel-dashboard/users/${adminUpdateId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ isAdmin: targetAdminStatus }),
+            })
+            if (response.ok) {
+                setUsers(users.map(u => u.id === adminUpdateId ? { ...u, isAdmin: targetAdminStatus } : u))
+                setShowAdminConfirm(false)
+            } else {
+                const data = await response.json()
+                alert(data.error || '更新失败')
+            }
+        } catch (error) {
+            console.error('Error toggling admin status:', error)
+            alert('操作出错')
+        } finally {
+            setIsAdminUpdating(false)
+            setAdminUpdateId(null)
+        }
+    }
+
+    const toggleIsActive = async (id: string, currentStatus: boolean) => {
+        try {
+            const response = await fetch(`/api/pixel-dashboard/users/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ isActive: !currentStatus }),
+            })
+            if (response.ok) {
+                setUsers(users.map(u => u.id === id ? { ...u, isActive: !currentStatus } : u))
+            } else {
+                const data = await response.json()
+                alert(data.error || '更新失败')
+            }
+        } catch (error) {
+            console.error('Error toggling active status:', error)
+            alert('操作出错')
         }
     }
 
@@ -191,6 +248,9 @@ export default function UsersPage() {
                                     注册时间 {sortBy === 'createdAt' && (sortOrder === 'asc' ? '↑' : '↓')}
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">
+                                    管理员
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">
                                     状态
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">
@@ -239,14 +299,33 @@ export default function UsersPage() {
                                         {new Date(user.createdAt).toLocaleDateString('zh-CN')}
                                     </td>
                                     <td className="px-6 py-4">
-                                        <span
-                                            className={`text-xs px-2 py-1 rounded ${user.isActive
-                                                ? 'bg-green-600/20 text-green-400'
-                                                : 'bg-red-600/20 text-red-400'
+                                        <div className="flex items-center gap-3">
+                                            <div
+                                                onClick={() => openAdminConfirm(user.id, user.isAdmin)}
+                                                className={`relative inline-flex h-5 w-10 flex-shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none ring-offset-2 ring-purple-500 focus:ring-2 ${user.isAdmin ? 'bg-purple-600' : 'bg-gray-700'
+                                                    }`}
+                                            >
+                                                <span
+                                                    aria-hidden="true"
+                                                    className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${user.isAdmin ? 'translate-x-5.5' : 'translate-x-1'
+                                                        }`}
+                                                />
+                                            </div>
+                                            {user.isAdmin && (
+                                                <span className="text-xs text-purple-400 font-medium">💎 PRO</span>
+                                            )}
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <button
+                                            onClick={() => toggleIsActive(user.id, user.isActive)}
+                                            className={`text-xs px-2 py-1 rounded transition-colors ${user.isActive
+                                                ? 'bg-green-600/20 text-green-400 hover:bg-green-600/30'
+                                                : 'bg-red-600/20 text-red-400 hover:bg-red-600/30'
                                                 }`}
                                         >
                                             {user.isActive ? '活跃' : '禁用'}
-                                        </span>
+                                        </button>
                                     </td>
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-4">
@@ -322,6 +401,44 @@ export default function UsersPage() {
                                         删除中...
                                     </>
                                 ) : '确认删除'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Admin Confirmation Modal */}
+            {showAdminConfirm && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+                    <div className="bg-gray-900 border border-gray-800 rounded-2xl max-w-md w-full p-6 shadow-2xl">
+                        <h3 className="text-xl font-bold text-white mb-4">
+                            {targetAdminStatus ? '提升为管理员？' : '取消管理员权限？'}
+                        </h3>
+                        <p className="text-gray-400 mb-6">
+                            {targetAdminStatus
+                                ? '提升为管理员后，该用户将拥有系统的最高权限，包括管理其他用户和所有内容。请务必确认该操作的安全性。'
+                                : '取消管理员权限后，该用户将变回普通用户，不再拥有管理权限。'}
+                        </p>
+                        <div className="flex gap-3 justify-end">
+                            <button
+                                onClick={() => setShowAdminConfirm(false)}
+                                className="px-4 py-2 text-gray-400 hover:text-white transition-colors"
+                                disabled={isAdminUpdating}
+                            >
+                                取消
+                            </button>
+                            <button
+                                onClick={toggleIsAdmin}
+                                disabled={isAdminUpdating}
+                                className={`px-6 py-2 rounded-lg transition-all flex items-center gap-2 text-white ${targetAdminStatus ? 'bg-purple-600 hover:bg-purple-700' : 'bg-gray-700 hover:bg-gray-600'
+                                    }`}
+                            >
+                                {isAdminUpdating ? (
+                                    <>
+                                        <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                                        更新中...
+                                    </>
+                                ) : '确认执行'}
                             </button>
                         </div>
                     </div>

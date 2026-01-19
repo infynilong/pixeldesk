@@ -12,17 +12,21 @@ const urlWithPool = dbUrl?.includes('connection_limit')
   ? dbUrl
   : `${dbUrl}${dbUrl?.includes('?') ? '&' : '?'}connection_limit=10&pool_timeout=30`
 
-// 强制刷新逻辑：如果当前实例缺少新定义的模型，则清理它
+// 强制刷新逻辑：如果当前实例缺少新定义的模型或字段，则清理它
 if (globalForPrisma.prisma) {
   const p = globalForPrisma.prisma as any
-  if (!p.player_steps || !p.post_nodes || !p.user_postcards || !p.level_definitions) {
-    console.log('🔄 Prisma 实例过旧 (缺少 models)，正在重新启动客户端...')
+  // 检查关键模型是否存在，或者是否由于 schema 更新需要强制刷新
+  // 增加 isAdmin 字段后的强制刷新逻辑
+  const needsRefresh = !p.player_steps || !p.post_nodes || !p.user_postcards || !p.level_definitions || !p._isAdminFieldDetected;
+
+  if (needsRefresh) {
+    console.log('🔄 Prisma 实例过旧，正在重新启动客户端...')
     p.$disconnect().catch(() => { })
     globalForPrisma.prisma = undefined
   }
 }
 
-export const prisma =
+const instance =
   globalForPrisma.prisma ??
   new PrismaClient({
     log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
@@ -32,6 +36,13 @@ export const prisma =
       },
     },
   })
+
+// 标记该实例为已包含 isAdmin 字段的版本
+if (instance) {
+  (instance as any)._isAdminFieldDetected = true
+}
+
+export const prisma = instance
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 

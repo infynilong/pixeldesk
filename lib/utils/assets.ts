@@ -4,6 +4,14 @@
  */
 
 /**
+ * Checks if a URL is an external URL.
+ */
+export function isExternalUrl(url: string | null | undefined): boolean {
+    if (!url) return false
+    return url.startsWith('http://') || url.startsWith('https://')
+}
+
+/**
  * Transforms a relative path to a full asset URL.
  * If NEXT_PUBLIC_ASSET_PREFIX is set, it prepends it to the path.
  * 

@@ -63,12 +63,18 @@ export const LevelingService = {
      * 检测是否满足升级条件
      */
     async checkLevelUp(userId: string, currentBits: number, currentLevel: number, userCreatedAt?: Date) {
-        // 如果没有提供创建时间，重新获取
-        let createdAt = userCreatedAt;
-        if (!createdAt) {
-            const user = await (prisma as any).users.findUnique({ where: { id: userId }, select: { createdAt: true } });
-            createdAt = user?.createdAt;
-        }
+        // 如果没有提供用户状态，重新获取
+        const user = await (prisma as any).users.findUnique({
+            where: { id: userId },
+            select: { createdAt: true, isAdmin: true }
+        });
+
+        if (!user) return { leveledUp: false, currentLevel }
+
+        // 管理员不参与常规等级路径（或者说拥有所有最高权限）
+        if (user.isAdmin) return { leveledUp: false, currentLevel }
+
+        let createdAt = userCreatedAt || user.createdAt;
 
         const daysSinceRegistration = createdAt
             ? Math.floor((Date.now() - new Date(createdAt).getTime()) / (1000 * 60 * 60 * 24))
@@ -193,10 +199,13 @@ export const LevelingService = {
     async checkPermission(userId: string, featureKey: string): Promise<boolean> {
         const user = await (prisma as any).users.findUnique({
             where: { id: userId },
-            select: { level: true }
+            select: { level: true, isAdmin: true }
         })
 
         if (!user) return false
+
+        // 管理员拥有所有权限
+        if (user.isAdmin) return true
 
         // 获取当前等级及以下所有等级的解锁列表
         const u = user as any;

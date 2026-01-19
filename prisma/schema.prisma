@@ -228,22 +228,22 @@ model messages {
 }
 
 model notifications {
-  id                                       String           @id
+  id                                       String              @id
   userId                                   String
   type                                     NotificationType
   title                                    String
   message                                  String
-  isRead                                   Boolean          @default(false)
+  isRead                                   Boolean             @default(false)
   relatedPostId                            String?
   relatedReplyId                           String?
   relatedUserId                            String?
-  createdAt                                DateTime         @default(now())
+  createdAt                                DateTime            @default(now())
   updatedAt                                DateTime
-  posts                                    posts?           @relation(fields: [relatedPostId], references: [id], onDelete: Cascade)
-  users_notifications_relatedUserIdTousers users?           @relation("notifications_relatedUserIdTousers", fields: [relatedUserId], references: [id], onDelete: Cascade)
-  users_notifications_userIdTousers        users            @relation("notifications_userIdTousers", fields: [userId], references: [id], onDelete: Cascade)
-  postcard_exchanges                       postcard_exchanges? @relation(fields: [relatedExchangeId], references: [id], onDelete: Cascade)
   relatedExchangeId                        String?
+  postcard_exchanges                       postcard_exchanges? @relation(fields: [relatedExchangeId], references: [id], onDelete: Cascade)
+  posts                                    posts?              @relation(fields: [relatedPostId], references: [id], onDelete: Cascade)
+  users_notifications_relatedUserIdTousers users?              @relation("notifications_relatedUserIdTousers", fields: [relatedUserId], references: [id], onDelete: Cascade)
+  users_notifications_userIdTousers        users               @relation("notifications_userIdTousers", fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
   @@index([userId, isRead])
@@ -318,18 +318,20 @@ model post_replies {
   content   String
   createdAt DateTime @default(now())
   updatedAt DateTime
+  parentId  String?
   users     users    @relation(fields: [authorId], references: [id], onDelete: Cascade)
   posts     posts    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  parent    post_replies?  @relation("ReplyToReply", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   post_replies[] @relation("ReplyToReply")
 
   @@index([authorId])
   @@index([postId, createdAt])
+  @@index([parentId])
 }
 
 model posts {
   id                   String                 @id
   authorId             String
-  nodeId               String?
-  node                 post_nodes?            @relation(fields: [nodeId], references: [id])
   title                String?
   content              String
   type                 PostType               @default(TEXT)
@@ -356,11 +358,13 @@ model posts {
   reviewedAt           DateTime?
   reviewedBy           String?
   promotionCount       Int                    @default(0)
+  nodeId               String?
   billboard_promotions billboard_promotions[]
   notifications        notifications[]
   post_likes           post_likes[]
   post_replies         post_replies[]
   users                users                  @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  node                 post_nodes?            @relation(fields: [nodeId], references: [id])
 
   @@index([authorId])
   @@index([nodeId])
@@ -430,8 +434,8 @@ model player_steps {
   id        Int      @id @default(autoincrement())
   userId    String
   steps     Int      @default(0)
-  distance  Float    @default(0) // 移动距离（像素）
-  date      String   // 格式：YYYY-MM-DD
+  distance  Float    @default(0)
+  date      String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   users     users    @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -491,8 +495,6 @@ model user_workstations {
 
 model users {
   id                                               String                      @id
-  level                                            Int                         @default(0)
-  bits                                             Int                         @default(0)
   points                                           Int                         @default(100)
   createdAt                                        DateTime                    @default(now())
   updatedAt                                        DateTime
@@ -505,9 +507,12 @@ model users {
   password                                         String?
   customAvatar                                     String?
   inviteCode                                       String?                     @unique
-  bits_history                                     bits_history[]
+  bits                                             Int                         @default(0)
+  level                                            Int                         @default(0)
+  isAdmin                                          Boolean                     @default(false)
   ai_usage                                         ai_usage[]
   billboard_promotions                             billboard_promotions[]
+  bits_history                                     bits_history[]
   books                                            books[]
   character_purchases                              character_purchases[]
   characters                                       characters[]
@@ -515,24 +520,24 @@ model users {
   messages                                         messages[]
   notifications_notifications_relatedUserIdTousers notifications[]             @relation("notifications_relatedUserIdTousers")
   notifications_notifications_userIdTousers        notifications[]             @relation("notifications_userIdTousers")
+  player_steps                                     player_steps[]
   players                                          players?
   points_history                                   points_history[]
   post_likes                                       post_likes[]
   post_replies                                     post_replies[]
+  received_postcard_exchanges                      postcard_exchanges[]        @relation("received_exchanges")
+  sent_postcard_exchanges                          postcard_exchanges[]        @relation("sent_exchanges")
+  postcard_templates                               postcard_templates[]
   posts                                            posts[]
-  player_steps                                     player_steps[]
   status_history                                   status_history[]
-  time_tracking                                   time_tracking[]
+  time_tracking                                    time_tracking[]
   user_online_status                               user_online_status?
+  user_postcard_owned_items                        user_postcard_collection[]  @relation("collection_owner")
+  user_postcard_collection                         user_postcard_collection[]
+  user_postcards                                   user_postcards?
   user_sessions                                    user_sessions[]
   user_workstations                                user_workstations[]
   work_sessions                                    work_sessions[]
-  postcard_templates           postcard_templates[]
-  user_postcards               user_postcards?
-  sent_postcard_exchanges      postcard_exchanges[]        @relation("sent_exchanges")
-  received_postcard_exchanges  postcard_exchanges[]        @relation("received_exchanges")
-  user_postcard_collection     user_postcard_collection[]
-  user_postcard_owned_items    user_postcard_collection[] @relation("collection_owner")
 
   @@index([email])
   @@index([isActive])
@@ -645,6 +650,104 @@ model book_chapters {
   @@index([order])
 }
 
+model postcard_templates {
+  id                       String                     @id @default(cuid())
+  creatorId                String?
+  name                     String?
+  description              String?
+  price                    Int                        @default(0)
+  salesCount               Int                        @default(0)
+  config                   Json?
+  bgUrl                    String?
+  isActive                 Boolean                    @default(true)
+  createdAt                DateTime                   @default(now())
+  updatedAt                DateTime                   @updatedAt
+  creator                  users?                     @relation(fields: [creatorId], references: [id])
+  user_postcard_collection user_postcard_collection[]
+  user_postcards           user_postcards[]
+
+  @@index([creatorId])
+  @@index([price])
+  @@index([isActive])
+}
+
+model user_postcards {
+  id         String              @id @default(cuid())
+  userId     String              @unique
+  name       String?
+  content    String?
+  logoUrl    String?
+  bgUrl      String?
+  templateId String?
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @updatedAt
+  template   postcard_templates? @relation(fields: [templateId], references: [id])
+  user       users               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model postcard_exchanges {
+  id            String          @id @default(cuid())
+  senderId      String
+  receiverId    String
+  status        String          @default("PENDING")
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  notifications notifications[]
+  receiver      users           @relation("received_exchanges", fields: [receiverId], references: [id], onDelete: Cascade)
+  sender        users           @relation("sent_exchanges", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([senderId, receiverId])
+  @@index([status])
+}
+
+model user_postcard_collection {
+  id              String              @id @default(cuid())
+  userId          String
+  postcardOwnerId String
+  name            String?
+  content         String?
+  logoUrl         String?
+  bgUrl           String?
+  templateId      String?
+  receivedAt      DateTime            @default(now())
+  owner           users               @relation("collection_owner", fields: [postcardOwnerId], references: [id], onDelete: Cascade)
+  template        postcard_templates? @relation(fields: [templateId], references: [id])
+  user            users               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([postcardOwnerId])
+}
+
+model level_definitions {
+  id               String   @id @default(cuid())
+  level            Int      @unique
+  name             String
+  minBits          Int
+  visualConfig     Json?
+  unlockedFeatures Json?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  minDays          Int      @default(0)
+
+  @@index([level])
+}
+
+model bits_history {
+  id         String   @id @default(cuid())
+  userId     String
+  amount     Int
+  sourceType String
+  sourceId   String?
+  balance    Int
+  createdAt  DateTime @default(now())
+  user       users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([sourceType])
+}
+
 enum AdminRole {
   SUPER_ADMIN
   ADMIN
@@ -684,103 +787,4 @@ enum ChapterType {
   TEXT
   LINK
   POST
-}
-
-model postcard_templates {
-  id              String   @id @default(cuid())
-  creatorId       String?
-  name            String?
-  description     String?
-  price           Int      @default(0)
-  salesCount      Int      @default(0)
-  config          Json?    // Stores layout config, default fonts, colors, etc.
-  bgUrl           String?  // official template background if any
-  isActive        Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  creator         users?   @relation(fields: [creatorId], references: [id])
-  
-  user_postcards           user_postcards[]
-  user_postcard_collection user_postcard_collection[]
-
-  @@index([creatorId])
-  @@index([price])
-  @@index([isActive])
-}
-
-model user_postcards {
-  id         String   @id @default(cuid())
-  userId     String   @unique
-  name       String?  // The name written on the card
-  content    String?  // The message on the back
-  logoUrl    String?
-  bgUrl      String?
-  templateId String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  user       users    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  template   postcard_templates? @relation(fields: [templateId], references: [id])
-
-  @@index([userId])
-}
-
-model postcard_exchanges {
-  id         String   @id @default(cuid())
-  senderId   String
-  receiverId String
-  status     String   @default("PENDING") // PENDING, ACCEPTED, REJECTED
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  sender     users    @relation("sent_exchanges", fields: [senderId], references: [id], onDelete: Cascade)
-  receiver   users    @relation("received_exchanges", fields: [receiverId], references: [id], onDelete: Cascade)
-  notifications notifications[]
-
-  @@index([senderId, receiverId])
-  @@index([status])
-}
-
-model user_postcard_collection {
-  id              String   @id @default(cuid())
-  userId          String
-  postcardOwnerId String
-  name            String?  // Snapshot of card name
-  content         String?  // Snapshot of card message
-  logoUrl         String?
-  bgUrl           String?
-  templateId      String?
-  receivedAt      DateTime @default(now())
-  user            users    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  owner           users    @relation("collection_owner", fields: [postcardOwnerId], references: [id], onDelete: Cascade)
-  template        postcard_templates? @relation(fields: [templateId], references: [id])
-
-  @@index([userId])
-  @@index([postcardOwnerId])
-}
-
-model level_definitions {
-  id              String   @id @default(cuid())
-  level           Int      @unique
-  name            String
-  minBits         Int
-  minDays         Int      @default(0)
-  visualConfig    Json?    // Stores icon, color, frame style
-  unlockedFeatures Json?   // Stores list of unlocked feature keys
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  @@index([level])
-}
-
-model bits_history {
-  id          String   @id @default(cuid())
-  userId      String
-  amount      Int
-  sourceType  String   // e.g., "post", "walk", "like"
-  sourceId    String?  // ID of the post/interaction
-  balance     Int      // Balance after this transaction
-  createdAt   DateTime @default(now())
-  user        users    @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId, createdAt])
-  @@index([sourceType])
 }

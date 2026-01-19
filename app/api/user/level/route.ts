@@ -22,7 +22,7 @@ export async function GET(request: Request) {
                     current: {
                         level: 0,
                         bits: 0,
-                        name: '临时访客',
+                        name: '初生像素 (Raw Pixel)',
                         config: {}
                     },
                     next: {

@@ -80,6 +80,7 @@ export async function GET(request: NextRequest) {
               name: true,
               avatar: true,
               customAvatar: true,
+              isAdmin: true,
               user_workstations: {
                 select: {
                   workstationId: true
@@ -241,6 +242,7 @@ export async function POST(request: NextRequest) {
             name: true,
             avatar: true,
             customAvatar: true,
+            isAdmin: true,
             user_workstations: {
               select: {
                 workstationId: true

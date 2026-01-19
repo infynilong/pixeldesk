@@ -34,14 +34,36 @@ export default function MarkdownRenderer({ content, className = '' }: MarkdownRe
           p: ({ node, ...props }) => (
             <p className="leading-relaxed mb-4" {...props} />
           ),
-          a: ({ node, ...props }) => (
-            <a
-              className="text-retro-blue hover:text-retro-cyan underline transition-colors"
-              target="_blank"
-              rel="noopener noreferrer"
-              {...props}
-            />
-          ),
+          a: ({ node, children, href, ...props }: any) => {
+            const isRawUrl = typeof children === 'string' && (children.startsWith('http://') || children.startsWith('https://'))
+
+            if (isRawUrl) {
+              return (
+                <a
+                  className="text-cyan-500 hover:text-cyan-400 transition-colors inline-flex items-center gap-0.5 font-medium px-1.5 py-0.5 bg-cyan-500/10 rounded border border-cyan-500/20 mx-0.5 no-underline"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  href={href}
+                  {...props}
+                >
+                  <span className="text-[10px]">🔗</span>
+                  <span className="text-[11px] font-pixel">查看链接</span>
+                </a>
+              )
+            }
+
+            return (
+              <a
+                className="text-retro-blue hover:text-retro-cyan underline transition-colors"
+                target="_blank"
+                rel="noopener noreferrer"
+                href={href}
+                {...props}
+              >
+                {children}
+              </a>
+            )
+          },
           code: ({ node, inline, className, children, ...props }: any) => {
             if (inline) {
               return (

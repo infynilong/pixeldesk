@@ -179,7 +179,8 @@ export default function CreatePostForm({ onSubmit, onCancel, isMobile = false }:
         setContent('')
         setImageUrls([])
         setDismissedUrls([])
-        // 保持当前节点选择
+        // 触发全局数据刷新事件
+        window.dispatchEvent(new CustomEvent('refresh-user-data'))
       } else {
         setError(t.social.err_failed)
       }

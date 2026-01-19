@@ -7,6 +7,7 @@ export interface SocialUser {
   lastSeen?: string | null
   points?: number
   workstationId?: string | null
+  isAdmin?: boolean
 }
 
 export interface Post {
@@ -48,6 +49,7 @@ export interface PostReply {
   createdAt: string
   updatedAt: string
   author: SocialUser
+  parentId?: string | null
 }
 
 export interface PostLike {
@@ -76,6 +78,7 @@ export interface CreatePostData {
 
 export interface CreateReplyData {
   content: string
+  parentId?: string | null
 }
 
 export interface PostsPagination {

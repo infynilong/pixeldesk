@@ -6,6 +6,13 @@ import UserAvatar from './UserAvatar'
 import CreateReplyForm from './CreateReplyForm'
 import { usePostReplies } from '@/lib/hooks/usePostReplies'
 import Link from 'next/link'
+import { useTranslation } from '@/lib/hooks/useTranslation'
+import Image from 'next/image'
+import { getAssetUrl } from '@/lib/utils/assets'
+import { renderContentWithUrls, extractImageUrls } from '@/lib/utils/format'
+import { createPortal } from 'react-dom'
+import BillboardConfirmModal from './billboard/BillboardConfirmModal'
+import ProBadge from '@/components/social/ProBadge'
 
 interface PostCardProps {
   post: Post
@@ -15,6 +22,7 @@ interface PostCardProps {
   isMobile?: boolean
   isAuthenticated?: boolean
   onShowLoginPrompt?: () => void
+  onPostClick?: (postId: string) => void
 }
 
 export default function PostCard({
@@ -24,10 +32,16 @@ export default function PostCard({
   onReplyCountUpdate,
   isMobile = false,
   isAuthenticated = true,
-  onShowLoginPrompt
+  onShowLoginPrompt,
+  onPostClick
 }: PostCardProps) {
   const [showReplies, setShowReplies] = useState(false)
   const [isLiking, setIsLiking] = useState(false)
+  const [showImageModal, setShowImageModal] = useState(false)
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const { t, locale } = useTranslation()
 
   // 使用回复hook来管理回复数据
   const {
@@ -50,7 +64,17 @@ export default function PostCard({
     if (isLiking) return
     setIsLiking(true)
     await onLike()
+    // 触发全局数据刷新事件 (点赞获得 Bits)
+    window.dispatchEvent(new CustomEvent('refresh-user-data'))
     setIsLiking(false)
+  }
+
+  const handleContentClick = (e: React.MouseEvent) => {
+    if (onPostClick) {
+      e.preventDefault()
+      e.stopPropagation()
+      onPostClick(post.id)
+    }
   }
 
   // 处理回复提交
@@ -90,17 +114,45 @@ export default function PostCard({
     const now = new Date()
     const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000)
 
-    if (diffInSeconds < 60) return '刚刚'
-    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}分钟前`
-    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}小时前`
-    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}天前`
+    if (diffInSeconds < 60) return t.time.just_now
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}${t.time.minutes_ago}`
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}${t.time.hours_ago}`
+    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}${t.time.days_ago}`
 
-    return date.toLocaleDateString('zh-CN')
+    return date.toLocaleDateString(locale)
+  }
+
+  const isExternalUrl = (url: string) => {
+    return url.startsWith('http://') || url.startsWith('https://')
+  }
+
+  const handleDelete = () => {
+    setShowDeleteModal(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    setIsDeleting(true)
+    try {
+      const res = await fetch(`/api/posts/${post.id}?userId=${currentUserId}`, {
+        method: 'DELETE'
+      })
+      const result = await res.json()
+      if (result.success) {
+        window.location.reload()
+      } else {
+        alert(result.error || 'Delete failed')
+      }
+    } catch (error) {
+      console.error('Delete failed:', error)
+      alert('Delete failed')
+    } finally {
+      setIsDeleting(false)
+    }
   }
 
   const cardClasses = isMobile
-    ? "group relative bg-gray-900/90 rounded-lg overflow-hidden border border-gray-800 "
-    : "group relative bg-gray-900/90 rounded-lg overflow-hidden border border-gray-800 hover:border-gray-700 "
+    ? "group relative bg-gray-900/90 rounded-lg overflow-hidden border border-gray-800"
+    : "group relative bg-gray-900/90 rounded-lg overflow-hidden border border-gray-800 hover:border-gray-700"
 
   return (
     <div className={cardClasses}>
@@ -121,9 +173,9 @@ export default function PostCard({
             />
             {post.author.workstationId && (
               <div className="mt-1.5 flex justify-center">
-                <span className="inline-flex items-center px-1 py-0.5 bg-amber-500/10 border-t border-l border-amber-500/30 border-b border-r border-amber-900/50 rounded-sm text-amber-500 font-pixel text-[8px] leading-none shadow-[1px_1px_0px_0px_rgba(0,0,0,0.5)] transform hover:scale-110 transition-transform cursor-help" title={`Workstation Owner: #${post.author.workstationId}`}>
+                <span className="inline-flex items-center px-1 py-0.5 bg-amber-500/10 border border-amber-500/30 rounded-sm text-amber-500 font-pixel text-[8px] leading-none shadow-[1px_1px_0px_0px_rgba(0,0,0,0.5)] transform hover:scale-110 transition-transform cursor-help" title={`Workstation Owner: #${post.author.workstationId}`}>
                   <span className="text-[7px] mr-1 opacity-70">№</span>
-                  {post.author.workstationId}
+                  {post.author.workstationId.length > 8 ? post.author.workstationId.substring(0, 8) + '...' : post.author.workstationId}
                 </span>
               </div>
             )}
@@ -137,9 +189,10 @@ export default function PostCard({
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={(e) => e.stopPropagation()}
-                className="font-medium text-gray-200 hover:text-cyan-400 text-sm truncate transition-colors"
+                className="font-medium text-gray-200 hover:text-cyan-400 text-sm truncate transition-colors flex items-center"
               >
                 {post.author.name}
+                {post.author.isAdmin && <ProBadge />}
               </Link>
               <span className="text-gray-600">•</span>
               <span className="text-xs text-gray-500 font-mono">
@@ -149,7 +202,10 @@ export default function PostCard({
 
             {/* 帖子标题 */}
             {post.title && (
-              <h3 className="text-base font-medium text-gray-100 mt-1 leading-snug">
+              <h3
+                onClick={handleContentClick}
+                className="text-base font-medium text-gray-100 mt-1 leading-snug cursor-pointer hover:text-cyan-400 transition-colors"
+              >
                 {post.title}
               </h3>
             )}
@@ -179,18 +235,26 @@ export default function PostCard({
         {/* 封面图片 */}
         {post.type === 'MARKDOWN' && post.coverImage && (
           <div className="relative overflow-hidden rounded-lg border border-gray-800 mb-3">
-            <img
-              src={post.coverImage}
+            <Image
+              src={getAssetUrl(post.coverImage)}
               alt="Cover"
+              width={800}
+              height={400}
+              unoptimized={isExternalUrl(post.coverImage)}
               className="w-full h-48 object-cover"
             />
           </div>
         )}
 
         {/* 内容文本 - 博客显示摘要，普通帖子显示全文 */}
-        <p className="text-gray-300 whitespace-pre-wrap leading-relaxed text-sm mb-3 font-sans">
-          {post.type === 'MARKDOWN' && post.summary ? post.summary : post.content}
-        </p>
+        <div
+          onClick={handleContentClick}
+          className="text-gray-300 whitespace-pre-wrap leading-relaxed text-sm mb-3 font-sans cursor-pointer hover:text-gray-100 transition-colors"
+        >
+          {post.type === 'MARKDOWN' && post.summary
+            ? renderContentWithUrls(post.summary, t.social.view_link)
+            : renderContentWithUrls(post.content, t.social.view_link)}
+        </div>
 
         {/* 博客标签 */}
         {post.type === 'MARKDOWN' && post.tags && post.tags.length > 0 && (
@@ -221,14 +285,64 @@ export default function PostCard({
           </a>
         )}
 
-        {/* 图片内容 - 非博客类型 */}
-        {post.type !== 'MARKDOWN' && post.imageUrl && (
-          <div className="relative overflow-hidden rounded-lg border border-gray-800">
-            <img
-              src={post.imageUrl}
-              alt="Post image"
-              className="w-full max-h-64 object-cover"
-            />
+        {/* 图片内容 - 非博客类型 - 九宫格展示 */}
+        {post.type !== 'MARKDOWN' && (post.imageUrl || (post.imageUrls && post.imageUrls.length > 0)) && (
+          <div className="mt-2">
+            {(() => {
+              const urls = post.imageUrls && post.imageUrls.length > 0
+                ? post.imageUrls
+                : [post.imageUrl || '']
+
+              const count = urls.length
+
+              if (count === 1) {
+                return (
+                  <div
+                    onClick={() => {
+                      setSelectedImageIndex(0)
+                      setShowImageModal(true)
+                    }}
+                    className="relative w-full max-w-[320px] h-[180px] rounded-lg overflow-hidden border border-gray-800 hover:border-cyan-500/50 transition-colors cursor-pointer group"
+                  >
+                    <Image
+                      src={getAssetUrl(urls[0])}
+                      alt="Post image"
+                      fill
+                      unoptimized={isExternalUrl(urls[0])}
+                      className="object-cover group-hover:scale-105 transition-transform duration-300"
+                      sizes="320px"
+                    />
+                  </div>
+                )
+              }
+
+              const gridCols = count === 2 || count === 4 ? 'grid-cols-2' : 'grid-cols-3'
+              const maxWidth = count === 2 ? 'max-w-[240px]' : 'max-w-[400px]'
+
+              return (
+                <div className={`grid ${gridCols} gap-2 ${maxWidth}`}>
+                  {urls.slice(0, 9).map((url, idx) => (
+                    <div
+                      key={idx}
+                      onClick={() => {
+                        setSelectedImageIndex(idx)
+                        setShowImageModal(true)
+                      }}
+                      className="relative aspect-square rounded-md overflow-hidden border border-gray-800 hover:border-cyan-500/50 transition-colors cursor-pointer group bg-gray-900"
+                    >
+                      <Image
+                        src={getAssetUrl(url)}
+                        alt={`Post image ${idx}`}
+                        fill
+                        unoptimized={isExternalUrl(url)}
+                        className="object-cover group-hover:scale-110 transition-transform duration-300"
+                        sizes="130px"
+                      />
+                    </div>
+                  ))}
+                </div>
+              )
+            })()}
           </div>
         )}
       </div>
@@ -286,7 +400,10 @@ export default function PostCard({
 
           {/* 删除按钮（仅作者可见） */}
           {post.author.id === currentUserId && (
-            <button className="p-2 text-gray-500 hover:text-red-400 rounded hover:bg-gray-800/50 ">
+            <button
+              onClick={handleDelete}
+              className="p-2 text-gray-500 hover:text-red-400 rounded hover:bg-gray-800/50 "
+            >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
               </svg>
@@ -302,7 +419,7 @@ export default function PostCard({
             {/* 回复输入表单 */}
             <CreateReplyForm
               onSubmit={handleReplySubmit}
-              onCancel={() => { }}
+              onCancel={() => setShowReplies(false)}
               isMobile={isMobile}
               isSubmitting={isCreatingReply}
               variant="dark"
@@ -334,9 +451,9 @@ export default function PostCard({
             {isLoadingReplies && replies.length === 0 && (
               <div className="flex items-center justify-center py-6">
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-gray-600 rounded-full " style={{ animationDelay: '0ms' }}></div>
-                  <div className="w-2 h-2 bg-gray-500 rounded-full " style={{ animationDelay: '150ms' }}></div>
-                  <div className="w-2 h-2 bg-gray-600 rounded-full " style={{ animationDelay: '300ms' }}></div>
+                  <div className="w-2 h-2 bg-gray-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                  <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                  <div className="w-2 h-2 bg-gray-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
                 </div>
               </div>
             )}
@@ -344,47 +461,73 @@ export default function PostCard({
             {/* 回复列表 */}
             {replies.length > 0 && (
               <div className="space-y-3">
-                {replies.map((reply) => (
-                  <div key={reply.id} className="bg-gray-800/40 rounded-lg p-3 border border-gray-800/60">
-                    <div className="flex items-start space-x-3">
-                      {/* 回复者头像 */}
-                      <div className="flex-shrink-0">
-                        <UserAvatar
-                          userId={reply.author.id}
-                          userName={reply.author.name}
-                          userAvatar={reply.author.avatar}
-                          customAvatar={reply.author.customAvatar}
-                          size="sm"
-                          showStatus={true}
-                          isOnline={reply.author.isOnline}
-                          lastSeen={reply.author.lastSeen}
-                        />
-                      </div>
-
-                      {/* 回复内容 */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <span className="font-medium text-gray-300 text-sm">
-                            {reply.author.name}
-                          </span>
-                          {reply.author.workstationId && (
-                            <span className="inline-flex items-center px-1 py-0.5 bg-amber-500/10 border-t border-l border-amber-500/30 border-b border-r border-amber-900/50 rounded-sm text-amber-500 font-pixel text-[8px] leading-none shadow-[1px_1px_0px_0px_rgba(0,0,0,0.5)] transform hover:scale-105 transition-transform cursor-help" title={`Workstation Owner: #${reply.author.workstationId}`}>
-                              <span className="text-[7px] mr-1 opacity-70">№</span>
-                              {reply.author.workstationId}
-                            </span>
-                          )}
-                          <span className="text-gray-600">•</span>
-                          <span className="text-xs text-gray-500 font-mono">
-                            {formatTimeAgo(reply.createdAt)}
-                          </span>
+                {replies.map((reply) => {
+                  const replyImages = extractImageUrls(reply.content)
+                  return (
+                    <div key={reply.id} className="bg-gray-800/40 rounded-lg p-3 border border-gray-800/60">
+                      <div className="flex items-start space-x-3">
+                        {/* 回复者头像 */}
+                        <div className="flex-shrink-0">
+                          <UserAvatar
+                            userId={reply.author.id}
+                            userName={reply.author.name}
+                            userAvatar={reply.author.avatar}
+                            customAvatar={reply.author.customAvatar}
+                            size="sm"
+                            showStatus={true}
+                            isOnline={reply.author.isOnline}
+                            lastSeen={reply.author.lastSeen}
+                          />
                         </div>
-                        <p className="text-gray-300 text-sm leading-relaxed">
-                          {reply.content}
-                        </p>
+
+                        {/* 回复内容 */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center space-x-2 mb-1">
+                            <span className="font-medium text-gray-300 text-sm flex items-center gap-1">
+                              {reply.author.name}
+                              {reply.author.isAdmin && <ProBadge />}
+                            </span>
+                            {reply.author.workstationId && (
+                              <span className="inline-flex items-center px-1 py-0.5 bg-amber-500/10 border border-amber-500/30 rounded-sm text-amber-500 font-pixel text-[8px] leading-none" title={`Workstation Owner: #${reply.author.workstationId}`}>
+                                <span className="text-[7px] mr-1 opacity-70">№</span>
+                                {reply.author.workstationId.length > 8 ? reply.author.workstationId.substring(0, 8) + '...' : reply.author.workstationId}
+                              </span>
+                            )}
+                            <span className="text-gray-600">•</span>
+                            <span className="text-xs text-gray-500 font-mono">
+                              {formatTimeAgo(reply.createdAt)}
+                            </span>
+                          </div>
+                          <div className="text-gray-300 text-sm leading-relaxed break-words">
+                            {renderContentWithUrls(reply.content, t.social.view_link)}
+                          </div>
+
+                          {/* 回复中的图片展示 */}
+                          {replyImages.length > 0 && (
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              {replyImages.map((imgUrl, idx) => (
+                                <div
+                                  key={idx}
+                                  onClick={() => window.open(imgUrl, '_blank')}
+                                  className="relative w-24 h-24 rounded-lg overflow-hidden border border-gray-800 hover:border-cyan-500/50 cursor-zoom-in transition-colors group"
+                                >
+                                  <Image
+                                    src={getAssetUrl(imgUrl)}
+                                    alt="Reply image"
+                                    fill
+                                    unoptimized={isExternalUrl(imgUrl)}
+                                    className="object-cover group-hover:scale-110 transition-transform duration-300"
+                                    sizes="100px"
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
 
@@ -415,6 +558,97 @@ export default function PostCard({
             )}
           </div>
         </div>
+      )}
+
+      {/* 删除确认对话框 */}
+      {showDeleteModal && (
+        <BillboardConfirmModal
+          isVisible={showDeleteModal}
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setShowDeleteModal(false)}
+          currentPoints={100}
+          cost={0}
+          postTitle={post.title || post.content.substring(0, 20)}
+          customTitle={t.social.confirm_delete}
+          customMessage={t.social.confirm_delete_msg}
+        />
+      )}
+
+      {/* 图片放大模态框 */}
+      {showImageModal && (post.imageUrl || (post.imageUrls && post.imageUrls.length > 0)) && typeof window !== 'undefined' && createPortal(
+        <div
+          className="fixed inset-0 bg-black/95 flex items-center justify-center p-4"
+          style={{ zIndex: 10000, pointerEvents: 'auto' }}
+          onClick={() => setShowImageModal(false)}
+        >
+          <div
+            className="relative w-full h-full flex flex-col items-center justify-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setShowImageModal(false)}
+              className="absolute top-4 right-4 text-white/70 hover:text-white transition-colors z-10 p-2 bg-white/10 rounded-full backdrop-blur-md"
+            >
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            <div
+              className="relative max-w-full max-h-[90vh] px-4 flex flex-col items-center"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {(() => {
+                const urls = post.imageUrls && post.imageUrls.length > 0
+                  ? post.imageUrls
+                  : [post.imageUrl || '']
+
+                const count = urls.length
+
+                return (
+                  <div className="relative w-full h-full flex items-center justify-center">
+                    <img
+                      src={getAssetUrl(urls[selectedImageIndex] || '')}
+                      alt="Full screen"
+                      className="max-w-full max-h-[80vh] object-contain shadow-2xl rounded-lg"
+                    />
+
+                    {count > 1 && (
+                      <>
+                        <button
+                          onClick={() => setSelectedImageIndex((selectedImageIndex - 1 + count) % count)}
+                          className="absolute left-0 top-1/2 -translate-y-1/2 p-4 text-white/50 hover:text-white transition-colors"
+                        >
+                          <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => setSelectedImageIndex((selectedImageIndex + 1) % count)}
+                          className="absolute right-0 top-1/2 -translate-y-1/2 p-4 text-white/50 hover:text-white transition-colors"
+                        >
+                          <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </button>
+
+                        <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 flex space-x-2">
+                          {urls.map((_, i) => (
+                            <div
+                              key={i}
+                              className={`w-2 h-2 rounded-full transition-all ${i === selectedImageIndex ? 'bg-cyan-500 w-4' : 'bg-white/30'}`}
+                            />
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )
+              })()}
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   )

@@ -14,6 +14,10 @@ import PostSidebar from '@/components/blog/PostSidebar'
 import Link from 'next/link'
 import { useTranslation } from '@/lib/hooks/useTranslation'
 import BillboardConfirmModal from '@/components/billboard/BillboardConfirmModal'
+import { renderContentWithUrls } from '@/lib/utils/format'
+import { getAssetUrl, isExternalUrl } from '@/lib/utils/assets'
+import Image from 'next/image'
+import ProBadge from '@/components/social/ProBadge'
 
 interface PostDetailClientProps {
   initialPost: Post
@@ -87,7 +91,7 @@ export default function PostDetailClient({ initialPost, billboardPromotionCost }
   const [isPromoting, setIsPromoting] = useState(false)
   const [showPromoteModal, setShowPromoteModal] = useState(false)
   const [searchInput, setSearchInput] = useState('')
-  const { t } = useTranslation()
+  const { t, locale } = useTranslation()
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
@@ -186,12 +190,12 @@ export default function PostDetailClient({ initialPost, billboardPromotionCost }
     const now = new Date()
     const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000)
 
-    if (diffInSeconds < 60) return '刚刚'
-    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}分钟前`
-    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}小时前`
-    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}天前`
+    if (diffInSeconds < 60) return t.social.time_just_now || '刚刚'
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}${t.social.time_minutes_ago || '分钟前'}`
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}${t.social.time_hours_ago || '小时前'}`
+    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}${t.social.time_days_ago || '天前'}`
 
-    return date.toLocaleDateString('zh-CN')
+    return date.toLocaleDateString(locale === 'en' ? 'en-US' : 'zh-CN')
   }
 
   // 检查是否是作者
@@ -350,8 +354,11 @@ export default function PostDetailClient({ initialPost, billboardPromotionCost }
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <Link href={`/profile/${post.author.id}`} className={`font-black hover:text-cyan-400 text-xl tracking-tight transition-colors ${theme === 'dark' ? 'text-white' : 'text-slate-900'
-                        }`}>{post.author.name}</Link>
+                      <Link href={`/profile/${post.author.id}`} className={`font-black hover:text-cyan-400 text-xl tracking-tight transition-colors flex items-center ${theme === 'dark' ? 'text-white' : 'text-slate-900'
+                        }`}>
+                        {post.author.name}
+                        {post.author.isAdmin && <ProBadge />}
+                      </Link>
                       <span className="w-1 h-1 bg-gray-600 rounded-full"></span>
                       <time className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-500' : 'text-slate-400'}`}>{formatTimeAgo(post.createdAt)}</time>
                     </div>
@@ -366,19 +373,35 @@ export default function PostDetailClient({ initialPost, billboardPromotionCost }
                       <MarkdownRenderer content={post.content} />
                     </div>
                   ) : (
-                    <p className={`whitespace-pre-wrap leading-relaxed text-lg font-medium ${theme === 'dark' ? 'text-gray-100' : 'text-slate-800'
-                      }`}>{post.content}</p>
+                    <div className={`whitespace-pre-wrap leading-relaxed text-lg font-medium ${theme === 'dark' ? 'text-gray-100' : 'text-slate-800'
+                      }`}>
+                      {renderContentWithUrls(post.content, t.social.view_link)}
+                    </div>
                   )}
                   {post.type === 'MARKDOWN' && post.coverImage && (
                     <div className="mt-6 overflow-hidden rounded-2xl border border-white/10 shadow-lg">
-                      <img src={post.coverImage} alt="Cover" className="w-full h-auto object-cover" />
+                      <Image
+                        src={getAssetUrl(post.coverImage)}
+                        alt="Cover"
+                        width={1200}
+                        height={600}
+                        unoptimized={isExternalUrl(post.coverImage)}
+                        className="w-full h-auto object-cover"
+                      />
                     </div>
                   )}
                   {post.imageUrls && post.imageUrls.length > 0 && (
                     <div className="mt-6 grid grid-cols-2 gap-3">
                       {post.imageUrls.map((url, index) => (
                         <div key={index} onClick={() => openLightbox(index)} className="relative aspect-video overflow-hidden rounded-xl bg-gray-800 cursor-pointer group">
-                          <img src={url} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                          <Image
+                            src={getAssetUrl(url)}
+                            alt=""
+                            width={800}
+                            height={450}
+                            unoptimized={isExternalUrl(url)}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          />
                           <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition-colors"></div>
                         </div>
                       ))}
@@ -452,7 +475,10 @@ export default function PostDetailClient({ initialPost, billboardPromotionCost }
                               <div className={`border rounded-2xl rounded-tl-none px-4 py-3 shadow-md ${theme === 'dark' ? 'bg-[#24272a] border-white/5' : 'bg-white border-slate-100'
                                 }`}>
                                 <div className="flex items-center gap-3 mb-1">
-                                  <span className={`font-bold text-sm ${theme === 'dark' ? 'text-cyan-400' : 'text-cyan-600'}`}>{reply.author.name}</span>
+                                  <span className={`font-bold text-sm flex items-center ${theme === 'dark' ? 'text-cyan-400' : 'text-cyan-600'}`}>
+                                    {reply.author.name}
+                                    {reply.author.isAdmin && <ProBadge />}
+                                  </span>
                                   <time className={`text-[10px] font-mono ${theme === 'dark' ? 'text-gray-600' : 'text-slate-400'}`}>{formatTimeAgo(reply.createdAt)}</time>
                                 </div>
                                 <p className={`text-sm leading-relaxed ${theme === 'dark' ? 'text-gray-200' : 'text-slate-700'}`}>{reply.content}</p>
@@ -504,7 +530,14 @@ export default function PostDetailClient({ initialPost, billboardPromotionCost }
         <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center" onClick={closeLightbox}>
           <button onClick={closeLightbox} className="absolute top-4 right-4 p-2 bg-gray-800/80 text-white rounded-lg">✕</button>
           <div className="max-w-7xl max-h-[90vh] p-4" onClick={e => e.stopPropagation()}>
-            <img src={post.imageUrls[lightboxImageIndex]} alt="" className="max-w-full max-h-full object-contain rounded-lg" />
+            <Image
+              src={getAssetUrl(post.imageUrls[lightboxImageIndex])}
+              alt=""
+              width={1600}
+              height={1200}
+              unoptimized={isExternalUrl(post.imageUrls[lightboxImageIndex])}
+              className="max-w-full max-h-full object-contain rounded-lg"
+            />
           </div>
           {post.imageUrls.length > 1 && (
             <>

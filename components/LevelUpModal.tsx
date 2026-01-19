@@ -32,6 +32,14 @@ export default function LevelUpModal({
         }
     }, [isOpen]);
 
+    const handleClose = () => {
+        // Trigger a global data refresh when closing the modal to ensure UI is in sync
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('refresh-user-data'));
+        }
+        onClose();
+    };
+
     if (!isOpen) return null;
 
     return (
@@ -44,7 +52,7 @@ export default function LevelUpModal({
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         className="absolute inset-0 bg-black/80 backdrop-blur-sm"
-                        onClick={onClose}
+                        onClick={handleClose}
                     />
 
                     {/* Confetti Effect (Simple CSS or Canvas placeholder) */}
@@ -119,7 +127,7 @@ export default function LevelUpModal({
                             <motion.button
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
-                                onClick={onClose}
+                                onClick={handleClose}
                                 className="mt-6 px-8 py-3 bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-300 hover:to-orange-400 text-white font-bold rounded-xl shadow-lg border-b-4 border-orange-700 active:border-b-0 active:mt-[27px]"
                             >
                                 CONTINUE

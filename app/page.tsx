@@ -361,6 +361,8 @@ export default function Home() {
             email: user.email,
             avatar: user.avatar,
             points: user.points || gameUser.points || 50,
+            level: user.level,
+            bits: user.bits,
             username: gameUser.username || user.name,
             character: gameUser.character,
             workstationId: gameUser.workstationId,
@@ -373,6 +375,8 @@ export default function Home() {
             email: user.email,
             avatar: user.avatar,
             points: user.points || 50,
+            level: user.level,
+            bits: user.bits,
             username: user.name,
             workstationId: prev?.workstationId,
             workstations: []
@@ -1152,7 +1156,7 @@ export default function Home() {
       {/* 状态更新组件 */}
       {memoizedPostStatus}
     </LeftPanel>
-  ), [currentUser?.id, currentUser?.name, currentUser?.points, workstationStats, isMobile, isTablet, memoizedPostStatus, leftPanelCollapsed, isTemporaryPlayer])
+  ), [currentUser?.id, currentUser?.name, currentUser?.points, currentUser?.level, currentUser?.bits, workstationStats, isMobile, isTablet, memoizedPostStatus, leftPanelCollapsed, isTemporaryPlayer])
 
   // Create memoized right panel content
   const memoizedRightPanel = useMemo(() => (

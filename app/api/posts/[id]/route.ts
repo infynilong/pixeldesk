@@ -20,6 +20,7 @@ export async function GET(
             name: true,
             avatar: true,
             customAvatar: true,
+            isAdmin: true,
             user_workstations: {
               select: {
                 workstationId: true
@@ -38,6 +39,7 @@ export async function GET(
                 name: true,
                 avatar: true,
                 customAvatar: true,
+                isAdmin: true,
                 user_workstations: {
                   select: {
                     workstationId: true
@@ -184,6 +186,7 @@ export async function PUT(
             name: true,
             avatar: true,
             customAvatar: true,
+            isAdmin: true,
             user_workstations: {
               select: {
                 workstationId: true
@@ -285,6 +288,7 @@ export async function PATCH(
             name: true,
             avatar: true,
             customAvatar: true,
+            isAdmin: true,
             user_workstations: {
               select: {
                 workstationId: true

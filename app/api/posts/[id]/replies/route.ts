@@ -51,7 +51,8 @@ export async function GET(
                 id: true,
                 name: true,
                 avatar: true,
-                customAvatar: true
+                customAvatar: true,
+                isAdmin: true
               }
             }
           }
@@ -62,7 +63,7 @@ export async function GET(
       const totalPages = Math.ceil(totalCount / limit)
 
       // 将 users 字段映射为 author 以保持 API 兼容性
-      const repliesWithAuthor = replies.map(reply => ({
+      const repliesWithAuthor = (replies as any[]).map(reply => ({
         ...reply,
         author: reply.users,
         users: undefined
@@ -163,7 +164,7 @@ export async function POST(
     )
   }
 
-  const { content } = body
+  const { content, parentId } = body
 
   if (!content || content.trim().length === 0) {
     return NextResponse.json(
@@ -235,6 +236,7 @@ export async function POST(
             id: randomUUID(),
             postId,
             authorId: userId,
+            parentId: parentId || null,
             content: content.trim(),
             updatedAt: new Date()
           },
@@ -244,7 +246,8 @@ export async function POST(
                 id: true,
                 name: true,
                 avatar: true,
-                customAvatar: true
+                customAvatar: true,
+                isAdmin: true
               }
             }
           }
@@ -256,22 +259,49 @@ export async function POST(
           data: { replyCount: { increment: 1 } }
         })
 
-        // 创建通知：如果回复者不是帖子作者，为帖子作者创建通知
-        if (post.authorId !== userId) {
+        // 创建通知
+        // 1. 如果回复的是某个楼层（parentId存在），为该楼层作者创建通知
+        let floorAuthorId: string | null = null
+        if (parentId) {
+          const parentReply = await tx.post_replies.findUnique({
+            where: { id: parentId },
+            select: { authorId: true }
+          })
+          if (parentReply && parentReply.authorId !== userId) {
+            floorAuthorId = parentReply.authorId
+            await tx.notifications.create({
+              data: {
+                id: randomUUID(),
+                userId: parentReply.authorId,
+                type: 'POST_REPLY',
+                title: '评论有了新回复',
+                message: `${user.name} 在评论中回复了你：${content.trim().substring(0, 30)}${content.trim().length > 30 ? '...' : ''}`,
+                relatedPostId: postId,
+                relatedReplyId: reply.id,
+                relatedUserId: userId,
+                updatedAt: new Date()
+              }
+            })
+            console.log(`✅ [POST replies] 已为楼层作者 ${parentReply.authorId} 创建回复通知`)
+          }
+        }
+
+        // 2. 为帖子作者创建通知（如果回帖者不是贴主，且贴主不是楼层作者，避免重复通知）
+        if (post.authorId !== userId && post.authorId !== floorAuthorId) {
           await tx.notifications.create({
             data: {
               id: randomUUID(),
-              userId: post.authorId, // 帖子作者接收通知
+              userId: post.authorId,
               type: 'POST_REPLY',
               title: '新的回复',
               message: `${user.name} 回复了你的帖子${post.title ? `"${post.title}"` : ''}`,
               relatedPostId: postId,
               relatedReplyId: reply.id,
-              relatedUserId: userId, // 回复者
+              relatedUserId: userId,
               updatedAt: new Date()
             }
           })
-          console.log(`✅ [POST replies] 已为用户 ${post.authorId} 创建回复通知`)
+          console.log(`✅ [POST replies] 已为帖子作者 ${post.authorId} 创建回复通知`)
         }
 
         return reply
@@ -294,8 +324,8 @@ export async function POST(
 
       // 将 users 字段映射为 author 以保持 API 兼容性
       const resultWithAuthor = {
-        ...result,
-        author: result.users,
+        ...(result as any),
+        author: (result as any).users,
         users: undefined
       }
 

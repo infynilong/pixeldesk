@@ -85,6 +85,22 @@ export function UserProvider({ children }: { children: ReactNode }) {
     checkAuth()
   }, [])
 
+  // 监听刷新用户数据和升级事件
+  useEffect(() => {
+    const handleRefresh = () => {
+      console.log('🔄 [UserContext] 收到刷新请求，正在更新用户信息...')
+      checkAuth(true) // 静默刷新
+    }
+
+    window.addEventListener('refresh-user-data', handleRefresh)
+    window.addEventListener('level-up' as any, handleRefresh)
+
+    return () => {
+      window.removeEventListener('refresh-user-data', handleRefresh)
+      window.removeEventListener('level-up' as any, handleRefresh)
+    }
+  }, [])
+
   const login = async (email: string, password: string) => {
     try {
       const response = await fetch('/api/auth/login', {

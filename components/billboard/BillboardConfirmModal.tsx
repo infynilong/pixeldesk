@@ -11,6 +11,8 @@ interface BillboardConfirmModalProps {
     currentPoints?: number
     cost: number
     postTitle: string
+    customTitle?: string
+    customMessage?: string
 }
 
 export default function BillboardConfirmModal({
@@ -19,7 +21,9 @@ export default function BillboardConfirmModal({
     onCancel,
     currentPoints = 0,
     cost,
-    postTitle
+    postTitle,
+    customTitle,
+    customMessage
 }: BillboardConfirmModalProps) {
     const { t } = useTranslation()
     const [isProcessing, setIsProcessing] = useState(false)
@@ -69,13 +73,13 @@ export default function BillboardConfirmModal({
 
                         <div className="text-center mb-8">
                             <div className="inline-block px-4 py-2 bg-cyan-500 text-black font-black mb-6 rotate-[-2deg] shadow-[4px_4px_0_0_rgba(0,0,0,0.3)]">
-                                {t.billboard.modal_title}
+                                {customTitle || t.billboard.modal_title}
                             </div>
                             <h3 className="text-white text-xl font-bold leading-tight mb-4 uppercase tracking-tighter">
                                 {postTitle || t.billboard.untitled}
                             </h3>
                             <p className="text-gray-400 text-sm leading-relaxed">
-                                {t.billboard.modal_confirm_text}
+                                {customMessage || t.billboard.modal_confirm_text}
                             </p>
                         </div>
 

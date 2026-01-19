@@ -8,7 +8,13 @@ import { useTranslation } from '@/lib/hooks/useTranslation'
 import { createPortal } from 'react-dom'
 import Image from 'next/image'
 import { getAssetUrl } from '@/lib/utils/assets'
+import { renderContentWithUrls, extractImageUrls } from '@/lib/utils/format'
 import BillboardConfirmModal from './billboard/BillboardConfirmModal'
+import ProBadge from '@/components/social/ProBadge'
+import { usePostReplies } from '@/lib/hooks/usePostReplies'
+import CreateReplyForm from './CreateReplyForm'
+import { PostReply, CreateReplyData } from '@/types/social'
+import ImageLightbox from './social/ImageLightbox'
 
 interface PostListItemProps {
   post: Post
@@ -18,6 +24,7 @@ interface PostListItemProps {
   onShowLoginPrompt?: () => void
   currentPoints?: number
   billboardPromotionCost?: number
+  onPostClick?: (postId: string) => void
 }
 
 /**
@@ -30,13 +37,20 @@ export default function PostListItem({
   isAuthenticated = true,
   onShowLoginPrompt,
   currentPoints = 0,
-  billboardPromotionCost = 50
+  billboardPromotionCost = 50,
+  onPostClick
 }: PostListItemProps) {
+  const [showReplies, setShowReplies] = useState(false)
   const { t, locale } = useTranslation()
   const isLiked = post.isLiked || false
   const isOwnPost = post.author.id === currentUserId
   const [showImageModal, setShowImageModal] = useState(false)
   const [showPromoteModal, setShowPromoteModal] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0)
+  const [lightboxImages, setLightboxImages] = useState<string[]>([])
+  const [lightboxInitialIndex, setLightboxInitialIndex] = useState(0)
 
   const handleLike = () => {
     if (!isAuthenticated) {
@@ -46,7 +60,60 @@ export default function PostListItem({
     onLike()
   }
 
+  // 使用回复hook
+  const {
+    replies,
+    isLoading: isLoadingReplies,
+    isCreatingReply,
+    error: repliesError,
+    pagination: repliesPagination,
+    fetchReplies,
+    createReply,
+    loadMoreReplies
+  } = usePostReplies({
+    postId: post.id,
+    userId: currentUserId,
+    autoFetch: showReplies
+  })
+
+  const handleToggleReplies = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const newShowReplies = !showReplies
+    setShowReplies(newShowReplies)
+    if (newShowReplies && replies.length === 0) {
+      fetchReplies()
+    }
+  }
+
+  const handleReplySubmit = async (replyData: CreateReplyData) => {
+    if (!isAuthenticated) {
+      onShowLoginPrompt?.()
+      return false
+    }
+    const newReply = await createReply(replyData)
+    if (newReply) {
+      post.replyCount = (post.replyCount || 0) + 1
+    }
+    return !!newReply
+  }
+
+  const handleContentClick = (e: React.MouseEvent) => {
+    // If onPostClick is provided, use it to open modal instead of href jump
+    if (onPostClick) {
+      e.preventDefault()
+      e.stopPropagation()
+      onPostClick(post.id)
+    }
+  }
+
   const [isPromoting, setIsPromoting] = useState(false)
+
+  const handleImageClick = (images: string[], index: number) => {
+    setLightboxImages(images)
+    setLightboxInitialIndex(index)
+    setShowImageModal(true)
+  }
 
   const handlePromote = (e: React.MouseEvent) => {
     e.preventDefault()
@@ -81,6 +148,37 @@ export default function PostListItem({
     } finally {
       setIsPromoting(false)
     }
+  }
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setShowDeleteModal(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    setIsDeleting(true)
+    try {
+      const res = await fetch(`/api/posts/${post.id}?userId=${currentUserId}`, {
+        method: 'DELETE'
+      })
+      const result = await res.json()
+      if (result.success) {
+        window.location.reload()
+      } else {
+        alert(result.error || 'Delete failed')
+      }
+    } catch (error) {
+      console.error('Delete failed:', error)
+      alert('Delete failed')
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  // 辅助函数：判断是否为外部链接
+  const isExternalUrl = (url: string) => {
+    return url.startsWith('http://') || url.startsWith('https://')
   }
 
   // 格式化时间
@@ -136,16 +234,12 @@ export default function PostListItem({
           <div className="flex-1 min-w-0">
             {/* 标题 - 如果有，可点击跳转 */}
             {post.title && (
-              <Link
-                href={`/posts/${post.id}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block"
+              <h4
+                onClick={handleContentClick}
+                className="text-gray-100 text-sm font-pixel font-bold mb-0.5 line-clamp-1 hover:text-emerald-400 transition-colors cursor-pointer"
               >
-                <h4 className="text-gray-100 text-sm font-medium mb-0.5 line-clamp-1 hover:text-cyan-400 transition-colors cursor-pointer">
-                  {post.title}
-                </h4>
-              </Link>
+                {post.title}
+              </h4>
             )}
 
             {/* 元信息行：作者 + 时间 + 类型 + 标签 */}
@@ -155,22 +249,23 @@ export default function PostListItem({
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={(e) => e.stopPropagation()}
-                className="text-gray-400 hover:text-cyan-400 font-mono transition-colors"
+                className="text-gray-400 hover:text-emerald-400 font-pixel transition-colors flex items-center"
               >
                 {post.author.name}
+                {post.author.isAdmin && <ProBadge />}
               </Link>
-              <span className="text-gray-600">·</span>
-              <span className="text-gray-500 font-mono flex-shrink-0">
+              <span className="text-gray-600 font-pixel">·</span>
+              <span className="text-gray-500 font-pixel flex-shrink-0 text-[10px]">
                 {formatTime(post.createdAt)}
               </span>
               {isBlog && (
                 <>
                   <span className="text-gray-600">·</span>
-                  <span className="inline-flex items-center gap-0.5 px-1 py-0.5 bg-cyan-600/20 border border-cyan-500/30 rounded text-cyan-400 font-pixel">
+                  <span className="inline-flex items-center gap-0.5 px-1 py-0.5 bg-emerald-600/20 border border-emerald-500/30 rounded text-emerald-400 font-pixel">
                     <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                     </svg>
-                    <span className="text-2xs">{t.nav.blog}</span>
+                    <span className="text-[8px]">{t.nav.blog}</span>
                   </span>
                 </>
               )}
@@ -180,7 +275,7 @@ export default function PostListItem({
                   {post.tags.slice(0, 2).map((tag, index) => (
                     <span
                       key={index}
-                      className="inline-flex items-center px-1 py-0.5 bg-gray-800/50 border border-gray-700/50 rounded text-gray-400 font-mono"
+                      className="inline-flex items-center px-1 py-0.5 bg-gray-800/50 border border-gray-700/50 rounded text-gray-500 font-pixel text-[10px]"
                     >
                       #{tag}
                     </span>
@@ -194,49 +289,75 @@ export default function PostListItem({
 
             {/* 内容预览 - 只显示一行，可点击跳转 */}
             {!post.title && (
-              <Link
-                href={`/posts/${post.id}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block"
+              <div
+                onClick={handleContentClick}
+                className="text-gray-400 text-xs leading-snug line-clamp-1 mb-1 hover:text-gray-300 transition-colors cursor-pointer"
               >
-                <p className="text-gray-400 text-xs leading-snug line-clamp-1 mb-1 hover:text-gray-300 transition-colors cursor-pointer">
-                  {getPreview(post.content, 80)}
-                </p>
-              </Link>
+                {renderContentWithUrls(getPreview(post.content, 80), t.social.view_link)}
+              </div>
             )}
 
-            {/* 图片缩略图 */}
+            {/* 图片九宫格展示 */}
             {(post.imageUrl || (post.imageUrls && post.imageUrls.length > 0)) && (
-              <div className="mb-2 mt-1">
-                <div
-                  onClick={(e) => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                    setShowImageModal(true)
-                  }}
-                  className="relative w-full max-w-[200px] h-[100px] rounded-lg overflow-hidden border border-gray-700/50 hover:border-cyan-500/50 transition-colors cursor-pointer group"
-                >
-                  <Image
-                    src={getAssetUrl(post.imageUrl || post.imageUrls?.[0] || '')}
-                    alt="Post image"
-                    fill
-                    className="object-cover group-hover:scale-105 transition-transform duration-200"
-                    sizes="200px"
-                  />
-                  {/* 多图标识 */}
-                  {post.imageUrls && post.imageUrls.length > 1 && (
-                    <div className="absolute top-1 right-1 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded">
-                      +{post.imageUrls.length - 1}
+              <div className="mb-2 mt-2">
+                {(() => {
+                  const urls = post.imageUrls && post.imageUrls.length > 0
+                    ? post.imageUrls
+                    : [post.imageUrl || '']
+
+                  const count = urls.length
+
+                  if (count === 1) {
+                    return (
+                      <div
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          handleImageClick(urls, 0)
+                        }}
+                        className="relative w-full max-w-[280px] h-[160px] rounded border border-gray-700/50 hover:border-emerald-500/50 transition-colors cursor-pointer group shadow-pixel-sm"
+                      >
+                        <Image
+                          src={getAssetUrl(urls[0])}
+                          alt="Post image"
+                          fill
+                          unoptimized={isExternalUrl(urls[0])}
+                          className="object-cover group-hover:scale-105 transition-transform duration-200"
+                          sizes="280px"
+                        />
+                      </div>
+                    )
+                  }
+
+                  // 多图九宫格逻辑
+                  const gridCols = count === 2 || count === 4 ? 'grid-cols-2' : 'grid-cols-3'
+                  const maxWidth = count === 2 ? 'max-w-[240px]' : 'max-w-[320px]'
+
+                  return (
+                    <div className={`grid ${gridCols} gap-1.5 ${maxWidth}`}>
+                      {urls.slice(0, 9).map((url, idx) => (
+                        <div
+                          key={idx}
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            handleImageClick(urls, idx)
+                          }}
+                          className="relative aspect-square rounded border border-gray-800 hover:border-emerald-500/50 transition-colors cursor-pointer group bg-gray-900 shadow-pixel-sm"
+                        >
+                          <Image
+                            src={getAssetUrl(url)}
+                            alt={`Post image ${idx}`}
+                            fill
+                            unoptimized={isExternalUrl(url)}
+                            className="object-cover group-hover:scale-110 transition-transform duration-300"
+                            sizes="100px"
+                          />
+                        </div>
+                      ))}
                     </div>
-                  )}
-                  {/* 放大图标提示 */}
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
-                    <svg className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
-                    </svg>
-                  </div>
-                </div>
+                  )
+                })()}
               </div>
             )}
 
@@ -258,22 +379,19 @@ export default function PostListItem({
                 <svg className="w-3.5 h-3.5" fill={isLiked ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                 </svg>
-                <span className="font-mono">{post.likeCount || 0}</span>
+                <span className="font-pixel text-[10px]">{post.likeCount || 0}</span>
               </button>
 
               {/* 回复 */}
-              <Link
-                href={`/posts/${post.id}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()}
-                className="flex items-center gap-1 text-gray-500 hover:text-cyan-400 transition-colors cursor-pointer"
+              <button
+                onClick={handleToggleReplies}
+                className={`flex items-center gap-1 transition-colors cursor-pointer ${showReplies ? 'text-emerald-400' : 'text-gray-500 hover:text-emerald-400'}`}
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                 </svg>
-                <span className="font-mono">{post.replyCount || 0}</span>
-              </Link>
+                <span className="font-pixel text-[10px]">{post.replyCount || 0}</span>
+              </button>
 
               {/* 阅读量 */}
               <div className="flex items-center gap-1 text-gray-500">
@@ -281,22 +399,109 @@ export default function PostListItem({
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                 </svg>
-                <span className="font-mono">{post.viewCount || 0}</span>
+                <span className="font-pixel text-[10px]">{post.viewCount || 0}</span>
               </div>
 
-              {/* 大屏提请上榜 - 极简图标 (与点赞/浏览对齐) */}
+              {/* 大屏提请上榜 */}
               {!isOwnPost && (
                 <button
                   onClick={handlePromote}
                   disabled={isPromoting}
-                  className="flex items-center gap-1 group/promote transition-colors text-gray-500 hover:text-cyan-400 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex items-center gap-1 group/promote transition-colors text-gray-500 hover:text-emerald-400 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
                   title={t.billboard.push_to_billboard}
                 >
                   <span className="text-sm group-hover/promote:scale-110 transition-transform">📢</span>
-                  <span className="font-mono">{post.promotionCount || 0}</span>
+                  <span className="font-pixel text-[10px]">{post.promotionCount || 0}</span>
+                </button>
+              )}
+
+              {/* 删除按钮 - 仅作者可见 */}
+              {isOwnPost && (
+                <button
+                  onClick={handleDelete}
+                  className="flex items-center gap-1 text-gray-600 hover:text-red-500 transition-colors cursor-pointer ml-auto opacity-0 group-hover:opacity-100"
+                  title={t.common.delete || 'Delete'}
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
                 </button>
               )}
             </div>
+
+            {/* 回复展开部分 */}
+            {showReplies && (
+              <div className="mt-3 pt-3 border-t border-gray-800/50 space-y-3" onClick={(e) => e.stopPropagation()}>
+                <CreateReplyForm
+                  onSubmit={handleReplySubmit}
+                  onCancel={() => setShowReplies(false)}
+                  isMobile={true}
+                  isSubmitting={isCreatingReply}
+                  variant="dark"
+                />
+
+                {/* 回复列表预览 */}
+                {isLoadingReplies && replies.length === 0 ? (
+                  <div className="flex justify-center py-2">
+                    <div className="w-4 h-4 border-2 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin"></div>
+                  </div>
+                ) : replies.length > 0 && (
+                  <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
+                    {replies.map((reply) => {
+                      const replyImages = extractImageUrls(reply.content)
+                      return (
+                        <div key={reply.id} className="text-xs bg-gray-800/30 rounded p-2 border border-gray-700/30">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-gray-300 font-bold flex items-center gap-1">
+                              {reply.author.name}
+                              {reply.author.isAdmin && <ProBadge />}
+                            </span>
+                            <span className="text-gray-600 text-[10px]">{formatTime(reply.createdAt)}</span>
+                          </div>
+                          <div className="text-gray-400 break-words">
+                            {renderContentWithUrls(reply.content, t.social.view_link)}
+                          </div>
+
+                          {/* 回复中的图片预览 */}
+                          {replyImages.length > 0 && (
+                            <div className="mt-2 flex flex-wrap gap-1">
+                              {replyImages.map((imgUrl, idx) => (
+                                <div
+                                  key={idx}
+                                  onClick={() => {
+                                    setLightboxImages(replyImages)
+                                    setLightboxInitialIndex(idx)
+                                    setShowImageModal(true)
+                                  }}
+                                  className="relative w-20 h-20 rounded border border-gray-700 overflow-hidden cursor-zoom-in group"
+                                >
+                                  <Image
+                                    src={getAssetUrl(imgUrl)}
+                                    alt="Reply image"
+                                    fill
+                                    unoptimized={isExternalUrl(imgUrl)}
+                                    className="object-cover group-hover:scale-110 transition-transform"
+                                    sizes="80px"
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+
+                <Link
+                  href={`/posts/${post.id}`}
+                  target="_blank"
+                  className="block text-center text-[10px] text-gray-500 hover:text-cyan-400 py-1"
+                >
+                  {t.social.view_all_replies || 'View all replies'} →
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -310,68 +515,27 @@ export default function PostListItem({
         postTitle={post.title || ''}
       />
 
-      {/* 图片放大模态框 - 使用 Portal 渲染到 body */}
-      {showImageModal && (post.imageUrl || (post.imageUrls && post.imageUrls.length > 0)) && typeof window !== 'undefined' && createPortal(
-        <div
-          className="fixed inset-0 bg-black/90 flex items-center justify-center p-4"
-          style={{ zIndex: 9999, pointerEvents: 'auto' }}
-          onClick={(e) => {
-            e.preventDefault()
-            e.stopPropagation()
-            setShowImageModal(false)
-          }}
-        >
-          <div
-            className="relative max-w-[90vw] max-h-[90vh] flex flex-col items-center"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* 关闭按钮 */}
-            <button
-              onClick={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-                setShowImageModal(false)
-              }}
-              className="absolute -top-12 right-0 text-white hover:text-cyan-400 transition-colors z-10"
-            >
-              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-
-            {/* 图片列表 - 支持滚动查看多图 */}
-            <div
-              className="relative max-w-full max-h-[90vh] overflow-y-auto space-y-4 px-4"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {post.imageUrl ? (
-                <Image
-                  src={getAssetUrl(post.imageUrl)}
-                  alt="Post image full size"
-                  width={1200}
-                  height={800}
-                  className="max-w-full max-h-[90vh] w-auto h-auto object-contain rounded-lg"
-                  quality={95}
-                />
-              ) : (
-                post.imageUrls?.map((url, index) => (
-                  <div key={index} className="mb-4 flex justify-center">
-                    <Image
-                      src={getAssetUrl(url)}
-                      alt={`Post image ${index + 1}`}
-                      width={1200}
-                      height={800}
-                      className="max-w-full max-h-[85vh] w-auto h-auto object-contain rounded-lg shadow-2xl"
-                      quality={95}
-                    />
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </div>,
-        document.body
+      {/* 删除确认对话框 */}
+      {showDeleteModal && (
+        <BillboardConfirmModal
+          isVisible={showDeleteModal}
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setShowDeleteModal(false)}
+          currentPoints={100}
+          cost={0}
+          postTitle={post.title || post.content.substring(0, 20)}
+          customTitle={t.social.confirm_delete}
+          customMessage={t.social.confirm_delete_msg}
+        />
       )}
+
+      {/* 图片放大模态框 */}
+      <ImageLightbox
+        isOpen={showImageModal}
+        onClose={() => setShowImageModal(false)}
+        images={lightboxImages}
+        initialIndex={lightboxInitialIndex}
+      />
     </>
   )
 }

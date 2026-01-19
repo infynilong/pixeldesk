@@ -9,6 +9,7 @@ import UserAvatar from '@/components/UserAvatar'
 import { LevelProgress } from '@/components/LevelProgress'
 import { useTranslation } from '@/lib/hooks/useTranslation'
 import { getAssetUrl } from '@/lib/utils/assets'
+import ProBadge from '../social/ProBadge'
 
 interface PlayerProfileTabProps {
   collisionPlayer?: any
@@ -326,8 +327,9 @@ export default function PlayerProfileTab({
             {/* 中间:用户名+工位标识 */}
             <div className="flex-1 min-w-0 py-1.5 transition-all duration-500 ease-in-out">
               <div className="flex items-center gap-2 mb-0.5">
-                <h3 className="text-sm font-bold text-white font-pixel truncate transition-all duration-500 ease-in-out">
+                <h3 className="text-sm font-bold text-white font-pixel truncate transition-all duration-500 ease-in-out flex items-center">
                   {collisionPlayer.name}
+                  {collisionPlayer.isAdmin && <ProBadge />}
                 </h3>
                 {workstationAd && (
                   <span className="text-2xs text-white/60 font-pixel tracking-wider uppercase whitespace-nowrap">
@@ -416,8 +418,9 @@ export default function PlayerProfileTab({
               />
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
-                  <h3 className="text-lg font-bold text-white font-pixel tracking-wide drop-shadow-sm">
+                  <h3 className="text-lg font-bold text-white font-pixel tracking-wide drop-shadow-sm flex items-center">
                     {collisionPlayer.name}
+                    {collisionPlayer.isAdmin && <ProBadge />}
                   </h3>
                   {workstationAd && (
                     <span className="text-xs text-white/70 font-pixel tracking-wider uppercase">
