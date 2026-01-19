@@ -11,6 +11,7 @@ import { useTranslation } from '@/lib/hooks/useTranslation'
 import { LevelProgress } from './LevelProgress'
 import { LevelBadge } from './LevelBadge'
 import { useLevelPermission } from '@/lib/hooks/useLevelPermission'
+import { getAssetUrl } from '@/lib/utils/assets'
 
 const PointsHistory = dynamic(() => import('./PointsHistory'), {
   loading: () => <div className="p-4 text-center text-xs text-gray-500 animate-pulse">Loading History...</div>
@@ -109,7 +110,7 @@ export default function LeftPanel({
                 <div className="w-8 h-8 bg-gray-700 rounded-lg animate-pulse"></div>
               ) : (
                 <img
-                  src={brandConfig.app_logo}
+                  src={getAssetUrl(brandConfig.app_logo)}
                   alt={brandConfig.app_name}
                   className="w-8 h-8 rounded-lg object-cover border border-slate-200 dark:border-gray-700"
                   onError={(e) => {

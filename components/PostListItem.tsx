@@ -7,6 +7,7 @@ import { useState } from 'react'
 import { useTranslation } from '@/lib/hooks/useTranslation'
 import { createPortal } from 'react-dom'
 import Image from 'next/image'
+import { getAssetUrl } from '@/lib/utils/assets'
 import BillboardConfirmModal from './billboard/BillboardConfirmModal'
 
 interface PostListItemProps {
@@ -217,7 +218,7 @@ export default function PostListItem({
                   className="relative w-full max-w-[200px] h-[100px] rounded-lg overflow-hidden border border-gray-700/50 hover:border-cyan-500/50 transition-colors cursor-pointer group"
                 >
                   <Image
-                    src={post.imageUrl || post.imageUrls?.[0] || ''}
+                    src={getAssetUrl(post.imageUrl || post.imageUrls?.[0] || '')}
                     alt="Post image"
                     fill
                     className="object-cover group-hover:scale-105 transition-transform duration-200"
@@ -345,7 +346,7 @@ export default function PostListItem({
             >
               {post.imageUrl ? (
                 <Image
-                  src={post.imageUrl}
+                  src={getAssetUrl(post.imageUrl)}
                   alt="Post image full size"
                   width={1200}
                   height={800}
@@ -356,7 +357,7 @@ export default function PostListItem({
                 post.imageUrls?.map((url, index) => (
                   <div key={index} className="mb-4 flex justify-center">
                     <Image
-                      src={url}
+                      src={getAssetUrl(url)}
                       alt={`Post image ${index + 1}`}
                       width={1200}
                       height={800}

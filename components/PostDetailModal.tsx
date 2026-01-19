@@ -7,6 +7,7 @@ import UserAvatar from './UserAvatar'
 import CreateReplyForm from './CreateReplyForm'
 import { usePostReplies } from '@/lib/hooks/usePostReplies'
 import LoadingSpinner from './LoadingSpinner'
+import { getAssetUrl } from '@/lib/utils/assets'
 
 interface PostDetailModalProps {
   isOpen: boolean
@@ -338,7 +339,7 @@ export default function PostDetailModal({
                     {post.imageUrl && (
                       <div className="mt-6 overflow-hidden rounded-2xl shadow-lg">
                         <img
-                          src={post.imageUrl}
+                          src={getAssetUrl(post.imageUrl)}
                           alt="Post image"
                           className="w-full max-h-96 object-cover hover:scale-105 "
                         />

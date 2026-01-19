@@ -2,6 +2,7 @@
 
 import { useState, useCallback, memo, useEffect } from 'react'
 import { useTranslation } from '@/lib/hooks/useTranslation'
+import { getAssetUrl } from '@/lib/utils/assets'
 
 interface WorkstationInfoModalProps {
   isVisible: boolean
@@ -295,7 +296,7 @@ const WorkstationInfoModal = memo(({
                     {userInfo.avatar ? (
                       <div className="relative">
                         <img
-                          src={userInfo.avatar}
+                          src={getAssetUrl(userInfo.avatar)}
                           alt={userInfo.name}
                           className="w-12 h-12 rounded-xl object-cover flex-shrink-0 border-2 border-white/20 shadow-lg"
                         />
@@ -342,7 +343,7 @@ const WorkstationInfoModal = memo(({
                   {bindingInfo.adImage && (
                     <div className="relative mb-4 rounded-lg overflow-hidden border-2 border-retro-border/30 shadow-lg">
                       <img
-                        src={bindingInfo.adImage}
+                        src={getAssetUrl(bindingInfo.adImage)}
                         alt={t.workstation.ad}
                         className="w-full h-auto object-cover"
                         onError={(e) => {

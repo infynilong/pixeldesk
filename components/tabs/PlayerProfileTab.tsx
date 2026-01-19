@@ -8,6 +8,7 @@ import LoadingSpinner from '@/components/LoadingSpinner'
 import UserAvatar from '@/components/UserAvatar'
 import { LevelProgress } from '@/components/LevelProgress'
 import { useTranslation } from '@/lib/hooks/useTranslation'
+import { getAssetUrl } from '@/lib/utils/assets'
 
 interface PlayerProfileTabProps {
   collisionPlayer?: any
@@ -311,7 +312,7 @@ export default function PlayerProfileTab({
               />
               {workstationAd?.adImage && (
                 <img
-                  src={workstationAd.adImage}
+                  src={getAssetUrl(workstationAd.adImage)}
                   alt="Ad"
                   className="w-10 h-10 object-cover rounded-md transition-all duration-500 ease-in-out"
                   onError={(e) => {
@@ -469,7 +470,7 @@ export default function PlayerProfileTab({
                 {workstationAd.adImage && (
                   <div className="relative mb-3 rounded-lg overflow-hidden shadow-lg">
                     <img
-                      src={workstationAd.adImage}
+                      src={getAssetUrl(workstationAd.adImage)}
                       alt="工位广告"
                       className="w-full h-auto object-cover max-h-40"
                       onError={(e) => {

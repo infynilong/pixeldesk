@@ -5,6 +5,7 @@ import { useTranslation } from '@/lib/hooks/useTranslation'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import UserAvatar from '../UserAvatar'
+import { getAssetUrl } from '@/lib/utils/assets'
 
 interface BillboardPost {
     id: string
@@ -155,7 +156,7 @@ export default function BillboardUI() {
                             exit={{ opacity: 0, scale: 0.9, y: 50, rotateX: 10 }}
                             className="relative w-[90vw] md:w-[85vw] lg:w-[80vw] xl:w-[75vw] h-[85vh] bg-[#3a3f44] border-[8px] border-[#2c3034] shadow-[20px_20px_0_0_rgba(0,0,0,0.4)] flex flex-col font-pixel overflow-hidden"
                             style={{
-                                backgroundImage: `url('/assets/tileset/office.png')`,
+                                backgroundImage: `url(${getAssetUrl('/assets/tileset/office.png')})`,
                                 backgroundSize: 'cover',
                                 backgroundBlendMode: 'multiply'
                             }}
@@ -235,7 +236,7 @@ export default function BillboardUI() {
 
                                                         {post.coverImage && (
                                                             <div className="flex-shrink-0 w-20 h-full md:w-28 bg-gray-100 border border-gray-900 overflow-hidden">
-                                                                <img src={post.coverImage} className="w-full h-full object-cover" alt="" />
+                                                                <img src={getAssetUrl(post.coverImage)} className="w-full h-full object-cover" alt="" />
                                                             </div>
                                                         )}
 

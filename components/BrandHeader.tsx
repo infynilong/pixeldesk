@@ -1,6 +1,7 @@
 'use client'
 
 import { useBrandConfig } from '@/lib/hooks/useBrandConfig'
+import { getAssetUrl } from '@/lib/utils/assets'
 
 interface BrandHeaderProps {
   showLogo?: boolean
@@ -63,7 +64,7 @@ export default function BrandHeader({
     <div className={`flex items-center gap-2 ${className}`}>
       {showLogo && config.app_logo && (
         <img
-          src={config.app_logo}
+          src={getAssetUrl(config.app_logo)}
           alt={config.app_name}
           className={`${styles.logo} rounded-lg object-cover`}
           onError={(e) => {
@@ -125,7 +126,7 @@ export function BrandLogo({
 
   return (
     <img
-      src={config.app_logo}
+      src={getAssetUrl(config.app_logo)}
       alt={config.app_name}
       className={`${sizeClass} rounded-lg object-cover ${className}`}
       onError={(e) => {

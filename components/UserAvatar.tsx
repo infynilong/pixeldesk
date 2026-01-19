@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Image from 'next/image'
 import UserStatusIndicator from './UserStatusIndicator'
 import { getCharacterImageUrl } from '@/lib/characterUtils'
+import { getAssetUrl } from '@/lib/utils/assets'
 
 interface UserAvatarProps {
   userId: string
@@ -82,7 +83,7 @@ export default function UserAvatar({
   const getAvatarUrl = () => {
     // 1. 优先使用自定义头像
     if (customAvatar) {
-      return customAvatar
+      return getAssetUrl(customAvatar)
     }
 
     // 2. 如果没有自定义头像，使用角色形象

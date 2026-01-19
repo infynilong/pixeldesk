@@ -8,6 +8,7 @@
  */
 
 import prisma from '@/lib/db'
+import { getAssetUrl } from './utils/assets'
 
 /**
  * 角色信息接口（包含URL）
@@ -52,7 +53,7 @@ export function getCharacterImageUrl(characterKey: string | null | undefined): s
   const hasExtension = /\.(png|jpg|jpeg|webp|gif)$/i.test(characterKey)
   const filename = hasExtension ? characterKey : `${characterKey}.png`
 
-  return `${basePath}/${filename}`
+  return getAssetUrl(`${basePath}/${filename}`)
 }
 
 /**

@@ -112,6 +112,11 @@ docker compose up -d app
     *   A: 这是因为容器内 `node_modules` 的所有者为 root。我已经更新了 `Dockerfile`，请重新构建镜像：`docker compose up --build -d`。
 *   **Q: Firebase/Google Analytics 4 (GA4) 没有收到数据？**
     *   A: 由于这些是前端变量 (`NEXT_PUBLIC_`)，它们必须在**构建阶段**注入。我已经修改了 `Dockerfile` 和 `docker-compose.yml`。请确保服务器上的 `.env` 文件包含最新的 Firebase 配置，并重新运行 `docker compose up --build -d`。
+*   **Q: Docker 构建报错 `failed to prepare extraction snapshot ... parent snapshot ... does not exist`？**
+    *   A: 这是 Docker BuildKit 缓存损坏的常见问题。请尝试清理构建缓存并强制无缓存构建：
+        1. 清理缓存：`docker builder prune -f`
+        2. 强制构建：`docker compose build --no-cache app`
+        3. 重新启动：`docker compose up -d`
 
 ---
 
@@ -121,4 +126,31 @@ docker compose up -d app
 ---
 
 **维护人员**：Antigravity Assistant
-**日期**：2026-01-18
+**日期**：2026-01-19
+
+---
+
+## 🚀 迁移至对象存储 (OSS/CDN)
+
+如果您希望将图片等静态资源托管到独立的 OSS（如阿里云 OSS、腾讯云 COS）或 CDN，请遵循以下步骤：
+
+### 1. 准备工作
+- 将服务器上 `public/uploads` 目录下的所有文件上传到您的 OSS Bucket 根目录。
+- 确保 OSS 允许跨域访问（CORS），以便前端加载图片。
+
+### 2. 配置环境变量
+修改 `.env` 文件，设置 `NEXT_PUBLIC_ASSET_PREFIX`：
+```bash
+# 例如使用阿里云 OSS
+NEXT_PUBLIC_ASSET_PREFIX=https://your-bucket-name.oss-cn-hangzhou.aliyuncs.com
+```
+
+### 3. 重建应用
+由于这是一个 `NEXT_PUBLIC_` 变量，它在**构建时**被嵌入到客户端代码中。您需要重新构建镜像：
+```bash
+docker compose up --build -d
+```
+
+### 4. 验证
+- 检查网页上的图片地址，它们现在应该以您的 OSS 域名开头。
+- 如果某些图片无法加载，请检查 OSS 权限设置。

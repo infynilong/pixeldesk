@@ -1,4 +1,5 @@
 import React from 'react';
+import { getAssetUrl } from '@/lib/utils/assets';
 
 interface LevelBadgeProps {
     level: number;
@@ -167,7 +168,7 @@ export const LevelBadge: React.FC<LevelBadgeProps> = ({
 
                 {/* Level Content: Image or Number */}
                 {customIcon ? (
-                    <img src={customIcon} alt={`Level ${level}`} className="w-full h-full object-contain pixelated relative z-10" />
+                    <img src={getAssetUrl(customIcon)} alt={`Level ${level}`} className="w-full h-full object-contain pixelated relative z-10" />
                 ) : (
                     <span
                         className="relative font-bold text-white z-10 drop-shadow-[2px_2px_0_rgba(0,0,0,0.8)]"
