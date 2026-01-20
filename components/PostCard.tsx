@@ -360,18 +360,6 @@ export default function PostCard({
                       />
                     </div>
                   ))}
-                  {post.type === 'MARKDOWN' && (
-                    <Link
-                      href={`/posts/${post.id}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="absolute inset-0 flex items-center justify-center bg-cyan-900/20 opacity-0 group-hover/blog-images:opacity-100 transition-opacity backdrop-blur-[1px] pointer-events-none"
-                    >
-                      <span className="pointer-events-auto px-4 py-2 bg-cyan-500/80 hover:bg-cyan-500 text-white text-[10px] font-pixel rounded-full shadow-lg shadow-cyan-500/50 flex items-center gap-2 transform translate-y-2 group-hover/blog-images:translate-y-0 transition-transform">
-                        查看博客详情
-                      </span>
-                    </Link>
-                  )}
                 </div>
               )
             })()}

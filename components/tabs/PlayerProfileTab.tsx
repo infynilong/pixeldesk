@@ -332,9 +332,11 @@ export default function PlayerProfileTab({
                   {collisionPlayer.name}
                   {collisionPlayer.isAdmin && <ProBadge />}
                 </h3>
-                <span className="text-2xs text-white/60 font-pixel tracking-wider uppercase whitespace-nowrap">
-                  WS#{formatWorkstationId(workstationAd.workstationId)}
-                </span>
+                {workstationAd && (
+                  <span className="text-2xs text-white/60 font-pixel tracking-wider uppercase whitespace-nowrap">
+                    WS#{formatWorkstationId(workstationAd.workstationId)}
+                  </span>
+                )}
               </div>
               <p className="text-xs text-white/80 truncate transition-all duration-500 ease-in-out leading-tight">
                 {workstationAd?.adText || collisionPlayer.currentStatus?.message || 'Online'}

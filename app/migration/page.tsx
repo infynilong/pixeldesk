@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { DataMigration } from '@/lib/dataMigration'
-import { databaseStatusHistoryManager } from '@/lib/databaseStatusHistory'
 
 export default function DataMigrationPage() {
   const [migrationStatus, setMigrationStatus] = useState<'idle' | 'running' | 'completed' | 'error'>('idle')
@@ -37,7 +36,7 @@ export default function DataMigrationPage() {
       const results = await DataMigration.executeMigration()
       setMigrationResults(results)
       setMigrationStatus('completed')
-      
+
       // 重新检查数据库统计
       await checkDatabaseStats()
     } catch (error) {
@@ -53,7 +52,7 @@ export default function DataMigrationPage() {
       localStorage.removeItem('pixelDesk_statusHistory')
       localStorage.removeItem('pixelDesk_workstations')
       localStorage.removeItem('pixelDesk_userWorkstations')
-      
+
       // 重新检查本地数据
       checkLocalData()
     }
@@ -68,7 +67,7 @@ export default function DataMigrationPage() {
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-4xl mx-auto">
         <h1 className="text-3xl font-bold text-gray-900 mb-8">数据迁移工具</h1>
-        
+
         {/* 本地数据状态 */}
         <div className="bg-white rounded-lg shadow p-6 mb-6">
           <h2 className="text-xl font-semibold mb-4">本地数据状态</h2>
@@ -126,22 +125,21 @@ export default function DataMigrationPage() {
             <button
               onClick={executeMigration}
               disabled={migrationStatus === 'running'}
-              className={`px-6 py-2 rounded font-medium ${
-                migrationStatus === 'running'
+              className={`px-6 py-2 rounded font-medium ${migrationStatus === 'running'
                   ? 'bg-gray-300 cursor-not-allowed'
                   : 'bg-blue-600 hover:bg-blue-700 text-white'
-              }`}
+                }`}
             >
               {migrationStatus === 'running' ? '迁移中...' : '开始迁移'}
             </button>
-            
+
             <button
               onClick={clearLocalData}
               className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded font-medium"
             >
               清除本地数据
             </button>
-            
+
             <button
               onClick={() => {
                 checkLocalData()
@@ -174,22 +172,20 @@ export default function DataMigrationPage() {
 
         {/* 状态指示器 */}
         <div className="text-center">
-          <div className={`inline-flex items-center px-4 py-2 rounded-full ${
-            migrationStatus === 'idle' ? 'bg-gray-100 text-gray-800' :
-            migrationStatus === 'running' ? 'bg-blue-100 text-blue-800' :
-            migrationStatus === 'completed' ? 'bg-green-100 text-green-800' :
-            'bg-red-100 text-red-800'
-          }`}>
-            <div className={`w-2 h-2 rounded-full mr-2 ${
-              migrationStatus === 'idle' ? 'bg-gray-400' :
-              migrationStatus === 'running' ? 'bg-blue-400 ' :
-              migrationStatus === 'completed' ? 'bg-green-400' :
-              'bg-red-400'
-            }`}></div>
+          <div className={`inline-flex items-center px-4 py-2 rounded-full ${migrationStatus === 'idle' ? 'bg-gray-100 text-gray-800' :
+              migrationStatus === 'running' ? 'bg-blue-100 text-blue-800' :
+                migrationStatus === 'completed' ? 'bg-green-100 text-green-800' :
+                  'bg-red-100 text-red-800'
+            }`}>
+            <div className={`w-2 h-2 rounded-full mr-2 ${migrationStatus === 'idle' ? 'bg-gray-400' :
+                migrationStatus === 'running' ? 'bg-blue-400 ' :
+                  migrationStatus === 'completed' ? 'bg-green-400' :
+                    'bg-red-400'
+              }`}></div>
             {migrationStatus === 'idle' ? '就绪' :
-             migrationStatus === 'running' ? '迁移中...' :
-             migrationStatus === 'completed' ? '迁移完成' :
-             '迁移失败'}
+              migrationStatus === 'running' ? '迁移中...' :
+                migrationStatus === 'completed' ? '迁移完成' :
+                  '迁移失败'}
           </div>
         </div>
       </div>
