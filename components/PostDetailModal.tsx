@@ -466,7 +466,7 @@ export default function PostDetailModal({
                                     alt={`Post img ${idx}`}
                                     fill
                                     unoptimized={isExternalUrl(url)}
-                                    className="object-cover group-hover:scale-110 transition-transform duration-500"
+                                    className="object-contain group-hover:scale-110 transition-transform duration-500"
                                     sizes="(max-width: 768px) 33vw, 250px"
                                   />
                                 </div>
@@ -671,7 +671,7 @@ export default function PostDetailModal({
                                           alt="Reply image"
                                           fill
                                           unoptimized={imgUrl.startsWith('http')}
-                                          className="object-cover group-hover:scale-110 transition-transform duration-500"
+                                          className="object-contain group-hover:scale-110 transition-transform duration-500"
                                           sizes="96px"
                                         />
                                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">

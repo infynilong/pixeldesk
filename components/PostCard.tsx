@@ -329,7 +329,7 @@ export default function PostCard({
                       alt="Post image"
                       fill
                       unoptimized={isExternalUrl(urls[0])}
-                      className="object-cover group-hover:scale-105 transition-transform duration-300"
+                      className="object-contain group-hover:scale-105 transition-transform duration-300"
                       sizes="320px"
                     />
                   </div>
@@ -355,7 +355,7 @@ export default function PostCard({
                         alt={`Post image ${idx}`}
                         fill
                         unoptimized={isExternalUrl(url)}
-                        className="object-cover group-hover:scale-110 transition-transform duration-300"
+                        className="object-contain group-hover:scale-110 transition-transform duration-300"
                         sizes="130px"
                       />
                     </div>
