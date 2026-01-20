@@ -6,8 +6,8 @@ import { Player } from '../entities/Player.js';
 
 // ===== 性能优化配置 =====
 const PERFORMANCE_CONFIG = {
-    // 临时启用日志用于调试工位角色显示问题
-    ENABLE_DEBUG_LOGGING: true,
+    // 禁用调试日志
+    ENABLE_DEBUG_LOGGING: false,
     // 关键错误和警告仍然显示
     ENABLE_ERROR_LOGGING: true
 }

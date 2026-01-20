@@ -17,7 +17,9 @@ export default function PhaserGame({ onPlayerCollision, onWorkstationBinding, on
   const gameContainerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    console.log('🎮 [PhaserGame] Component mounted, searching for ref:', !!gameContainerRef.current)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🎮 [PhaserGame] Component mounted, searching for ref:', !!gameContainerRef.current)
+    }
     if (typeof window !== 'undefined' && !gameRef.current) {
       // 自定义 Phaser 配置 - 修复WebGL framebuffer错误，改为Canvas渲染器
       const config = {
@@ -79,7 +81,9 @@ export default function PhaserGame({ onPlayerCollision, onWorkstationBinding, on
         if (gameRef.current && gameRef.current.canvas) {
           gameRef.current.canvas.id = 'phaser-game'
           gameRef.current.canvas.setAttribute('tabindex', '0')
-          console.log('🎮 Phaser canvas ID set to: phaser-game')
+          if (process.env.NODE_ENV === 'development') {
+            console.log('🎮 Phaser canvas ID set to: phaser-game')
+          }
         }
       }, 100)
 
@@ -93,7 +97,9 @@ export default function PhaserGame({ onPlayerCollision, onWorkstationBinding, on
 
         // 设置工位绑定回调函数 - 使用全局workstationBindingManager
         (window as any).onWorkstationBinding = (workstationData: any, userData: any) => {
-          console.log('PhaserGame onWorkstationBinding 被调用:', { workstationData, userData })
+          if (process.env.NODE_ENV === 'development') {
+            console.log('PhaserGame onWorkstationBinding 被调用:', { workstationData, userData })
+          }
 
           // 确保workstationBindingManager已加载
           if (typeof window !== 'undefined' && (window as any).workstationBindingManager) {
@@ -130,10 +136,14 @@ export default function PhaserGame({ onPlayerCollision, onWorkstationBinding, on
     let resizeTimeout: NodeJS.Timeout
 
     const handleResize = () => {
-      console.log('🎮 [PhaserGame] Resize event triggered')
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🎮 [PhaserGame] Resize event triggered')
+      }
       if (gameRef.current && gameContainerRef.current) {
         const { width, height } = gameContainerRef.current.getBoundingClientRect()
-        console.log(`🎮 [PhaserGame] Resizing to: ${width}x${height}`)
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`🎮 [PhaserGame] Resizing to: ${width}x${height}`)
+        }
         gameRef.current.scale.resize(width, height)
       }
     }

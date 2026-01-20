@@ -39,14 +39,20 @@ export default function AiChatModal({
 
     // 加载聊天历史
     useEffect(() => {
-        console.log(`[聊天窗口] isOpen=${isOpen}, npcId=${npcId}, npcName=${npcName}, hasLoadedHistory=${hasLoadedHistory.current}`)
+        if (process.env.NODE_ENV === 'development') {
+            console.log(`[聊天窗口] isOpen=${isOpen}, npcId=${npcId}, npcName=${npcName}, hasLoadedHistory=${hasLoadedHistory.current}`)
+        }
         const loadHistory = async () => {
             if (!isOpen) {
-                console.log('[聊天窗口] 窗口未打开，跳过加载')
+                if (process.env.NODE_ENV === 'development') {
+                    console.log('[聊天窗口] 窗口未打开，跳过加载')
+                }
                 return
             }
             if (hasLoadedHistory.current) {
-                console.log('[聊天窗口] 已加载过历史，跳过')
+                if (process.env.NODE_ENV === 'development') {
+                    console.log('[聊天窗口] 已加载过历史，跳过')
+                }
                 return
             }
 
@@ -58,10 +64,14 @@ export default function AiChatModal({
 
                 if (response.ok) {
                     const data = await response.json()
-                    console.log(`[${npcName}] 加载历史消息:`, data.messages?.length || 0, '条')
+                    if (process.env.NODE_ENV === 'development') {
+                        console.log(`[${npcName}] 加载历史消息:`, data.messages?.length || 0, '条')
+                    }
                     if (data.success && data.messages.length > 0) {
                         // 有历史消息，直接显示
-                        console.log(`[${npcName}] 显示历史对话，不显示问候语`)
+                        if (process.env.NODE_ENV === 'development') {
+                            console.log(`[${npcName}] 显示历史对话，不显示问候语`)
+                        }
                         setMessages(data.messages.map((m: any) => ({
                             role: m.role,
                             content: m.content,
@@ -70,7 +80,9 @@ export default function AiChatModal({
                         hasLoadedHistory.current = true
                     } else if (greeting) {
                         // 没有历史消息，显示问候语
-                        console.log(`[${npcName}] 没有历史消息，显示问候语`)
+                        if (process.env.NODE_ENV === 'development') {
+                            console.log(`[${npcName}] 没有历史消息，显示问候语`)
+                        }
                         setMessages([{
                             role: 'assistant',
                             content: greeting,
@@ -79,7 +91,9 @@ export default function AiChatModal({
                         hasLoadedHistory.current = true
                     }
                 } else if (greeting) {
-                    console.error(`[${npcName}] 加载历史失败:`, response.status)
+                    if (process.env.NODE_ENV === 'development') {
+                        console.error(`[${npcName}] 加载历史失败:`, response.status)
+                    }
                     // 加载失败，显示问候语
                     setMessages([{
                         role: 'assistant',
@@ -89,7 +103,9 @@ export default function AiChatModal({
                     hasLoadedHistory.current = true
                 }
             } catch (error) {
-                console.error('Failed to load chat history:', error)
+                if (process.env.NODE_ENV === 'development') {
+                    console.error('Failed to load chat history:', error)
+                }
                 // 加载失败，显示问候语
                 if (greeting) {
                     setMessages([{

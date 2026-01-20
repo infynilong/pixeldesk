@@ -203,12 +203,14 @@ export default function LayoutManager({
   }, [])
 
   useEffect(() => {
-    console.log('📱 [LayoutManager] State Update:', {
-      deviceType: screenSize.deviceType,
-      activeTab,
-      width: screenSize.width,
-      height: screenSize.height
-    })
+    if (process.env.NODE_ENV === 'development') {
+      console.log('📱 [LayoutManager] State Update:', {
+        deviceType: screenSize.deviceType,
+        activeTab,
+        width: screenSize.width,
+        height: screenSize.height
+      })
+    }
   }, [screenSize, activeTab])
 
   // 收起面板的宽度
@@ -310,7 +312,9 @@ export default function LayoutManager({
     if (screenSize.deviceType !== 'mobile') return
 
     const handleInteraction = () => {
-      console.log('🎯 [LayoutManager] Interaction detected on mobile, switching to social tab')
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🎯 [LayoutManager] Interaction detected on mobile, switching to social tab')
+      }
       setActiveTab('social')
     }
 

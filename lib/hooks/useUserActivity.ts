@@ -90,7 +90,9 @@ export function useUserActivity(userId: string, days: number = 90): UseUserActiv
 
         // 如果缓存有效，直接返回
         if (cached && cached.data && (now - cached.timestamp < CACHE_DURATION)) {
-          console.log(`📦 [useUserActivity] 使用缓存数据: ${cacheKey}`)
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`📦 [useUserActivity] 使用缓存数据: ${cacheKey}`)
+          }
           if (isMounted.current) {
             setData(cached.data)
             setIsLoading(false)
@@ -100,7 +102,9 @@ export function useUserActivity(userId: string, days: number = 90): UseUserActiv
 
         // 如果正在加载，等待现有的Promise
         if (cached && cached.promise) {
-          console.log(`⏳ [useUserActivity] 等待现有请求: ${cacheKey}`)
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`⏳ [useUserActivity] 等待现有请求: ${cacheKey}`)
+          }
           const result = await cached.promise
           if (isMounted.current) {
             setData(result)
@@ -109,8 +113,10 @@ export function useUserActivity(userId: string, days: number = 90): UseUserActiv
           return
         }
 
-        // 创建新的API请求
-        console.log(`🌐 [useUserActivity] 发起新请求: ${cacheKey}`)
+        // 发起新的API请求
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`🌐 [useUserActivity] 发起新请求: ${cacheKey}`)
+        }
         const promise = (async () => {
           const response = await fetch(`/api/user/${userId}/activity?days=${days}`)
           const result = await response.json()

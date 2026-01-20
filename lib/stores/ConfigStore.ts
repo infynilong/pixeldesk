@@ -79,7 +79,9 @@ class ConfigStore {
   }
 
   private async loadPointsConfig(): Promise<PointsConfigMap> {
-    console.log('🔄 [ConfigStore] 开始加载积分配置...')
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔄 [ConfigStore] 开始加载积分配置...')
+    }
 
     try {
       const response = await fetch('/api/points-config')
@@ -92,7 +94,9 @@ class ConfigStore {
 
       if (data.success && data.data) {
         this.pointsConfig = data.data
-        console.log('✅ [ConfigStore] 积分配置已加载:', this.pointsConfig)
+        if (process.env.NODE_ENV === 'development') {
+          console.log('✅ [ConfigStore] 积分配置已加载:', this.pointsConfig)
+        }
 
         // 通知所有监听器
         this.notifyPointsConfigListeners()
@@ -146,7 +150,9 @@ class ConfigStore {
   }
 
   private async loadStats(): Promise<Stats> {
-    console.log('🔄 [ConfigStore] 开始加载统计数据...')
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔄 [ConfigStore] 开始加载统计数据...')
+    }
 
     try {
       const response = await fetch('/api/workstations/stats')
@@ -159,7 +165,9 @@ class ConfigStore {
 
       if (data.success && data.data) {
         this.stats = data.data
-        console.log('✅ [ConfigStore] 统计数据已加载:', this.stats)
+        if (process.env.NODE_ENV === 'development') {
+          console.log('✅ [ConfigStore] 统计数据已加载:', this.stats)
+        }
 
         // 通知所有监听器
         this.notifyStatsListeners()
@@ -212,7 +220,9 @@ class ConfigStore {
   }
 
   private async loadBillboardCost(): Promise<BillboardConfig> {
-    console.log('🔄 [ConfigStore] 开始加载公告栏成本...')
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔄 [ConfigStore] 开始加载公告栏成本...')
+    }
 
     try {
       const response = await fetch('/api/billboard/cost')
@@ -225,7 +235,9 @@ class ConfigStore {
 
       if (data.success) {
         this.billboardConfig = { cost: data.cost }
-        console.log('✅ [ConfigStore] 公告栏成本已加载:', data.cost)
+        if (process.env.NODE_ENV === 'development') {
+          console.log('✅ [ConfigStore] 公告栏成本已加载:', data.cost)
+        }
         return this.billboardConfig
       } else {
         throw new Error(data.error || 'Failed to load billboard cost')
@@ -318,7 +330,9 @@ class ConfigStore {
   public clearCache(): void {
     this.pointsConfig = null
     this.stats = null
-    console.log('🗑️ [ConfigStore] 缓存已清空')
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🗑️ [ConfigStore] 缓存已清空')
+    }
   }
 }
 
