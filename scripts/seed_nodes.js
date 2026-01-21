@@ -27,6 +27,12 @@ async function main() {
             slug: 'feedback',
             description: '建议与问题反馈',
             color: '#f59e0b' // amber-500
+        },
+        {
+            name: '吹水',
+            slug: 'water-cooler',
+            description: '闲聊八卦',
+            color: '#8b5cf6' // violet-500
         }
     ]
 

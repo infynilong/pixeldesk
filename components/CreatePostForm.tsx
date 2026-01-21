@@ -34,8 +34,8 @@ export default function CreatePostForm({ onSubmit, onCancel, isMobile = false }:
   // 设置默认节点
   useEffect(() => {
     if (nodes.length > 0 && !selectedNodeId) {
-      // 优先选择 slug 为 "main" or "general" 的节点，否则选第一个
-      const defaultNode = nodes.find(n => n.slug === 'main' || n.slug === 'general') || nodes[0]
+      // 优先选择 slug 为 "default" 的节点，否则选第一个
+      const defaultNode = nodes.find(n => n.slug === 'default') || nodes[0]
       setSelectedNodeId(defaultNode.id)
     }
   }, [nodes, selectedNodeId])
@@ -343,7 +343,7 @@ export default function CreatePostForm({ onSubmit, onCancel, isMobile = false }:
                   setImageUrls([])
                   setDismissedUrls([])
                   if (nodes.length > 0) {
-                    const defaultNode = nodes.find(n => n.slug === 'main' || n.slug === 'general') || nodes[0]
+                    const defaultNode = nodes.find(n => n.slug === 'default') || nodes[0]
                     setSelectedNodeId(defaultNode.id)
                   }
                   setError('')
