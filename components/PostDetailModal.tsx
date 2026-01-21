@@ -292,15 +292,15 @@ export default function PostDetailModal({
             {onNavigateToPage && postId && (
               <button
                 onClick={() => onNavigateToPage(postId)}
-                className="group relative overflow-hidden px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-700 hover:to-teal-600 text-white rounded-lg font-pixel text-sm shadow-pixel-sm transform hover:scale-105 transition-all"
+                className="group relative overflow-hidden p-2 sm:px-4 sm:py-2 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-700 hover:to-teal-600 text-white rounded-lg font-pixel text-sm shadow-pixel-sm transform hover:scale-105 transition-all"
                 title={t.social.open_new_page}
               >
                 <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                <div className="relative flex items-center space-x-2">
+                <div className="relative flex items-center gap-2">
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                   </svg>
-                  <span>{t.social.open_new_page}</span>
+                  <span className="hidden sm:inline">{t.social.open_new_page}</span>
                 </div>
               </button>
             )}
@@ -308,7 +308,7 @@ export default function PostDetailModal({
             {/* 关闭按钮 - 现代化设计 */}
             <button
               onClick={onClose}
-              className="group p-2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 rounded-lg  hover:scale-110 transition-all shadow-pixel-sm"
+              className="group p-2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 rounded-lg  hover:scale-110 transition-all shadow-pixel-sm cursor-pointer"
             >
               <svg className="w-4 h-4 transform group-hover:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -343,12 +343,12 @@ export default function PostDetailModal({
               </button>
             </div>
           ) : post ? (
-            <div className="p-6 space-y-6">
+            <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
               {/* 帖子内容卡片 - 现代化设计 */}
               <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 overflow-hidden">
-                <div className="p-8">
+                <div className="p-4 sm:p-8">
                   {/* 作者信息 */}
-                  <div className="flex items-start space-x-6 mb-6">
+                  <div className="flex items-start space-x-3 sm:space-x-6 mb-4 sm:mb-6">
                     <div className="relative">
                       <UserAvatar
                         userId={post.author.id}
@@ -372,34 +372,28 @@ export default function PostDetailModal({
                         </svg>
                       </div>
                     </div>
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-3 mb-2">
-                        <h4 className="font-bold text-gray-900 dark:text-white text-xl flex items-center">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2 mb-2">
+                        <h4 className="font-bold text-gray-900 dark:text-white text-base sm:text-xl flex items-center">
                           {post.author.name}
                           {post.author.isAdmin && <ProBadge />}
                         </h4>
-                        <span className="px-3 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-pixel border border-emerald-500/20 rounded">
+                        <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] sm:text-xs font-pixel border border-emerald-500/20 rounded whitespace-nowrap">
                           {t.social.author || '作者'}
                         </span>
-                        <span className="text-gray-400 dark:text-gray-500 font-pixel">•</span>
-                        <span className="text-gray-500 dark:text-gray-400 font-pixel text-xs">
-                          {formatTimeAgo(post.createdAt)}
-                        </span>
+                        <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 font-pixel text-[10px] sm:text-xs whitespace-nowrap">
+                          <span>•</span>
+                          <span>{formatTimeAgo(post.createdAt)}</span>
+                        </div>
                       </div>
 
-                      {/* 帖子标题 */}
-                      {post.title && (
-                        <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 leading-tight">
-                          {post.title}
-                        </h3>
-                      )}
                     </div>
 
                     {/* 删除按钮 */}
                     {post.author.id === currentUserId && (
                       <button
                         onClick={handleDelete}
-                        className="p-3 text-gray-400 hover:text-red-500 bg-gray-100 dark:bg-gray-700/50 rounded-xl transition-all hover:scale-110"
+                        className="p-2 sm:p-3 text-gray-400 hover:text-red-500 bg-gray-100 dark:bg-gray-700/50 rounded-xl transition-all hover:scale-110 flex-shrink-0"
                         title={t.common.delete}
                       >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -408,18 +402,26 @@ export default function PostDetailModal({
                       </button>
                     )}
                   </div>
+                  {/* 帖子标题 (移到这里) */}
+                  {post.title && (
+                    <div className="mb-4">
+                      <h3 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-transparent dark:bg-clip-text dark:bg-gradient-to-r dark:from-white dark:to-gray-400 leading-tight break-words">
+                        {post.title}
+                      </h3>
+                    </div>
+                  )}
 
                   {/* 帖子内容 */}
                   <div className="mb-6">
                     <div className="prose dark:prose-invert max-w-none">
-                      <div className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed text-lg">
+                      <div className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed text-base sm:text-lg break-words">
                         {renderContentWithUrls(post.content, t.social.view_link)}
                       </div>
                     </div>
 
                     {/* 图片展示 - 九宫格 */}
                     {(post.imageUrl || (post.imageUrls && post.imageUrls.length > 0)) && (
-                      <div className="mt-6">
+                      <div className="mt-4 sm:mt-6">
                         {(() => {
                           const urls = post.imageUrls && post.imageUrls.length > 0
                             ? post.imageUrls
@@ -451,7 +453,7 @@ export default function PostDetailModal({
                           const gridCols = count === 2 || count === 4 ? 'grid-cols-2' : 'grid-cols-3'
 
                           return (
-                            <div className={`grid ${gridCols} gap-3`}>
+                            <div className={`grid ${gridCols} gap-2 sm:gap-3`}>
                               {urls.slice(0, 9).map((url, idx) => (
                                 <div
                                   key={idx}
@@ -479,41 +481,44 @@ export default function PostDetailModal({
                   </div>
 
                   {/* 统计和操作 - 现代化设计 */}
-                  <div className="flex items-center justify-between pt-6 border-t border-gray-200 dark:border-gray-700">
-                    <div className="flex items-center space-x-6">
-                      {/* 浏览数 */}
-                      <div className="flex items-center space-x-3 text-gray-500 dark:text-gray-400">
-                        <div className="w-8 h-8 bg-gradient-to-br from-cyan-100 to-blue-100 dark:from-cyan-900/30 dark:to-blue-900/30 rounded-xl flex items-center justify-center">
-                          <svg className="w-4 h-4 text-cyan-600 dark:text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                          </svg>
+                  <div className="flex flex-wrap items-center justify-between gap-y-3 pt-6 border-t border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center gap-3 sm:gap-6 w-full sm:w-auto justify-between sm:justify-start">
+                      <div className="flex items-center gap-2 sm:gap-6">
+                        {/* 浏览数 */}
+                        <div className="flex items-center space-x-2 text-gray-500 dark:text-gray-400 text-xs sm:text-base">
+                          <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-br from-cyan-100 to-blue-100 dark:from-cyan-900/30 dark:to-blue-900/30 rounded-lg sm:rounded-xl flex items-center justify-center">
+                            <svg className="w-3 h-3 sm:w-4 sm:h-4 text-cyan-600 dark:text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                          </div>
+                          <span className="font-medium">{t.social.views.replace('{count}', post.viewCount.toString())}</span>
                         </div>
-                        <span className="font-medium">{t.social.views.replace('{count}', post.viewCount.toString())}</span>
-                      </div>
 
-                      {/* 回复数 */}
-                      <div className="flex items-center space-x-3 text-gray-500 dark:text-gray-400">
-                        <div className="w-8 h-8 bg-gradient-to-br from-blue-100 to-cyan-100 dark:from-blue-900/30 dark:to-cyan-900/30 rounded-xl flex items-center justify-center">
-                          <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                          </svg>
+                        {/* 回复数 */}
+                        <div className="flex items-center space-x-2 text-gray-500 dark:text-gray-400 text-xs sm:text-base">
+                          <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-br from-blue-100 to-cyan-100 dark:from-blue-900/30 dark:to-cyan-900/30 rounded-lg sm:rounded-xl flex items-center justify-center">
+                            <svg className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                            </svg>
+                          </div>
+                          <span className="font-medium">{t.social.replies.replace('{count}', post.replyCount.toString())}</span>
                         </div>
-                        <span className="font-medium">{t.social.replies.replace('{count}', post.replyCount.toString())}</span>
                       </div>
 
                       {/* 点赞按钮 - 现代化设计 */}
+                      {/* 点赞按钮 - 现代化设计 (Style Match) */}
                       <button
                         onClick={handleLike}
                         disabled={isLiking}
-                        className={`group flex items-center space-x-3 px-4 py-2 rounded-lg font-pixel text-sm shadow-pixel-sm ${post.isLiked
-                          ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white'
-                          : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300'
-                          } ${isLiking ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105 active:scale-95 transition-all'}`}
+                        className={`group flex items-center space-x-2 text-xs sm:text-base transition-all cursor-pointer ${isLiking ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105 active:scale-95'}`}
                       >
-                        <div className={`w-8 h-8 ${post.isLiked ? 'bg-white/20' : 'bg-emerald-500/10'} rounded-lg flex items-center justify-center `}>
+                        <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl flex items-center justify-center ${post.isLiked
+                          ? 'bg-gradient-to-br from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/30'
+                          : 'bg-gradient-to-br from-emerald-100 to-teal-100 dark:from-emerald-900/30 dark:to-teal-900/30 text-emerald-600 dark:text-emerald-400'
+                          }`}>
                           <svg
-                            className={`w-4 h-4 ${post.isLiked ? 'text-white fill-current' : 'text-emerald-500'}  ${!post.isLiked && 'group-hover:scale-110 transition-transform'}`}
+                            className={`w-3 h-3 sm:w-4 sm:h-4 transition-colors ${post.isLiked ? 'fill-current' : ''}`}
                             fill={post.isLiked ? 'currentColor' : 'none'}
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -521,7 +526,9 @@ export default function PostDetailModal({
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                           </svg>
                         </div>
-                        <span className={post.isLiked ? 'text-white' : ''}>{t.social.likes.replace('{count}', post.likeCount.toString())}</span>
+                        <span className={`font-medium ${post.isLiked ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                          {t.social.likes.replace('{count}', post.likeCount.toString())}
+                        </span>
                       </button>
                     </div>
                   </div>
@@ -530,7 +537,7 @@ export default function PostDetailModal({
 
               {/* 回复区域 - 现代化设计 */}
               <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-slate-200 dark:border-gray-700/50 overflow-hidden">
-                <div className="p-6 space-y-6">
+                <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
                   {/* 回复标题 */}
                   <div className="flex items-center justify-between pb-4 border-b border-gray-200 dark:border-gray-700">
                     <div className="flex items-center gap-3">
@@ -551,7 +558,7 @@ export default function PostDetailModal({
                   </div>
 
                   {/* 回复输入表单 */}
-                  <div id="reply-form-container" className="bg-white dark:bg-gray-900/50 rounded-2xl p-6 border border-slate-200 dark:border-gray-700/50 shadow-sm dark:shadow-none">
+                  <div id="reply-form-container" className="mt-2">
                     <CreateReplyForm
                       onSubmit={handleReplySubmit}
                       onCancel={() => { }}

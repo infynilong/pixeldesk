@@ -143,53 +143,95 @@ export default function SocialFeedTab({
   return (
     <div className={containerClasses}>
       {/* 头部 - 深色极客风格 */}
-      <div className="flex-shrink-0 p-3 border-b border-gray-800 bg-gray-900/60 transition-colors">
-        <div className="flex items-center gap-2">
-          {/* 刷新按钮 - 固定宽度 */}
-          <button
-            onClick={refreshPosts}
-            disabled={isRefreshing}
-            className="p-2 bg-white/10 dark:bg-gray-800 border border-black/5 dark:border-gray-700 hover:bg-black/5 dark:hover:bg-gray-700 rounded-lg disabled:opacity-50 flex-shrink-0"
-            title={t.common.refresh}
-          >
-            <svg className="w-4 h-4 text-gray-400 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-          </button>
+      {/* 头部 - 深色极客风格 */}
+      <div className="flex-shrink-0 border-b border-gray-800 bg-gray-900/60 transition-colors">
+        {isMobile ? (
+          /* Mobile: Unified Compact Header */
+          <div className="flex items-center gap-2 p-2">
+            {/* Search Bar (takes most space) */}
+            <div className="flex-1 min-w-0">
+              <PostSearchBar
+                onSearch={setSearchQuery}
+                onNodeChange={setSelectedNodeId}
+                isMobile={true}
+                className="p-0"
+              />
+            </div>
 
-          {/* 功能按钮组 - 平分空间 */}
-          <div className="flex-1 grid grid-cols-3 gap-1.5">
-            <button
-              onClick={handlePostButtonClick}
-              className="bg-gradient-to-r from-cyan-600/80 to-teal-600/80 hover:from-cyan-500/90 hover:to-teal-500/90 border border-cyan-500/30 text-white py-2 rounded-lg shadow-sm text-[10px] font-bold tracking-tighter transition-all flex items-center justify-center gap-1"
-            >
-              <span>{showCreateForm ? '✕' : '+'}</span>
-              <span>{t.social.post}</span>
-            </button>
+            {/* Action Buttons (Icon only) */}
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              <button
+                onClick={refreshPosts}
+                disabled={isRefreshing}
+                className="w-8 h-8 flex items-center justify-center bg-gray-800 border border-gray-700 rounded-lg hover:bg-gray-700 text-gray-400"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              </button>
 
-            <Link
-              href="/library/studio"
-              target="_blank"
-              className="bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 text-purple-400 py-2 rounded-lg text-[10px] font-bold tracking-tighter transition-all flex items-center justify-center gap-1"
-            >
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-              <span>{t.nav.studio}</span>
-            </Link>
-
-            <Link
-              href="/posts/create"
-              target="_blank"
-              className="bg-amber-600/20 hover:bg-amber-600/30 border border-amber-500/30 text-amber-400 py-2 rounded-lg text-[10px] font-bold tracking-tighter transition-all flex items-center justify-center gap-1"
-            >
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-              </svg>
-              <span>{t.nav.write}</span>
-            </Link>
+              <Link
+                href="/posts/create"
+                target="_blank"
+                className="w-8 h-8 flex items-center justify-center bg-amber-600/20 border border-amber-500/30 text-amber-400 rounded-lg hover:bg-amber-600/30"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+              </Link>
+            </div>
           </div>
-        </div>
+        ) : (
+          /* Desktop: Original Detailed Layout */
+          <div className="p-3">
+            <div className="flex items-center gap-2">
+              {/* 刷新按钮 - 固定宽度 */}
+              <button
+                onClick={refreshPosts}
+                disabled={isRefreshing}
+                className="p-2 bg-white/10 dark:bg-gray-800 border border-black/5 dark:border-gray-700 hover:bg-black/5 dark:hover:bg-gray-700 rounded-lg disabled:opacity-50 flex-shrink-0"
+                title={t.common.refresh}
+              >
+                <svg className="w-4 h-4 text-gray-400 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              </button>
+
+              {/* 功能按钮组 - 平分空间 */}
+              <div className="flex-1 grid grid-cols-3 gap-1.5">
+                <button
+                  onClick={handlePostButtonClick}
+                  className="bg-gradient-to-r from-cyan-600/80 to-teal-600/80 hover:from-cyan-500/90 hover:to-teal-500/90 border border-cyan-500/30 text-white py-2 rounded-lg shadow-sm text-[10px] font-bold tracking-tighter transition-all flex items-center justify-center gap-1"
+                >
+                  <span>{showCreateForm ? '✕' : '+'}</span>
+                  <span>{t.social.post}</span>
+                </button>
+
+                <Link
+                  href="/library/studio"
+                  target="_blank"
+                  className="bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 text-purple-400 py-2 rounded-lg text-[10px] font-bold tracking-tighter transition-all flex items-center justify-center gap-1"
+                >
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                  <span>{t.nav.studio}</span>
+                </Link>
+
+                <Link
+                  href="/posts/create"
+                  target="_blank"
+                  className="bg-amber-600/20 hover:bg-amber-600/30 border border-amber-500/30 text-amber-400 py-2 rounded-lg text-[10px] font-bold tracking-tighter transition-all flex items-center justify-center gap-1"
+                >
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                  </svg>
+                  <span>{t.nav.write}</span>
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 登录提示模态框 */}
@@ -234,14 +276,16 @@ export default function SocialFeedTab({
         </div>
       )}
 
-      {/* 搜索和节点过滤 */}
-      <div className="flex-shrink-0 border-b border-gray-800 bg-gray-900/40">
-        <PostSearchBar
-          onSearch={setSearchQuery}
-          onNodeChange={setSelectedNodeId}
-          isMobile={isMobile}
-        />
-      </div>
+      {/* 搜索和节点过滤 - Desktop Only (Mobile uses unified header above) */}
+      {!isMobile && (
+        <div className="flex-shrink-0 border-b border-gray-800 bg-gray-900/40">
+          <PostSearchBar
+            onSearch={setSearchQuery}
+            onNodeChange={setSelectedNodeId}
+            isMobile={isMobile}
+          />
+        </div>
+      )}
 
       {/* 创建帖子表单 */}
       {showCreateForm && (

@@ -93,12 +93,12 @@ export default function CreateReplyForm({
     }
     if (variant === 'light') {
       return {
-        container: "relative bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm",
-        textarea: "w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 focus:border-blue-500 dark:focus:border-blue-400 rounded-xl px-4 py-3 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 resize-none",
+        container: "relative bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 sm:p-4 shadow-sm",
+        textarea: "w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 focus:border-blue-500 dark:focus:border-blue-400 rounded-xl px-3 py-2 sm:px-4 sm:py-3 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 resize-none",
         counter: "text-xs text-gray-500 dark:text-gray-400",
         error: "text-red-500 dark:text-red-400 text-xs font-medium",
-        clearButton: "px-3 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 rounded-lg border border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500  text-sm font-medium",
-        submitButton: "px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white rounded-lg border border-transparent  shadow-sm hover:shadow-md text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50 transform hover:scale-105 active:scale-95"
+        clearButton: "px-2 py-1.5 sm:px-3 sm:py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 rounded-lg border border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 text-xs sm:text-sm font-medium",
+        submitButton: "px-3 py-1.5 sm:px-4 sm:py-2 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white rounded-lg border border-transparent shadow-sm hover:shadow-md text-xs sm:text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50 transform hover:scale-105 active:scale-95"
       }
     } else {
       return {

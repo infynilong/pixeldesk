@@ -49,7 +49,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
           select: {
             id: true,
             name: true,
-            avatar: true
+            avatar: true,
+            customAvatar: true,
+            isAdmin: true
           }
         }
       }
@@ -117,7 +119,9 @@ export default async function PostDetailPage({ params }: PageProps) {
           select: {
             id: true,
             name: true,
-            avatar: true
+            avatar: true,
+            customAvatar: true,
+            isAdmin: true
           }
         },
         _count: {
@@ -158,7 +162,13 @@ export default async function PostDetailPage({ params }: PageProps) {
       promotionCount: (post as any).promotionCount || 0,
       createdAt: post.createdAt.toISOString(),
       updatedAt: post.updatedAt.toISOString(),
-      author: post.users,
+      author: {
+        id: post.users.id,
+        name: post.users.name,
+        avatar: post.users.avatar,
+        customAvatar: post.users.customAvatar,
+        isAdmin: post.users.isAdmin
+      },
       isLiked: false, // 客户端会更新这个值
       summary: post.summary,
       wordCount: post.wordCount,
