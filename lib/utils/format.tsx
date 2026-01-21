@@ -18,17 +18,24 @@ export const renderContentWithUrls = (
 
     return parts.map((part, index) => {
         if (part.match(urlRegex)) {
-            // 检查是否为图片链接，如果是图片则不显示为“查看链接”，因为会有专门的预览图
+            // 检查是否为图片链接
             const lowerUrl = part.toLowerCase()
-            const isImage = lowerUrl.match(/\.(jpeg|jpg|gif|png|webp|svg)($|\?)/) ||
+            const isImage = lowerUrl.match(/\.(jpeg|jpg|gif|png|webp|avif|svg)($|\?)/) ||
                 lowerUrl.includes('img.') ||
                 lowerUrl.includes('images.') ||
                 lowerUrl.includes('/images/') ||
-                lowerUrl.includes('/img/')
+                lowerUrl.includes('/img/') ||
+                lowerUrl.startsWith('data:image/') ||
+                lowerUrl.includes('placeholder')
 
             if (isImage) {
-                return <span key={index} className="opacity-60 text-[11px] italic break-all">{part}</span>
+                // 如果是图片链接，在文本中隐藏（由组件提取并显示）
+                return null
             }
+
+            // 非图片链接：直接显示 URL 文本，不再显示“查看链接”按钮
+            // 截取过长的 URL
+            const displayUrl = part.length > 50 ? part.substring(0, 47) + '...' : part
 
             return (
                 <a
@@ -36,11 +43,11 @@ export const renderContentWithUrls = (
                     href={part}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={className}
+                    className="text-cyan-500 hover:text-cyan-400 hover:underline transition-all mx-0.5 break-all inline-flex items-center gap-1"
                     onClick={(e) => e.stopPropagation()}
                 >
                     <span className="text-[10px]">🔗</span>
-                    <span className="text-[11px] font-pixel">{viewLinkText}</span>
+                    <span className="text-[11px] font-mono opacity-80">{displayUrl}</span>
                 </a>
             )
         }
@@ -59,11 +66,13 @@ export const extractImageUrls = (text: string): string[] => {
     return matches.filter(url => {
         const lowerUrl = url.toLowerCase()
         return (
-            lowerUrl.match(/\.(jpeg|jpg|gif|png|webp|svg)($|\?)/) ||
+            lowerUrl.match(/\.(jpeg|jpg|gif|png|webp|avif|svg)($|\?)/) ||
             lowerUrl.includes('img.') ||
             lowerUrl.includes('images.') ||
             lowerUrl.includes('/images/') ||
-            lowerUrl.includes('/img/')
+            lowerUrl.includes('/img/') ||
+            lowerUrl.startsWith('data:image/') ||
+            lowerUrl.includes('placeholder')
         )
     })
 }
@@ -75,11 +84,13 @@ export const isImageUrl = (url: string): boolean => {
     if (!url) return false
     const lowerUrl = url.toLowerCase()
     return (
-        !!lowerUrl.match(/\.(jpeg|jpg|gif|png|webp|svg)($|\?)/) ||
+        !!lowerUrl.match(/\.(jpeg|jpg|gif|png|webp|avif|svg)($|\?)/) ||
         lowerUrl.includes('img.') ||
         lowerUrl.includes('images.') ||
         lowerUrl.includes('/images/') ||
-        lowerUrl.includes('/img/')
+        lowerUrl.includes('/img/') ||
+        lowerUrl.startsWith('data:image/') ||
+        lowerUrl.includes('placeholder')
     )
 }
 

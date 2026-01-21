@@ -44,6 +44,9 @@ export function useLevelPermission() {
     const hasPermission = (featureKey: string): boolean => {
         if (!user) return false;
 
+        // 管理员 (Pro用户) 拥有所有权限，不受等级限制
+        if (user.isAdmin) return true;
+
         // If levels are still loading, we might want to return false or rely on user.level if we have a fallback mapping.
         // But the most accurate is to check unlockedFeatures of current level and all previous levels.
 

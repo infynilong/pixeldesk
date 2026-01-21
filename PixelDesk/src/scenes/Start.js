@@ -1352,8 +1352,8 @@ export class Start extends Phaser.Scene {
       debugLog('✅ deskColliders group已创建')
     }
 
-    // 对于desk_objs和bookcase_objs图层，使用区块管理系统
-    if (layerName === "desk_objs" || layerName === "bookcase_objs") {
+    // 对于desk_objs图层，使用区块管理系统 (优化：书架等数量较少的图层恢复直接渲染)
+    if (layerName === "desk_objs") {
       debugLog(`📦 收集工位对象，总数: ${objectLayer.objects.length}`)
 
       // 收集所有工位对象（不立即创建精灵）
@@ -1363,14 +1363,11 @@ export class Start extends Phaser.Scene {
         }
       })
 
-      // ⚠️ 移除这里对 initializeChunkSystem 的调用，防止重复初始化
-      // 这里的逻辑改为只收集对象，统一在 create() 末尾初始化区块系统
-
       // 更新工位总数 (暂时更新，最后还会再次更新)
       this.userData.deskCount = this.workstationObjects.length
       this.sendUserDataToUI()
     } else {
-      // 其他图层正常渲染
+      // 其他图层（如bookcase_objs, front_desk_objs等）正常渲染，确保碰撞立即生效
       objectLayer.objects.forEach((obj) => this.renderObject(obj))
     }
   }
@@ -2033,21 +2030,26 @@ export class Start extends Phaser.Scene {
 
   // ===== 辅助方法 =====
   isDeskObject(obj) {
+    if (!obj) return false;
+
     // 识别工位对象的逻辑：支持 Type 识别和传统的 Name/GID 识别
+    const type = obj.type || obj.class || ""; // 兼容 Tiled class
+    const name = obj.name || "";
+    const gid = obj.gid || 0;
+
     return (
-      obj.type === "desk" ||
-      obj.type === "workstation" ||
-      obj.name === "desk" ||
-      obj.type === "desk" ||
-      obj.name.includes("desk_") ||
-      obj.type === "bookcase" ||
-      obj.name.includes("bookcase") ||
-      obj.gid === 106 || // bookcase_tall
-      obj.gid === 107 || // bookcase_middle
-      obj.gid === 118 || // cofe_desk_up
-      obj.type === "sofa" ||
-      obj.type === "flower"
-    )
+      type === "desk" ||
+      type === "workstation" ||
+      name === "desk" ||
+      name.includes("desk_") ||
+      type === "bookcase" ||
+      name.includes("bookcase") ||
+      gid === 106 || // bookcase_tall
+      gid === 107 || // bookcase_middle
+      gid === 118 || // cofe_desk_up
+      type === "sofa" ||
+      type === "flower"
+    );
   }
 
   // addDebugBounds function removed for performance optimization

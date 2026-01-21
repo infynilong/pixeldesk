@@ -17,6 +17,7 @@ export interface User {
   emailVerified?: boolean
   workstationId?: string
   inviteCode?: string
+  isAdmin?: boolean
 }
 
 interface UserContextType {

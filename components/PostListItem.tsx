@@ -3,7 +3,7 @@
 import { Post } from '@/types/social'
 import UserAvatar from './UserAvatar'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useTranslation } from '@/lib/hooks/useTranslation'
 import { createPortal } from 'react-dom'
 import Image from 'next/image'
@@ -204,6 +204,28 @@ export default function PostListItem({
     return content.substring(0, maxLength) + '...'
   }
 
+  // 提取所有图片（包括 post.imageUrl, post.imageUrls 和正文中的图片链接）
+  const allPostImages = useMemo(() => {
+    const urls: string[] = []
+
+    // 1. 添加主图和多图
+    if (post.imageUrls && post.imageUrls.length > 0) {
+      urls.push(...post.imageUrls)
+    } else if (post.imageUrl) {
+      urls.push(post.imageUrl)
+    }
+
+    // 2. 提取正文内容中的图片
+    const contentImages = extractImageUrls(post.content)
+    contentImages.forEach(img => {
+      if (!urls.includes(img)) {
+        urls.push(img)
+      }
+    })
+
+    return urls
+  }, [post.imageUrl, post.imageUrls, post.content])
+
   // 判断是否为博客
   const isBlog = post.type === 'MARKDOWN'
 
@@ -299,13 +321,10 @@ export default function PostListItem({
             )}
 
             {/* 图片九宫格展示 */}
-            {(post.imageUrl || (post.imageUrls && post.imageUrls.length > 0)) && (
+            {allPostImages.length > 0 && (
               <div className="mb-2 mt-2">
                 {(() => {
-                  const urls = post.imageUrls && post.imageUrls.length > 0
-                    ? post.imageUrls
-                    : [post.imageUrl || '']
-
+                  const urls = allPostImages
                   const count = urls.length
 
                   if (count === 1) {

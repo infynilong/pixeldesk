@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { Post } from '@/types/social'
 import { useCurrentUser } from '@/lib/hooks/useCurrentUser'
@@ -198,6 +198,31 @@ export default function PostDetailClient({ initialPost, billboardPromotionCost }
     return date.toLocaleDateString(locale === 'en' ? 'en-US' : 'zh-CN')
   }
 
+  // 提取所有图片（包括 post.imageUrl, post.imageUrls 和正文中的图片链接）
+  const allPostImages = useMemo(() => {
+    const urls: string[] = []
+
+    // 1. 添加主图和多图
+    if (post.imageUrls && post.imageUrls.length > 0) {
+      urls.push(...post.imageUrls)
+    } else if (post.imageUrl) {
+      urls.push(post.imageUrl)
+    }
+
+    // 2. 提取正文内容中的图片
+    if (post.type !== 'MARKDOWN') {
+      const { extractImageUrls } = require('@/lib/utils/format')
+      const contentImages = extractImageUrls(post.content)
+      contentImages.forEach((img: string) => {
+        if (!urls.includes(img)) {
+          urls.push(img)
+        }
+      })
+    }
+
+    return urls
+  }, [post.imageUrl, post.imageUrls, post.content, post.type])
+
   // 检查是否是作者
   const isAuthor = currentUserId === post.author.id
 
@@ -214,15 +239,15 @@ export default function PostDetailClient({ initialPost, billboardPromotionCost }
 
   // 下一张图片
   const nextImage = () => {
-    if (post.imageUrls && post.imageUrls.length > 0) {
-      setLightboxImageIndex((prev) => (prev + 1) % (post.imageUrls?.length || 1))
+    if (allPostImages.length > 0) {
+      setLightboxImageIndex((prev) => (prev + 1) % allPostImages.length)
     }
   }
 
   // 上一张图片
   const prevImage = () => {
-    if (post.imageUrls && post.imageUrls.length > 0) {
-      setLightboxImageIndex((prev) => (prev - 1 + (post.imageUrls?.length || 1)) % (post.imageUrls?.length || 1))
+    if (allPostImages.length > 0) {
+      setLightboxImageIndex((prev) => (prev - 1 + allPostImages.length) % allPostImages.length)
     }
   }
 
@@ -242,7 +267,7 @@ export default function PostDetailClient({ initialPost, billboardPromotionCost }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [lightboxOpen, post.imageUrls])
+  }, [lightboxOpen, allPostImages])
 
   return (
     <div className={`min-h-screen transition-colors duration-500 ${theme === 'dark' ? 'bg-gray-950' : 'bg-slate-50'} relative`}>
@@ -375,7 +400,7 @@ export default function PostDetailClient({ initialPost, billboardPromotionCost }
                   ) : (
                     <div className={`whitespace-pre-wrap leading-relaxed text-lg font-medium ${theme === 'dark' ? 'text-gray-100' : 'text-slate-800'
                       }`}>
-                      {renderContentWithUrls(post.content, t.social.view_link)}
+                      {renderContentWithUrls(post.content)}
                     </div>
                   )}
                   {post.type === 'MARKDOWN' && post.coverImage && (
@@ -390,9 +415,9 @@ export default function PostDetailClient({ initialPost, billboardPromotionCost }
                       />
                     </div>
                   )}
-                  {post.type !== 'MARKDOWN' && post.imageUrls && post.imageUrls.length > 0 && (
+                  {post.type !== 'MARKDOWN' && allPostImages.length > 0 && (
                     <div className="mt-6 grid grid-cols-2 gap-3">
-                      {post.imageUrls.map((url, index) => (
+                      {allPostImages.map((url, index) => (
                         <div key={index} onClick={() => openLightbox(index)} className="relative aspect-video overflow-hidden rounded-xl bg-gray-800 cursor-pointer group">
                           <Image
                             src={getAssetUrl(url)}
@@ -531,15 +556,15 @@ export default function PostDetailClient({ initialPost, billboardPromotionCost }
           <button onClick={closeLightbox} className="absolute top-4 right-4 p-2 bg-gray-800/80 text-white rounded-lg">✕</button>
           <div className="max-w-7xl max-h-[90vh] p-4" onClick={e => e.stopPropagation()}>
             <Image
-              src={getAssetUrl(post.imageUrls[lightboxImageIndex])}
+              src={getAssetUrl(allPostImages[lightboxImageIndex])}
               alt=""
               width={1600}
               height={1200}
-              unoptimized={isExternalUrl(post.imageUrls[lightboxImageIndex]) || post.imageUrls[lightboxImageIndex].startsWith('/uploads/')}
+              unoptimized={isExternalUrl(allPostImages[lightboxImageIndex]) || allPostImages[lightboxImageIndex].startsWith('/uploads/')}
               className="max-w-full max-h-full object-contain rounded-lg"
             />
           </div>
-          {post.imageUrls.length > 1 && (
+          {allPostImages.length > 1 && (
             <>
               <button onClick={e => { e.stopPropagation(); prevImage(); }} className="absolute left-4 p-3 bg-gray-800/80 text-white rounded-lg">←</button>
               <button onClick={e => { e.stopPropagation(); nextImage(); }} className="absolute right-4 p-3 bg-gray-800/80 text-white rounded-lg">→</button>

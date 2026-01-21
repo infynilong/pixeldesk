@@ -134,7 +134,8 @@ export async function PUT(request: NextRequest) {
       lastNotifiedLevel: (updatedUser as any).lastNotifiedLevel,
       emailVerified: updatedUser.emailVerified,
       updatedAt: updatedUser.updatedAt,
-      inviteCode: updatedUser.inviteCode
+      inviteCode: updatedUser.inviteCode,
+      isAdmin: updatedUser.isAdmin
     }
 
     return NextResponse.json({
@@ -201,7 +202,8 @@ export async function GET(request: NextRequest) {
       bits: authResult.user.bits,
       lastNotifiedLevel: authResult.user.lastNotifiedLevel,
       emailVerified: authResult.user.emailVerified,
-      inviteCode: authResult.user.inviteCode
+      inviteCode: authResult.user.inviteCode,
+      isAdmin: authResult.user.isAdmin
     }
 
     return NextResponse.json({

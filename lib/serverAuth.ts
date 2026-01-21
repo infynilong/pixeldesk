@@ -13,6 +13,7 @@ export interface AuthenticatedUser {
   lastNotifiedLevel?: number
   emailVerified?: boolean
   inviteCode?: string
+  isAdmin?: boolean
 }
 
 export interface AuthResult {
@@ -75,7 +76,8 @@ export async function verifyAuthFromRequest(request: NextRequest): Promise<AuthR
       level: (user as any).level,
       bits: (user as any).bits,
       emailVerified: user.emailVerified,
-      inviteCode: user.inviteCode || undefined
+      inviteCode: user.inviteCode || undefined,
+      isAdmin: user.isAdmin
     }
 
     return { success: true, user: userData }
@@ -126,7 +128,8 @@ export async function getBasicUserFromRequest(request: NextRequest): Promise<Aut
       level: (user as any).level,
       bits: (user as any).bits,
       emailVerified: user.emailVerified,
-      inviteCode: user.inviteCode || undefined
+      inviteCode: user.inviteCode || undefined,
+      isAdmin: user.isAdmin
     }
 
     return { success: true, user: userData }

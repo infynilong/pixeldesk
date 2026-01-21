@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Post, CreateReplyData } from '@/types/social'
 import UserAvatar from './UserAvatar'
 import CreateReplyForm from './CreateReplyForm'
@@ -150,6 +150,30 @@ export default function PostCard({
     }
   }
 
+  // 提取所有图片（包括 post.imageUrl, post.imageUrls 和正文中的图片链接）
+  const allPostImages = useMemo(() => {
+    const urls: string[] = []
+
+    // 1. 添加主图和多图
+    if (post.imageUrls && post.imageUrls.length > 0) {
+      urls.push(...post.imageUrls)
+    } else if (post.imageUrl) {
+      urls.push(post.imageUrl)
+    }
+
+    // 2. 提取正文内容中的图片
+    if (post.type !== 'MARKDOWN') {
+      const contentImages = extractImageUrls(post.content)
+      contentImages.forEach(img => {
+        if (!urls.includes(img)) {
+          urls.push(img)
+        }
+      })
+    }
+
+    return urls
+  }, [post.imageUrl, post.imageUrls, post.content, post.type])
+
   const cardClasses = isMobile
     ? "group relative bg-gray-900/90 rounded-lg overflow-hidden border border-gray-800"
     : "group relative bg-gray-900/90 rounded-lg overflow-hidden border border-gray-800 hover:border-gray-700"
@@ -254,7 +278,7 @@ export default function PostCard({
           {post.type === 'MARKDOWN' && post.summary ? (
             <div className="relative group/blog-content">
               <div className="min-h-[60px]">
-                {renderContentWithUrls(post.summary, t.social.view_link)}
+                {renderContentWithUrls(post.summary)}
               </div>
               <Link
                 href={`/posts/${post.id}`}
@@ -272,7 +296,7 @@ export default function PostCard({
               </Link>
             </div>
           ) : (
-            renderContentWithUrls(post.content, t.social.view_link)
+            renderContentWithUrls(post.content)
           )}
         </div>
 
@@ -306,13 +330,10 @@ export default function PostCard({
         )}
 
         {/* 图片内容 - 非博客类型 - 九宫格展示 */}
-        {post.type !== 'MARKDOWN' && (post.imageUrl || (post.imageUrls && post.imageUrls.length > 0)) && (
+        {post.type !== 'MARKDOWN' && allPostImages.length > 0 && (
           <div className="mt-2">
             {(() => {
-              const urls = post.imageUrls && post.imageUrls.length > 0
-                ? post.imageUrls
-                : [post.imageUrl || '']
-
+              const urls = allPostImages
               const count = urls.length
 
               if (count === 1) {
@@ -519,7 +540,7 @@ export default function PostCard({
                             </span>
                           </div>
                           <div className="text-gray-300 text-sm leading-relaxed break-words">
-                            {renderContentWithUrls(reply.content, t.social.view_link)}
+                            {renderContentWithUrls(reply.content)}
                           </div>
 
                           {/* 回复中的图片展示 */}
@@ -595,7 +616,7 @@ export default function PostCard({
       )}
 
       {/* 图片放大模态框 */}
-      {showImageModal && (post.imageUrl || (post.imageUrls && post.imageUrls.length > 0)) && typeof window !== 'undefined' && createPortal(
+      {showImageModal && allPostImages.length > 0 && typeof window !== 'undefined' && createPortal(
         <div
           className="fixed inset-0 bg-black/95 flex items-center justify-center p-4"
           style={{ zIndex: 10000, pointerEvents: 'auto' }}
@@ -619,10 +640,7 @@ export default function PostCard({
               onClick={(e) => e.stopPropagation()}
             >
               {(() => {
-                const urls = post.imageUrls && post.imageUrls.length > 0
-                  ? post.imageUrls
-                  : [post.imageUrl || '']
-
+                const urls = allPostImages
                 const count = urls.length
 
                 return (
