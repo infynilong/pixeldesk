@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import ReactMarkdown from 'react-markdown';
+import MarkdownRenderer from "@/components/MarkdownRenderer";
 
 interface Chapter {
     id: string;
@@ -54,9 +54,9 @@ export default function BookReader() {
     if (!book && !isLoading) return <div>未找到书籍</div>;
 
     return (
-        <div className="flex bg-[#fcfbf9] min-h-screen text-gray-900 font-serif">
+        <div className="flex bg-[#fcfbf9] h-screen text-gray-900 font-serif overflow-hidden">
             {/* ToC Sidebar */}
-            <aside className="w-80 bg-[#f5f4f1] border-r border-[#e0deda] h-screen sticky top-0 overflow-y-auto flex flex-col">
+            <aside className="w-80 bg-[#f5f4f1] border-r border-[#e0deda] h-full overflow-y-auto flex flex-col shrink-0">
                 <div className="p-8 border-b border-[#e0deda]">
                     <Link href="/library" className="block text-xs font-sans font-bold text-gray-400 uppercase tracking-widest mb-6 hover:text-black transition-colors">← 返回图书馆</Link>
                     <h1 className="text-2xl font-black leading-tight mb-2">{book?.title}</h1>
@@ -90,9 +90,9 @@ export default function BookReader() {
                             <h2 className="text-4xl font-bold mb-4">{activeChapter.title}</h2>
                         </header>
 
-                        <div className="prose prose-lg prose-stone max-w-none">
+                        <div className="max-w-none">
                             {activeChapter.type === 'TEXT' && (
-                                <ReactMarkdown>{activeChapter.content || "*暂无内容*"}</ReactMarkdown>
+                                <MarkdownRenderer content={activeChapter.content || "*暂无内容*"} />
                             )}
 
                             {activeChapter.type === 'LINK' && (
@@ -105,7 +105,9 @@ export default function BookReader() {
                                 </div>
                             )}
 
-                            {/* Future: POST type rendering */}
+                            {activeChapter.type === 'POST' && (
+                                <MarkdownRenderer content={activeChapter.content || "*此博客内容正在载入或已删除*"} />
+                            )}
                         </div>
                     </div>
                 ) : (

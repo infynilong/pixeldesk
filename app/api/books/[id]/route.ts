@@ -23,6 +23,19 @@ export async function GET(
             return NextResponse.json({ error: 'Book not found' }, { status: 404 })
         }
 
+        // 为 POST 类型的章节填充内容
+        await Promise.all(book.chapters.map(async (chapter) => {
+            if (chapter.type === 'POST' && chapter.postId) {
+                const post = await prisma.posts.findUnique({
+                    where: { id: chapter.postId },
+                    select: { content: true }
+                });
+                if (post) {
+                    chapter.content = post.content;
+                }
+            }
+        }));
+
         return NextResponse.json({ success: true, data: book })
     } catch (error) {
         return NextResponse.json(
