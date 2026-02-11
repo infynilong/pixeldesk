@@ -191,7 +191,7 @@ docker compose up --build -d app
 
 ### 4. 验证直接访问
 尝试在浏览器直接访问不带 `/_next/image` 前缀的图片 URL，例如：
-`https://pixel.infyniclick.com/uploads/assets/blog/xxx.png`
+`https://yourdomain.com/uploads/assets/blog/xxx.png`
 如果直接访问正常但 `next/image` 访问报错，说明 Nginx 配置已生效，代码中的 `unoptimized` 属性将解决此问题。
 
 ---

@@ -12,7 +12,7 @@ export interface SendEmailParams {
 export async function sendEmail({ to, subject, html }: SendEmailParams) {
     try {
         const apiKey = await getSystemSetting('RESEND_API_KEY');
-        const fromEmail = await getSystemSetting('RESEND_FROM_EMAIL', 'support@infyniclick.com');
+        const fromEmail = await getSystemSetting('RESEND_FROM_EMAIL', 'noreply@yourdomain.com');
 
         if (!apiKey) {
             console.warn('RESEND_API_KEY is not configured, skipping email delivery');

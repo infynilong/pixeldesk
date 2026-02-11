@@ -17,7 +17,7 @@ export async function GET() {
 
     // 验证 token (使用 jose 库)
     const secret = new TextEncoder().encode(
-      process.env.NEXTAUTH_SECRET || 'default-secret'
+      process.env.NEXTAUTH_SECRET || ''
     )
 
     const { payload } = await jwtVerify(token.value, secret)

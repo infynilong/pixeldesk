@@ -9,10 +9,10 @@ export class WashroomManager {
 
     createWashroom(map) {
         // 创建洗手间地板层
-        this.washroomFloorLayer = map.createLayer('washroom/washroom_floor', this.scene.addTilesets(map));
+        this.washroomFloorLayer = map.createLayer('washroom/washroom_floor', this.scene.mapRenderer.addTilesets(map));
 
         // 创建洗手间墙层
-        this.washroomWallLayer = map.createLayer('washroom/washroom_wall', this.scene.addTilesets(map));
+        this.washroomWallLayer = map.createLayer('washroom/washroom_wall', this.scene.mapRenderer.addTilesets(map));
 
         // 为洗手间墙添加碰撞
         if (this.washroomWallLayer) {

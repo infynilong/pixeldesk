@@ -55,7 +55,7 @@ nano .env  # 或者使用您喜欢的编辑器修改
 - `DATABASE_URL`: 数据库连接串 (例如 `postgresql://pixel_user:password@db:5432/pixeldesk`)
 - `REDIS_URL`: Redis 连接串 (例如 `redis://:password@redis:6379`)
 - `JWT_SECRET` & `NEXTAUTH_SECRET`: 使用强随机字符串
-- `NEXTAUTH_URL`: 设为 `https://pixel.infyniclick.com`
+- `NEXTAUTH_URL`: 设为 `https://yourdomain.com`
 - `PG_PASSWORD` & `REDIS_PASSWORD`: 数据库和 Redis 的密码
 
 > [!IMPORTANT]
@@ -74,7 +74,7 @@ nano .env  # 或者使用您喜欢的编辑器修改
 sudo apt install certbot -y
 
 # 2. 获取证书
-sudo certbot certonly --standalone -d pixel.infyniclick.com
+sudo certbot certonly --standalone -d yourdomain.com
 ```
 
 ### 2. 配置宿主机 Nginx
@@ -83,16 +83,16 @@ sudo certbot certonly --standalone -d pixel.infyniclick.com
 ```nginx
 server {
     listen 80;
-    server_name pixel.infyniclick.com;
+    server_name yourdomain.com;
     return 301 https://$host$request_uri;
 }
 
 server {
     listen 443 ssl;
-    server_name pixel.infyniclick.com;
+    server_name yourdomain.com;
 
-    ssl_certificate /etc/letsencrypt/live/pixel.infyniclick.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/pixel.infyniclick.com/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/yourdomain.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/yourdomain.com/privkey.pem;
 
     # 推荐安全协议
     ssl_protocols TLSv1.2 TLSv1.3;

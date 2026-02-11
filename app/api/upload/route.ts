@@ -5,8 +5,8 @@ import { existsSync } from 'fs'
 import { jwtVerify } from 'jose'
 import { LevelingService } from '@/lib/services/leveling'
 
-const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'your-secret-key')
-const ADMIN_JWT_SECRET = new TextEncoder().encode(process.env.NEXTAUTH_SECRET || 'default-secret')
+const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || '')
+const ADMIN_JWT_SECRET = new TextEncoder().encode(process.env.NEXTAUTH_SECRET || '')
 
 async function getUserIdFromRequest(request: NextRequest) {
     // 尝试获取用户 token

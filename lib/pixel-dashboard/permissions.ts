@@ -59,7 +59,7 @@ async function getCurrentAdmin(): Promise<{ id: string; role: AdminRole } | null
     }
 
     const secret = new TextEncoder().encode(
-      process.env.NEXTAUTH_SECRET || 'default-secret'
+      process.env.NEXTAUTH_SECRET || ''
     )
 
     const { payload } = await jwtVerify(token.value, secret)

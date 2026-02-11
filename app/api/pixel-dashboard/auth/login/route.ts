@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
 
     // 生成 JWT token (使用 jose 库，兼容 Edge Runtime)
     const secret = new TextEncoder().encode(
-      process.env.NEXTAUTH_SECRET || 'default-secret'
+      process.env.NEXTAUTH_SECRET || ''
     )
 
     const token = await new SignJWT({

@@ -439,7 +439,9 @@ export class Start extends Phaser.Scene {
 
   update() {
     // 只处理需要每帧更新的核心逻辑
-    this.cameraInput.handlePlayerMovement()
+    if (this.cameraInput) {
+      this.cameraInput.handlePlayerMovement()
+    }
 
     // 更新前台标签位置
     if (this.frontDeskManager) {

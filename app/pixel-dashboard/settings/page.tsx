@@ -32,7 +32,7 @@ export default function AdminSettingsPage() {
                 if (loadedSettings.length === 0) {
                     loadedSettings = [
                         { key: 'RESEND_API_KEY', value: '', description: 'Resend API 密钥', category: 'email' },
-                        { key: 'RESEND_FROM_EMAIL', value: 'support@infyniclick.com', description: '发件人邮箱地址', category: 'email' }
+                        { key: 'RESEND_FROM_EMAIL', value: 'noreply@yourdomain.com', description: '发件人邮箱地址', category: 'email' }
                     ]
                 } else {
                     // 确保 Resend 设置存在
@@ -40,7 +40,7 @@ export default function AdminSettingsPage() {
                         loadedSettings.push({ key: 'RESEND_API_KEY', value: '', description: 'Resend API 密钥', category: 'email' })
                     }
                     if (!loadedSettings.some(s => s.key === 'RESEND_FROM_EMAIL')) {
-                        loadedSettings.push({ key: 'RESEND_FROM_EMAIL', value: 'support@infyniclick.com', description: '发件人邮箱地址', category: 'email' })
+                        loadedSettings.push({ key: 'RESEND_FROM_EMAIL', value: 'noreply@yourdomain.com', description: '发件人邮箱地址', category: 'email' })
                     }
                 }
 

@@ -9,7 +9,7 @@ async function main() {
 
   // 1. 获取配置
   const adminUsername = process.env.ADMIN_USERNAME || 'admin'
-  const adminEmail = process.env.ADMIN_EMAIL || 'admin@pixeldesk.com'
+  const adminEmail = process.env.ADMIN_EMAIL || 'admin@yourdomain.com'
   let adminPasswordRaw = process.env.ADMIN_PASSWORD
 
   // 如果没有提供密码，且是生产环境，则报错

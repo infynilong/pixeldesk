@@ -74,11 +74,13 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
           <LoginForm
             onSuccess={handleLoginSuccess}
             onSwitchToRegister={handleSwitchToRegister}
+            onClose={handleClose}
           />
         ) : (
           <RegisterForm
             onSuccess={handleRegisterSuccess}
             onSwitchToLogin={handleSwitchToLogin}
+            onClose={handleClose}
           />
         )}
       </div>
