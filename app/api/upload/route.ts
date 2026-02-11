@@ -87,7 +87,8 @@ export async function POST(request: NextRequest) {
         const fileName = `${userId}-${timestamp}-${random}.${safeExt}`
 
         // 确保目录存在
-        const uploadDir = join(process.cwd(), 'public', 'uploads', 'assets', folder)
+        // User specific upload directory: uploads/{userId}/{folder}
+        const uploadDir = join(process.cwd(), 'public', 'uploads', userId, folder)
         if (!existsSync(uploadDir)) {
             await mkdir(uploadDir, { recursive: true })
         }
@@ -97,7 +98,7 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json({
             success: true,
-            url: `/uploads/assets/${folder}/${fileName}`
+            url: `/uploads/${userId}/${folder}/${fileName}`
         })
 
     } catch (error: any) {

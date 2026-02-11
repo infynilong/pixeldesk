@@ -237,7 +237,8 @@ export default function CreatePostForm({ onSubmit, onCancel, isMobile = false }:
                 <>
                   <span className="text-base">📷</span>
                   <span>点击上传图片</span>
-                  <span className="text-[10px] opacity-60">(最大 500KB)</span>
+                  <span className="text-[10px] opacity-60">(支持大图)</span>
+
                 </>
               )}
             </button>

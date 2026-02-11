@@ -34,9 +34,9 @@ export class AiNpcManager {
         // 优先复用场景中已经定义好的物理组
         this.npcGroup = this.scene.npcGroup || this.scene.physics.add.group({ immovable: true });
 
-        // 确保 NPC 进入其他玩家 group (为了兼容 Start.js 中的其他逻辑)
-        if (!this.scene.otherPlayersGroup) {
-            this.scene.otherPlayersGroup = this.scene.physics.add.group();
+        // 确保 NPC 进入其他玩家 group (via PlayerCollisionManager)
+        if (this.scene.playerCollisionManager && !this.scene.playerCollisionManager.otherPlayersGroup) {
+            this.scene.playerCollisionManager.otherPlayersGroup = this.scene.physics.add.group();
         }
 
         // 定时设置环境碰撞，确保图层已加载
@@ -47,8 +47,8 @@ export class AiNpcManager {
                     if (layer) this.scene.physics.add.collider(this.npcGroup, layer);
                 });
             }
-            if (this.scene.deskColliders) {
-                this.scene.physics.add.collider(this.npcGroup, this.scene.deskColliders);
+            if (this.scene.mapRenderer?.deskColliders) {
+                this.scene.physics.add.collider(this.npcGroup, this.scene.mapRenderer?.deskColliders);
             }
         });
 
@@ -234,8 +234,8 @@ export class AiNpcManager {
         // 2. otherPlayersGroup 用于与主玩家的物理碰撞和对话交互
         if (this.npcGroup) this.npcGroup.add(npcCharacter);
 
-        if (this.scene.otherPlayersGroup) {
-            this.scene.otherPlayersGroup.add(npcCharacter);
+        if (this.scene.playerCollisionManager?.otherPlayersGroup) {
+            this.scene.playerCollisionManager.otherPlayersGroup.add(npcCharacter);
 
             // 再次强化物理属性：确保在加入 Group 后，其 Immovable 状态仍为 true
             // 防止玩家推动 NPC
@@ -243,10 +243,8 @@ export class AiNpcManager {
                 npcCharacter.body.setImmovable(true);
             }
 
-            // 触发 Start.js 里的检测器创建
-            if (typeof this.scene.ensurePlayerCharacterOverlap === 'function') {
-                this.scene.ensurePlayerCharacterOverlap();
-            }
+            // 触发碰撞检测器创建 (via PlayerCollisionManager)
+            this.scene.playerCollisionManager.ensurePlayerCharacterOverlap();
         }
 
         this.createAiIcon(npcCharacter, x, y);

@@ -80,6 +80,11 @@ const menuItems: MenuItem[] = [
     icon: '📚',
     href: '/pixel-dashboard/library',
   },
+  {
+    title: '存储空间',
+    icon: '💾',
+    href: '/pixel-dashboard/storage',
+  },
 ]
 
 export function Sidebar() {

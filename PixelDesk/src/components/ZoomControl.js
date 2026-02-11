@@ -71,9 +71,9 @@ export class ZoomControl extends Phaser.GameObjects.Container {
     }
     
     adjustZoom(delta) {
-        // 调用场景中的adjustZoom方法
-        if (this.scene.adjustZoom) {
-            this.scene.adjustZoom(delta);
+        // 调用CameraInputManager中的adjustZoom方法
+        if (this.scene.cameraInput && this.scene.cameraInput.adjustZoom) {
+            this.scene.cameraInput.adjustZoom(delta);
         }
     }
     

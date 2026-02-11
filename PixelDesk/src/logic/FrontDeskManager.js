@@ -63,8 +63,8 @@ export class FrontDeskManager {
 
             // 🔧 关键修复：添加到 deskColliders group
             // staticGroup.add() 会自动为 sprite 添加静态物理体
-            if (this.scene.deskColliders) {
-                this.scene.deskColliders.add(sprite);
+            if (this.scene.mapRenderer?.deskColliders) {
+                this.scene.mapRenderer.deskColliders.add(sprite);
                 console.log(`🏢 [FrontDesk] ${deskData.name} 已添加到 deskColliders group`);
 
                 // 🔧 关键修复：确保物理体存在（staticGroup.add()应该会自动创建）

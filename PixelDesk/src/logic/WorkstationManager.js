@@ -1296,9 +1296,9 @@ export class WorkstationManager {
             if (!this.scene.textures.exists(characterKey)) {
                 debugLog(`📥 [addCharacterToWorkstation] 开始按需加载角色纹理: ${characterKey}`);
 
-                // 优先使用 Start.js 提供的按需加载方法
-                if (typeof this.scene.ensureCharacterTexture === 'function') {
-                    this.scene.ensureCharacterTexture(characterKey).then(success => {
+                // 优先使用 AssetLoader 提供的按需加载方法
+                if (this.scene.assetLoader && typeof this.scene.assetLoader.ensureCharacterTexture === 'function') {
+                    this.scene.assetLoader.ensureCharacterTexture(characterKey).then(success => {
                         if (success && this.isSceneValid()) {
                             this.createCharacterSprite(workstation, charX, charY, characterKey, userId, characterDirection);
                         } else if (this.isSceneValid()) {
@@ -1422,13 +1422,11 @@ export class WorkstationManager {
             // 添加到场景
             this.scene.add.existing(character);
 
-            // 加入物理组（关键：用于碰撞检测）
-            if (this.scene.otherPlayersGroup) {
-                this.scene.otherPlayersGroup.add(character);
+            // 加入物理组（关键：用于碰撞检测，委托给 PlayerCollisionManager）
+            if (this.scene.playerCollisionManager?.otherPlayersGroup) {
+                this.scene.playerCollisionManager.otherPlayersGroup.add(character);
                 // 确保碰撞器已创建
-                if (typeof this.scene.ensurePlayerCharacterOverlap === 'function') {
-                    this.scene.ensurePlayerCharacterOverlap();
-                }
+                this.scene.playerCollisionManager.ensurePlayerCharacterOverlap();
             }
 
             // 保存引用

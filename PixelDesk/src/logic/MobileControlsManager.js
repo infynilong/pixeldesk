@@ -180,7 +180,7 @@ export class MobileControlsManager {
                     const newZoom = Phaser.Math.Clamp(initialZoom * factor, 0.5, 2);
                     this.scene.cameras.main.setZoom(newZoom);
                     // Update deadzone and keep in storage
-                    if (this.scene.updateDeadzone) this.scene.updateDeadzone();
+                    if (this.scene.cameraInput) this.scene.cameraInput.updateDeadzone();
                     localStorage.setItem("cameraZoom", newZoom.toString());
                 }
             }
