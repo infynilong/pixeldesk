@@ -1,11 +1,13 @@
 import jwt, { SignOptions } from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 
-if (!process.env.JWT_SECRET) {
-  throw new Error('JWT_SECRET environment variable is required. Please set it in your .env file.');
+function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error('JWT_SECRET environment variable is required. Please set it in your .env file.');
+  }
+  return secret;
 }
-const JWT_SECRET = process.env.JWT_SECRET;
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '24h';
 
 export interface JWTPayload {
   userId: string;
@@ -20,7 +22,7 @@ export interface JWTPayload {
  * Generate JWT token for user
  */
 export function generateToken(payload: Omit<JWTPayload, 'iat' | 'exp'>): string {
-  return jwt.sign(payload, JWT_SECRET, {
+  return jwt.sign(payload, getJwtSecret(), {
     expiresIn: '7d' // 7天，与Cookie和Session过期时间保持一致
   });
 }
@@ -30,7 +32,7 @@ export function generateToken(payload: Omit<JWTPayload, 'iat' | 'exp'>): string 
  */
 export function verifyToken(token: string): JWTPayload | null {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as JWTPayload;
+    const decoded = jwt.verify(token, getJwtSecret()) as JWTPayload;
     return decoded;
   } catch (error) {
     console.error('JWT verification failed:', error);
