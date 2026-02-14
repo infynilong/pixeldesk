@@ -10,6 +10,7 @@ import { DayNightManager } from "../logic/DayNightManager.js"
 import { IndoorAreasManager } from "../logic/IndoorAreasManager.js"
 import { BillboardManager } from "../logic/BillboardManager.js"
 import { MobileControlsManager } from "../logic/MobileControlsManager.js"
+import { PathfindingManager } from "../logic/PathfindingManager.js"
 import { GameBridgeAPI } from "../logic/GameBridgeAPI.js"
 import { AssetLoader } from "../logic/AssetLoader.js"
 import { PlayerCollisionManager } from "../logic/PlayerCollisionManager.js"
@@ -83,6 +84,9 @@ export class Start extends Phaser.Scene {
 
   async create() {
     // Phaser scene creation (async to load player position from database)
+
+    // 设置游戏画布默认鼠标样式
+    this.input.setDefaultCursor('pointer')
 
     // 注册 Phaser ↔ React 桥接 API
     this.gameBridge = new GameBridgeAPI(this)
@@ -605,6 +609,15 @@ export class Start extends Phaser.Scene {
       // 🔧 移除：group碰撞器会在第一次加载工位后创建，不在这里创建
       // 原因：此时deskColliders可能还是空的（区块异步加载）
 
+      // 初始化寻路管理器（碰撞属性设置完成后）
+      if (!this.pathfindingManager) {
+        this.pathfindingManager = new PathfindingManager(this, {
+          tileSize: 48,
+          playerSpeed: this.player.speed || 200
+        })
+        this.pathfindingManager.init(this.mapLayers, this.mapRenderer?.deskColliders)
+      }
+
       // 添加玩家碰撞边界调试显示
       if (this.player.body) {
         const debugGraphics = this.add.graphics()
@@ -710,6 +723,11 @@ export class Start extends Phaser.Scene {
       // 🔧 性能优化：在第一次加载工位后，创建玩家与deskColliders的group碰撞器
       // 确保此时deskColliders中已有工位，碰撞才能生效
       this.playerCollisionManager.ensurePlayerDeskCollider()
+
+      // 刷新寻路网格（家具变化）
+      if (this.pathfindingManager) {
+        this.pathfindingManager.refreshDeskColliders(this.mapRenderer?.deskColliders)
+      }
     })
 
     // 监听区块卸载事件
@@ -718,6 +736,11 @@ export class Start extends Phaser.Scene {
       data.workstations.forEach(obj => {
         this.unloadWorkstation(obj)
       })
+
+      // 刷新寻路网格（家具变化）
+      if (this.pathfindingManager) {
+        this.pathfindingManager.refreshDeskColliders(this.mapRenderer?.deskColliders)
+      }
     })
   }
 
@@ -1431,6 +1454,12 @@ export class Start extends Phaser.Scene {
     if (this.assetLoader) {
       this.assetLoader.destroy()
       this.assetLoader = null
+    }
+
+    // 清理寻路管理器
+    if (this.pathfindingManager) {
+      this.pathfindingManager.destroy()
+      this.pathfindingManager = null
     }
 
     // 调用父类的shutdown方法

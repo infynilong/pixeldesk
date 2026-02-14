@@ -31,8 +31,8 @@ export class CameraInputManager {
       const mapWidth = officeLayerData.width * map.tileWidth
       const mapHeight = officeLayerData.height * map.tileHeight
       // Tiled JSON for infinite maps provides startx/starty in tiles, not pixels
-      const mapX = officeLayerData.startx * map.tileWidth
-      const mapY = officeLayerData.starty * map.tileHeight
+      const mapX = (officeLayerData.startx || 0) * map.tileWidth
+      const mapY = (officeLayerData.starty || 0) * map.tileHeight
 
       scene.cameras.main.setBounds(mapX, mapY, mapWidth, mapHeight)
       scene.physics.world.setBounds(mapX, mapY, mapWidth, mapHeight)
@@ -243,6 +243,11 @@ export class CameraInputManager {
       if (scene.player.body.setVelocity) {
         scene.player.body.setVelocity(0, 0);
       }
+      // 如果正在寻路也一并取消
+      if (scene.pathfindingManager && scene.pathfindingManager.isFollowingPath) {
+        scene.pathfindingManager.cancelPathFollowing()
+        scene.player.isAutoWalking = false
+      }
       return;
     }
 
@@ -270,7 +275,38 @@ export class CameraInputManager {
     // 获取摇杆数据
     const joystickVector = scene.mobileControls ? scene.mobileControls.getVector() : null;
 
-    // 将移动处理委托给Player类
+    // 检测是否有手动输入（用于打断寻路）
+    const hasManualInput = this.cursors.left.isDown || this.cursors.right.isDown ||
+      this.cursors.up.isDown || this.cursors.down.isDown ||
+      this.wasdKeys.A.isDown || this.wasdKeys.D.isDown ||
+      this.wasdKeys.W.isDown || this.wasdKeys.S.isDown ||
+      (joystickVector && (Math.abs(joystickVector.x) > 0.1 || Math.abs(joystickVector.y) > 0.1))
+
+    // 🖱️ 点击寻路：路径跟随
+    if (scene.pathfindingManager && scene.pathfindingManager.isFollowingPath) {
+      if (hasManualInput) {
+        // 手动输入打断寻路
+        scene.pathfindingManager.cancelPathFollowing()
+        scene.player.isAutoWalking = false
+        // fall through 到下方正常键盘处理
+      } else {
+        // 继续跟随路径
+        const moveData = scene.pathfindingManager.updatePathFollowing(scene.player)
+        if (moveData) {
+          if (moveData.arrived) {
+            scene.player.isAutoWalking = false
+            scene.player.move(0, 0, moveData.direction)
+            scene.player.planDatabaseSave()
+          } else {
+            scene.player.move(moveData.velocityX, moveData.velocityY, moveData.direction)
+            scene.player.saveState()
+          }
+          return
+        }
+      }
+    }
+
+    // 将移动处理委托给Player类（键盘/摇杆）
     scene.player.handleMovement(this.cursors, this.wasdKeys, joystickVector)
   }
 

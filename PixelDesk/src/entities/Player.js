@@ -21,6 +21,7 @@ export class Player extends Phaser.GameObjects.Container {
         this.spriteKey = spriteKey;
         this.currentDirection = 'down'; // 默认朝向，会在Start.js中根据保存的状态更新
         this.speed = 200;
+        this.isAutoWalking = false; // 点击寻路自动行走中
         this.enableMovement = enableMovement;
         this.enableStateSave = enableStateSave;
         this.isOtherPlayer = isOtherPlayer;

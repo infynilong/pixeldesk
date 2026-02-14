@@ -117,7 +117,7 @@ export class GameBridgeAPI {
     }
 
     // === 焦点恢复：点击游戏区域时自动释放输入框焦点 ===
-    scene.input.on('pointerdown', () => {
+    scene.input.on('pointerdown', (pointer) => {
       const activeElement = document.activeElement
       const isInput = activeElement && (
         activeElement.tagName === 'INPUT' ||
@@ -135,6 +135,21 @@ export class GameBridgeAPI {
 
       window.focus()
       if (scene.game.canvas) scene.game.canvas.focus()
+
+      // 🖱️ 点击寻路：点击空白区域触发自动行走
+      if (scene.pathfindingManager && scene.player && scene.player.enableMovement) {
+        const hitObjects = scene.input.hitTestPointer(pointer)
+        const hitInteractive = hitObjects.some(obj =>
+          obj !== scene.player && obj.input && obj.input.enabled
+        )
+
+        if (!hitInteractive) {
+          const started = scene.pathfindingManager.handlePointerDown(pointer, scene.player)
+          if (started) {
+            scene.player.isAutoWalking = true
+          }
+        }
+      }
     })
 
     // === 触发 Phaser 游戏初始化完成事件 ===
